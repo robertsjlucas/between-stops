@@ -413,6 +413,15 @@
   justify-content: space-between;
 }
 
+.projectCardCover {
+  display: block;
+  width: calc(100% + 48px);
+  height: 170px;
+  margin: -24px -24px 22px;
+  border-radius: 20px 20px 0 0;
+  object-fit: cover;
+}
+
 .projectCardTop small {
   color: #979289;
 }
@@ -508,6 +517,23 @@
   padding: 12px 18px;
 }
 
+.experienceHeaderActions {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 8px;
+}
+
+.tourDetailsButton {
+  padding: 12px 18px;
+  border: 1px solid #d6d2c9;
+  border-radius: 999px;
+  background: white;
+  color: #171717;
+  font-weight: 700;
+  cursor: pointer;
+}
+
 .studioBrandHeader {
   min-height: 70px;
 }
@@ -521,6 +547,179 @@
 .saveMessage {
   color: #77736b;
   font-size: 10px;
+}
+
+/* MARKETPLACE DETAILS */
+
+.marketplaceFormPage {
+  display: grid;
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: 64px 42px 80px;
+  grid-template-columns:
+    minmax(220px, 0.75fr)
+    minmax(420px, 1.25fr);
+  gap: 70px;
+  align-items: start;
+}
+
+.marketplaceFormIntro {
+  position: sticky;
+  top: 30px;
+}
+
+.marketplaceFormIntro h1 {
+  margin: 0;
+  font-size: clamp(40px, 5vw, 62px);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.marketplaceFormIntro > p:last-child {
+  color: #77736b;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.marketplaceFormCard {
+  padding: 34px;
+  border: 1px solid #e0ddd5;
+  border-radius: 24px;
+  background: white;
+  box-shadow:
+    0 16px 50px rgba(0, 0, 0, 0.055);
+}
+
+.marketplaceFormCard label {
+  display: flex;
+  margin: 24px 0 8px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  color: #4e4b46;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.marketplaceFormCard label:first-of-type {
+  margin-top: 0;
+}
+
+.marketplaceFormCard label span {
+  color: #98938a;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+.marketplaceFormCard input:not([type="file"]),
+.marketplaceFormCard textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d6d3cb;
+  border-radius: 12px;
+  background: #fbfaf7;
+  color: #171717;
+  font: inherit;
+}
+
+.marketplaceFormCard input:not([type="file"]) {
+  min-height: 48px;
+  padding: 0 14px;
+}
+
+.marketplaceFormCard textarea {
+  padding: 13px 14px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.marketplaceFileInput {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px;
+  border: 1px dashed #bbb6ac;
+  border-radius: 12px;
+  background: #fbfaf7;
+  color: #5f5b54;
+  font-size: 11px;
+}
+
+.profileAvatarPreview {
+  display: block;
+  width: 112px;
+  height: 112px;
+  margin-bottom: 12px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.tourCoverPreview {
+  display: block;
+  width: 100%;
+  max-height: 300px;
+  margin-bottom: 12px;
+  border-radius: 16px;
+  object-fit: cover;
+}
+
+.selectedFileName {
+  display: block;
+  margin-top: 8px;
+  color: #34312d;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.marketplaceFormHint,
+.characterCount {
+  margin: 7px 0 0;
+  color: #969188;
+  font-size: 9px;
+}
+
+.characterCount {
+  text-align: right;
+}
+
+.marketplaceFormError {
+  margin: 0 0 20px;
+  padding: 13px 14px;
+  border-radius: 12px;
+  background: #f5e6e3;
+  color: #7b3027;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.tourAccessSummary {
+  display: grid;
+  gap: 5px;
+  margin-top: 28px;
+  padding: 17px;
+  border-radius: 14px;
+  background: #ece9e1;
+}
+
+.tourAccessSummary span {
+  color: #7c776f;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.tourAccessSummary small {
+  color: #77736b;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.marketplaceFormActions {
+  display: flex;
+  margin-top: 30px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
 /* STORIES */
@@ -829,6 +1028,14 @@
     flex-direction: column;
   }
 
+  .experienceHeaderActions {
+    width: 100%;
+  }
+
+  .experienceHeaderActions button {
+    flex: 1;
+  }
+
   .experienceTitleInput {
     font-size: 38px;
   }
@@ -844,5 +1051,28 @@
   .mapFootnote {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .marketplaceFormPage {
+    padding: 36px 22px 60px;
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .marketplaceFormIntro {
+    position: static;
+  }
+
+  .marketplaceFormCard {
+    padding: 24px;
+  }
+
+  .marketplaceFormActions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .marketplaceFormActions button {
+    width: 100%;
   }
 }

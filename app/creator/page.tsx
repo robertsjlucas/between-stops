@@ -36,14 +36,20 @@ import {
 import {
   deleteCreatorProject,
   loadBrowserProjects,
+  loadCreatorProfile,
   loadCreatorProjects,
+  removeMediaFile,
+  saveCreatorProfile,
   saveCreatorProject,
+  uploadProfileAvatar,
   uploadStoryMedia,
+  uploadTourCover,
 } from "@/lib/creator-projects";
 
 import type {
   CreatorStory,
   CreatorStoryType,
+  CreatorProfile,
   MediaAttachment,
   SavedProject,
   SectionMode,
@@ -64,6 +70,8 @@ type CreatorStage =
   | "projects"
   | "route"
   | "name"
+  | "details"
+  | "profile"
   | "studio";
 
 type RouteChoice = {
@@ -222,6 +230,76 @@ export default function CreatorPage() {
     experienceName,
     setExperienceName,
   ] = useState("");
+
+  const [
+    experienceSummary,
+    setExperienceSummary,
+  ] = useState("");
+
+  const [
+    experienceDescription,
+    setExperienceDescription,
+  ] = useState("");
+
+  const [
+    experienceDuration,
+    setExperienceDuration,
+  ] = useState("");
+
+  const [
+    coverImage,
+    setCoverImage,
+  ] = useState<
+    MediaAttachment | undefined
+  >(undefined);
+
+  const [
+    pendingCoverFile,
+    setPendingCoverFile,
+  ] = useState<File | null>(
+    null
+  );
+
+  const [
+    creatorProfile,
+    setCreatorProfile,
+  ] = useState<CreatorProfile | null>(
+    null
+  );
+
+  const [
+    profileName,
+    setProfileName,
+  ] = useState("");
+
+  const [
+    profileBio,
+    setProfileBio,
+  ] = useState("");
+
+  const [
+    profileAvatar,
+    setProfileAvatar,
+  ] = useState<
+    MediaAttachment | undefined
+  >(undefined);
+
+  const [
+    pendingAvatarFile,
+    setPendingAvatarFile,
+  ] = useState<File | null>(
+    null
+  );
+
+  const [
+    detailsSaving,
+    setDetailsSaving,
+  ] = useState(false);
+
+  const [
+    profileSaving,
+    setProfileSaving,
+  ] = useState(false);
 
   const [
     projectId,
@@ -402,12 +480,34 @@ export default function CreatorPage() {
             supabase
           );
 
+        const profile =
+          await loadCreatorProfile(
+            supabase
+          );
+
         if (isActive) {
           setProjects(
             latestProjects
           );
 
           setProjectError("");
+
+          setCreatorProfile(
+            profile
+          );
+
+          setProfileName(
+            profile?.displayName ??
+              ""
+          );
+
+          setProfileBio(
+            profile?.bio ?? ""
+          );
+
+          setProfileAvatar(
+            profile?.avatar
+          );
         }
       } catch (error) {
         const detail =
@@ -1057,9 +1157,85 @@ export default function CreatorPage() {
     PROJECTS
   */
 
+  function buildProject(
+    id: string,
+    projectStories = stories,
+    projectCover = coverImage
+  ): SavedProject {
+    const existing =
+      projects.find(
+        (project) =>
+          project.id === id
+      );
+
+    const parsedDuration =
+      Number.parseInt(
+        experienceDuration,
+        10
+      );
+
+    return {
+      id,
+      name:
+        experienceName.trim(),
+      city,
+      selectedRouteId,
+      sectionMode,
+      startStopId:
+        selectedStartStop?.id ??
+        startStopId,
+      endStopId:
+        selectedEndStop?.id ??
+        endStopId,
+      summary:
+        experienceSummary.trim(),
+      description:
+        experienceDescription.trim(),
+      coverImage: projectCover,
+      durationMinutes:
+        Number.isFinite(
+          parsedDuration
+        ) && parsedDuration > 0
+          ? parsedDuration
+          : undefined,
+      startCoordinates:
+        selectedStartStop
+          ?.coordinates,
+      visibility:
+        existing?.visibility ??
+        "private",
+      accessType:
+        existing?.accessType ??
+        "free",
+      pricePence:
+        existing?.pricePence,
+      currency:
+        existing?.currency ??
+        "GBP",
+      languageCode:
+        existing?.languageCode ??
+        "en-GB",
+      publishedAt:
+        existing?.publishedAt,
+      rightsConfirmedAt:
+        existing?.rightsConfirmedAt,
+      stories: projectStories,
+      status:
+        existing?.status ??
+        "draft",
+      updatedAt:
+        new Date().toISOString(),
+    };
+  }
+
   function newProject() {
     setProjectId(null);
     setExperienceName("");
+    setExperienceSummary("");
+    setExperienceDescription("");
+    setExperienceDuration("");
+    setCoverImage(undefined);
+    setPendingCoverFile(null);
     setStories([]);
 
     setMode("tram");
@@ -1094,6 +1270,28 @@ export default function CreatorPage() {
     setExperienceName(
       project.name
     );
+
+    setExperienceSummary(
+      project.summary ?? ""
+    );
+
+    setExperienceDescription(
+      project.description ?? ""
+    );
+
+    setExperienceDuration(
+      project.durationMinutes
+        ? String(
+            project.durationMinutes
+          )
+        : ""
+    );
+
+    setCoverImage(
+      project.coverImage
+    );
+
+    setPendingCoverFile(null);
 
     setSelectedRouteId(
       project.selectedRouteId
@@ -1137,34 +1335,8 @@ export default function CreatorPage() {
       projectId ??
       crypto.randomUUID();
 
-    const project: SavedProject =
-      {
-        id,
-
-        name:
-          experienceName.trim(),
-
-        city,
-
-        selectedRouteId,
-
-        sectionMode,
-
-        startStopId:
-          selectedStartStop?.id ??
-          startStopId,
-
-        endStopId:
-          selectedEndStop?.id ??
-          endStopId,
-
-        stories,
-
-        status: "draft",
-
-        updatedAt:
-          new Date().toISOString(),
-      };
+    const project =
+      buildProject(id);
 
     const exists =
       projects.some(
@@ -1241,6 +1413,213 @@ export default function CreatorPage() {
           "Unknown error"
         }`
       );
+    }
+  }
+
+  async function saveTourDetails() {
+    if (
+      !experienceName.trim() ||
+      detailsSaving
+    ) {
+      return;
+    }
+
+    setDetailsSaving(true);
+    setProjectError("");
+    setSaveMessage("Saving…");
+
+    const id =
+      projectId ??
+      crypto.randomUUID();
+
+    try {
+      const supabase =
+        createClient();
+
+      let project =
+        buildProject(id);
+
+      await saveCreatorProject(
+        supabase,
+        project
+      );
+
+      if (pendingCoverFile) {
+        const previousPath =
+          coverImage?.path;
+
+        const uploadedCover =
+          await uploadTourCover(
+            supabase,
+            id,
+            pendingCoverFile
+          );
+
+        project =
+          buildProject(
+            id,
+            stories,
+            uploadedCover
+          );
+
+        await saveCreatorProject(
+          supabase,
+          project
+        );
+
+        if (
+          previousPath &&
+          previousPath !==
+            uploadedCover.path
+        ) {
+          await removeMediaFile(
+            supabase,
+            "tour-media",
+            previousPath
+          );
+        }
+
+        setCoverImage(
+          uploadedCover
+        );
+        setPendingCoverFile(null);
+      }
+
+      setProjectId(id);
+
+      setProjects(
+        (current) => {
+          const exists =
+            current.some(
+              (item) =>
+                item.id === id
+            );
+
+          return exists
+            ? current.map(
+                (item) =>
+                  item.id === id
+                    ? project
+                    : item
+              )
+            : [project, ...current];
+        }
+      );
+
+      setSaveMessage("Saved");
+      setStage("studio");
+
+      window.setTimeout(
+        () =>
+          setSaveMessage(""),
+        1600
+      );
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : "Unknown error";
+
+      setSaveMessage("");
+      setProjectError(
+        `The tour details could not be saved: ${detail}`
+      );
+    } finally {
+      setDetailsSaving(false);
+    }
+  }
+
+  async function saveProfile() {
+    if (
+      !profileName.trim() ||
+      profileSaving
+    ) {
+      return;
+    }
+
+    setProfileSaving(true);
+    setProjectError("");
+    setSaveMessage("Saving…");
+
+    try {
+      const supabase =
+        createClient();
+
+      let avatar =
+        profileAvatar;
+
+      let previousAvatarPath:
+        | string
+        | undefined;
+
+      if (pendingAvatarFile) {
+        previousAvatarPath =
+          profileAvatar?.path;
+
+        avatar =
+          await uploadProfileAvatar(
+            supabase,
+            pendingAvatarFile
+          );
+      }
+
+      await saveCreatorProfile(
+        supabase,
+        {
+          displayName:
+            profileName.trim(),
+          bio:
+            profileBio.trim(),
+          avatar,
+          isPublic: true,
+        }
+      );
+
+      if (
+        previousAvatarPath &&
+        avatar &&
+        previousAvatarPath !==
+          avatar.path
+      ) {
+        await removeMediaFile(
+          supabase,
+          "profile-media",
+          previousAvatarPath
+        );
+      }
+
+      const refreshedProfile =
+        await loadCreatorProfile(
+          supabase
+        );
+
+      setCreatorProfile(
+        refreshedProfile
+      );
+      setProfileAvatar(
+        refreshedProfile?.avatar
+      );
+      setPendingAvatarFile(null);
+      setSaveMessage("Profile saved");
+      setStage("projects");
+
+      window.setTimeout(
+        () =>
+          setSaveMessage(""),
+        1600
+      );
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : "Unknown error";
+
+      setSaveMessage("");
+      setProjectError(
+        `Your profile could not be saved: ${detail}`
+      );
+    } finally {
+      setProfileSaving(false);
     }
   }
 
@@ -1516,26 +1895,11 @@ export default function CreatorPage() {
               story,
             ];
 
-      const project: SavedProject =
-        {
-          id: resolvedProjectId,
-          name:
-            experienceName.trim(),
-          city,
-          selectedRouteId,
-          sectionMode,
-          startStopId:
-            selectedStartStop?.id ??
-            startStopId,
-          endStopId:
-            selectedEndStop?.id ??
-            endStopId,
-          stories:
-            updatedStories,
-          status: "draft",
-          updatedAt:
-            new Date().toISOString(),
-        };
+      const project =
+        buildProject(
+          resolvedProjectId,
+          updatedStories
+        );
 
       await saveCreatorProject(
         supabase,
@@ -1639,6 +2003,19 @@ export default function CreatorPage() {
 
             <button
               className="headerTextButton"
+              onClick={() =>
+                setStage(
+                  "profile"
+                )
+              }
+            >
+              {creatorProfile
+                ? "Your profile"
+                : "Create profile"}
+            </button>
+
+            <button
+              className="headerTextButton"
               onClick={signOut}
             >
               Sign out
@@ -1727,6 +2104,18 @@ export default function CreatorPage() {
                       project.id
                     }
                   >
+                    {project.coverImage
+                      ?.url && (
+                      <img
+                        className="projectCardCover"
+                        src={
+                          project.coverImage
+                            .url
+                        }
+                        alt=""
+                      />
+                    )}
+
                     <div className="projectCardTop">
                       <span className="draftStatus">
                         Draft
@@ -1784,6 +2173,163 @@ export default function CreatorPage() {
                 );
               }
             )}
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  /*
+    PROFILE SCREEN
+  */
+
+  if (stage === "profile") {
+    return (
+      <main className="creatorStudioShell">
+        <header className="creatorBrandHeader">
+          <div>
+            <div className="creatorLogo">
+              Between Stops
+            </div>
+
+            <p className="creatorAreaLabel">
+              Creator profile
+            </p>
+          </div>
+
+          <button
+            className="headerTextButton"
+            onClick={() =>
+              setStage("projects")
+            }
+          >
+            Projects
+          </button>
+        </header>
+
+        <section className="marketplaceFormPage">
+          <div className="marketplaceFormIntro">
+            <p className="creatorKicker">
+              YOUR PUBLIC PROFILE
+            </p>
+
+            <h1>
+              Put a name to the voice
+            </h1>
+
+            <p>
+              Your name will appear on
+              published tours. A photo
+              and short biography are
+              optional.
+            </p>
+          </div>
+
+          <div className="marketplaceFormCard">
+            {projectError && (
+              <p className="marketplaceFormError">
+                {projectError}
+              </p>
+            )}
+
+            <label htmlFor="profile-name">
+              Public name
+            </label>
+
+            <input
+              id="profile-name"
+              value={profileName}
+              onChange={(event) =>
+                setProfileName(
+                  event.target.value
+                )
+              }
+              placeholder="e.g. Robert Lucas"
+              maxLength={80}
+            />
+
+            <label htmlFor="profile-bio">
+              Short biography
+              <span>Optional</span>
+            </label>
+
+            <textarea
+              id="profile-bio"
+              value={profileBio}
+              onChange={(event) =>
+                setProfileBio(
+                  event.target.value
+                )
+              }
+              placeholder="Tell passengers why you made these tours."
+              maxLength={500}
+              rows={5}
+            />
+
+            <label htmlFor="profile-avatar">
+              Profile photograph
+              <span>Optional</span>
+            </label>
+
+            {profileAvatar?.url && (
+              <img
+                className="profileAvatarPreview"
+                src={profileAvatar.url}
+                alt="Current profile"
+              />
+            )}
+
+            <input
+              id="profile-avatar"
+              className="marketplaceFileInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) =>
+                setPendingAvatarFile(
+                  event.target
+                    .files?.[0] ??
+                    null
+                )
+              }
+            />
+
+            {pendingAvatarFile && (
+              <small className="selectedFileName">
+                Selected: {pendingAvatarFile.name}
+              </small>
+            )}
+
+            <p className="marketplaceFormHint">
+              JPG, PNG or WebP, up to
+              5 MB. A square image works
+              best.
+            </p>
+
+            <div className="marketplaceFormActions">
+              <button
+                className="creatorBackButton"
+                onClick={() =>
+                  setStage(
+                    "projects"
+                  )
+                }
+              >
+                Cancel
+              </button>
+
+              <button
+                className="creatorContinueButton inlineContinue"
+                disabled={
+                  !profileName.trim() ||
+                  profileSaving
+                }
+                onClick={saveProfile}
+              >
+                {profileSaving
+                  ? "Saving…"
+                  : "Save profile"}
+              </button>
+            </div>
           </div>
         </section>
       </main>
@@ -1893,6 +2439,215 @@ export default function CreatorPage() {
   }
 
   /*
+    TOUR DETAILS SCREEN
+  */
+
+  if (stage === "details") {
+    return (
+      <main className="creatorStudioShell">
+        <header className="creatorBrandHeader">
+          <div>
+            <div className="creatorLogo">
+              Between Stops
+            </div>
+
+            <p className="creatorAreaLabel">
+              Tour details
+            </p>
+          </div>
+
+          <button
+            className="headerTextButton"
+            onClick={() =>
+              setStage("studio")
+            }
+          >
+            Back to Stories
+          </button>
+        </header>
+
+        <section className="marketplaceFormPage tourDetailsPage">
+          <div className="marketplaceFormIntro">
+            <p className="creatorKicker">
+              PASSENGER VIEW
+            </p>
+
+            <h1>
+              Present your tour
+            </h1>
+
+            <p>
+              This information will
+              become the public tour
+              card and overview. It
+              remains private while the
+              experience is a draft.
+            </p>
+          </div>
+
+          <div className="marketplaceFormCard">
+            {projectError && (
+              <p className="marketplaceFormError">
+                {projectError}
+              </p>
+            )}
+
+            <label htmlFor="tour-title">
+              Tour title
+            </label>
+
+            <input
+              id="tour-title"
+              value={experienceName}
+              onChange={(event) =>
+                setExperienceName(
+                  event.target.value
+                )
+              }
+              maxLength={120}
+            />
+
+            <label htmlFor="tour-summary">
+              Short summary
+            </label>
+
+            <textarea
+              id="tour-summary"
+              value={experienceSummary}
+              onChange={(event) =>
+                setExperienceSummary(
+                  event.target.value
+                )
+              }
+              placeholder="One sentence that helps passengers decide whether to take this tour."
+              maxLength={180}
+              rows={3}
+            />
+
+            <div className="characterCount">
+              {experienceSummary.length}/180
+            </div>
+
+            <label htmlFor="tour-description">
+              Full description
+              <span>Optional for now</span>
+            </label>
+
+            <textarea
+              id="tour-description"
+              value={experienceDescription}
+              onChange={(event) =>
+                setExperienceDescription(
+                  event.target.value
+                )
+              }
+              placeholder="Explain what passengers will discover and what makes the journey worthwhile."
+              maxLength={1500}
+              rows={7}
+            />
+
+            <label htmlFor="tour-duration">
+              Approximate duration
+              <span>Minutes</span>
+            </label>
+
+            <input
+              id="tour-duration"
+              type="number"
+              min="1"
+              max="600"
+              inputMode="numeric"
+              value={experienceDuration}
+              onChange={(event) =>
+                setExperienceDuration(
+                  event.target.value
+                )
+              }
+              placeholder="e.g. 35"
+            />
+
+            <label htmlFor="tour-cover">
+              Tour cover image
+              <span>Optional for drafts</span>
+            </label>
+
+            {coverImage?.url && (
+              <img
+                className="tourCoverPreview"
+                src={coverImage.url}
+                alt="Current tour cover"
+              />
+            )}
+
+            <input
+              id="tour-cover"
+              className="marketplaceFileInput"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) =>
+                setPendingCoverFile(
+                  event.target
+                    .files?.[0] ??
+                    null
+                )
+              }
+            />
+
+            {pendingCoverFile && (
+              <small className="selectedFileName">
+                Selected: {pendingCoverFile.name}
+              </small>
+            )}
+
+            <p className="marketplaceFormHint">
+              JPG, PNG or WebP, up to
+              10 MB. A wide landscape
+              image works best.
+            </p>
+
+            <div className="tourAccessSummary">
+              <span>Passenger access</span>
+              <strong>
+                Free during testing
+              </strong>
+              <small>
+                Pricing will be added
+                after the journey has
+                been tested with real
+                passengers.
+              </small>
+            </div>
+
+            <div className="marketplaceFormActions">
+              <button
+                className="creatorBackButton"
+                onClick={() =>
+                  setStage("studio")
+                }
+              >
+                Cancel
+              </button>
+
+              <button
+                className="creatorContinueButton inlineContinue"
+                disabled={
+                  !experienceName.trim() ||
+                  detailsSaving
+                }
+                onClick={saveTourDetails}
+              >
+                {detailsSaving
+                  ? "Saving…"
+                  : "Save tour details"}
+              </button>
+            </div>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  /*
     STUDIO
   */
 
@@ -1974,16 +2729,29 @@ export default function CreatorPage() {
             />
           </div>
 
-          <button
-            className="saveDraftButton"
-            onClick={() =>
-              saveProject(
-                false
-              )
-            }
-          >
-            Save draft
-          </button>
+          <div className="experienceHeaderActions">
+            <button
+              className="tourDetailsButton"
+              onClick={() =>
+                setStage(
+                  "details"
+                )
+              }
+            >
+              Tour details
+            </button>
+
+            <button
+              className="saveDraftButton"
+              onClick={() =>
+                saveProject(
+                  false
+                )
+              }
+            >
+              Save draft
+            </button>
+          </div>
         </section>
 
         <section className="studioWorkspace">
