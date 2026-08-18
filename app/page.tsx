@@ -4,7 +4,24 @@ import { useEffect, useMemo, useState } from "react";
 import { lineString, point } from "@turf/helpers";
 import nearestPointOnLine from "@turf/nearest-point-on-line";
 import length from "@turf/length";
-import { tramRouteCoordinates } from "@/data/tram-airport-west-end-geometry";
+
+import { edinburghTramRoute } from "@/data/routes/tram";
+import { route35MuseumToOceanTerminal } from "@/data/routes/bus35";
+
+import { intoEdinburghExperience } from "@/data/experiences/into-edinburgh";
+import { royalMileToShoreExperience } from "@/data/experiences/royal-mile-to-shore";
+
+import {
+  getJourneyProgress,
+  getStoriesForJourney,
+  isInsideExperienceSection,
+} from "@/lib/experience";
+
+import type {
+  ExperienceDefinition,
+  JourneyDirection,
+  RouteDefinition,
+} from "@/lib/types";
 
 type Screen = "home" | "overview" | "journey";
 
@@ -14,127 +31,132 @@ type LocationData = {
   accuracy: number;
 };
 
-type Cue = {
-  id: string;
-  progress: number;
-  eyebrow: string;
-  title: string;
-  text: string;
-  type: "audio" | "image" | "look" | "question";
-  lookDirection?: "left" | "right";
-};
-
 type MarkedSpot = {
   id: string;
+  experienceId: string;
+  label: string;
   latitude: number;
   longitude: number;
   accuracy: number;
   routeProgress: number;
   distanceAlongKm: number;
   distanceFromRouteMetres: number;
+  createdAt: string;
 };
 
-const cues: Cue[] = [
+type ExperienceOption = {
+  experience: ExperienceDefinition;
+  route: RouteDefinition;
+  badge: string;
+  transportLabel: string;
+  visualClass: string;
+};
+
+const experienceOptions: ExperienceOption[] = [
   {
-    id: "departure",
-    progress: 0,
-    eyebrow: "Welcome",
-    title: "Your journey starts here",
-    text: "A short introduction to Between Stops and the journey into Edinburgh.",
-    type: "audio",
+    experience: intoEdinburghExperience,
+    route: edinburghTramRoute,
+    badge: "EDINBURGH TRAM",
+    transportLabel: "Tram",
+    visualClass: "tramExperience",
   },
   {
-    id: "west-of-ingliston",
-    progress: 14,
-    eyebrow: "Between stops",
-    title: "Leaving the airport behind",
-    text: "The city is still some distance away, but the landscape is already beginning to change.",
-    type: "image",
-  },
-  {
-    id: "gateway-look",
-    progress: 27,
-    eyebrow: "Look right",
-    title: "Watch the city begin to appear",
-    text: "Keep an eye through the right-hand window as we approach Edinburgh Gateway.",
-    type: "look",
-    lookDirection: "right",
-  },
-  {
-    id: "edinburgh-park",
-    progress: 43,
-    eyebrow: "Listen",
-    title: "A different Edinburgh",
-    text: "Not every story of the city begins in the Old Town. This part of Edinburgh tells a very different one.",
-    type: "audio",
-  },
-  {
-    id: "bankhead-saughton",
-    progress: 58,
-    eyebrow: "Between stops",
-    title: "The journey changes character",
-    text: "A test image and short story would live here, triggered while the tram is moving.",
-    type: "image",
-  },
-  {
-    id: "balgreen",
-    progress: 75,
-    eyebrow: "A quick question",
-    title: "What do you notice first?",
-    text: "This is where a simple interactive reveal or question could interrupt the narration.",
-    type: "question",
-  },
-  {
-    id: "murrayfield-haymarket",
-    progress: 87,
-    eyebrow: "Look left",
-    title: "The centre is getting close",
-    text: "Look left. This kind of cue should arrive early enough to give you time to actually see the thing being described.",
-    type: "look",
-    lookDirection: "left",
-  },
-  {
-    id: "arrival",
-    progress: 97,
-    eyebrow: "Coming into West End",
-    title: "Almost there",
-    text: "A final audio moment as the journey reaches central Edinburgh.",
-    type: "audio",
+    experience: royalMileToShoreExperience,
+    route: route35MuseumToOceanTerminal,
+    badge: "BUS 35",
+    transportLabel: "Bus 35",
+    visualClass: "busExperience",
   },
 ];
 
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("home");
-  const [location, setLocation] = useState<LocationData | null>(null);
+
+  const [selectedExperienceId, setSelectedExperienceId] =
+    useState("into-edinburgh");
+
+  const [direction, setDirection] =
+    useState<JourneyDirection>("forward");
+
+  const [location, setLocation] =
+    useState<LocationData | null>(null);
+
   const [error, setError] = useState("");
   const [watching, setWatching] = useState(false);
 
-  // This is the passenger's trusted journey position.
-  // It only advances when they are plausibly on the route.
   const [journeyProgress, setJourneyProgress] = useState(0);
 
+  const [activeJourneyExperienceId, setActiveJourneyExperienceId] =
+    useState<string | null>(null);
+
+  const [activeJourneyDirection, setActiveJourneyDirection] =
+    useState<JourneyDirection>("forward");
+
   const [testerOpen, setTesterOpen] = useState(false);
-  const [markedSpots, setMarkedSpots] = useState<MarkedSpot[]>([]);
+
+  const [markedSpots, setMarkedSpots] =
+    useState<MarkedSpot[]>([]);
+
+  const selectedOption =
+    experienceOptions.find(
+      (option) =>
+        option.experience.id === selectedExperienceId
+    ) ?? experienceOptions[0];
+
+  const experience = selectedOption.experience;
+  const route = selectedOption.route;
+
+  const activeOption =
+    experienceOptions.find(
+      (option) =>
+        option.experience.id === activeJourneyExperienceId
+    ) ?? null;
 
   const routeLine = useMemo(
-    () => lineString(tramRouteCoordinates),
-    []
+    () => lineString(route.coordinates),
+    [route]
   );
 
   const routeLengthKm = useMemo(
-    () => length(routeLine, { units: "kilometers" }),
+    () =>
+      length(routeLine, {
+        units: "kilometers",
+      }),
     [routeLine]
   );
 
-  useEffect(() => {
-    const saved = localStorage.getItem("between-stops-marked-spots");
+  const journeyStories = useMemo(
+    () =>
+      getStoriesForJourney(
+        experience,
+        direction
+      ),
+    [experience, direction]
+  );
 
-    if (saved) {
-      try {
-        setMarkedSpots(JSON.parse(saved));
-      } catch {
-        // Ignore malformed local test data.
-      }
+  const directionStart =
+    direction === "forward"
+      ? experience.startLabel
+      : experience.endLabel;
+
+  const directionEnd =
+    direction === "forward"
+      ? experience.endLabel
+      : experience.startLabel;
+
+  const directionLabel = `${directionStart} → ${directionEnd}`;
+
+  useEffect(() => {
+    const saved = localStorage.getItem(
+      "between-stops-marked-spots"
+    );
+
+    if (!saved) return;
+
+    try {
+      setMarkedSpots(JSON.parse(saved));
+    } catch {
+      // Ignore malformed prototype data.
     }
   }, []);
 
@@ -142,29 +164,35 @@ export default function Home() {
     if (!watching) return;
 
     if (!navigator.geolocation) {
-      setError("Location is not supported on this device.");
+      setError(
+        "Location is not supported on this device."
+      );
       return;
     }
 
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        });
+    const watchId =
+      navigator.geolocation.watchPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: position.coords.accuracy,
+          });
 
-        setError("");
-      },
-      (err) => setError(err.message),
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000,
-      }
-    );
+          setError("");
+        },
+        (err) => {
+          setError(err.message);
+        },
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 10000,
+        }
+      );
 
-    return () => navigator.geolocation.clearWatch(watchId);
+    return () =>
+      navigator.geolocation.clearWatch(watchId);
   }, [watching]);
 
   const routeMatch = useMemo(() => {
@@ -175,87 +203,252 @@ export default function Home() {
       location.latitude,
     ]);
 
-    const snapped = nearestPointOnLine(routeLine, userPoint, {
-      units: "kilometers",
-    });
+    const snapped = nearestPointOnLine(
+      routeLine,
+      userPoint,
+      {
+        units: "kilometers",
+      }
+    );
 
-    const distanceFromRouteKm = snapped.properties.dist ?? 0;
-    const distanceAlongRouteKm = snapped.properties.location ?? 0;
+    const distanceFromRouteKm =
+      snapped.properties.dist ?? 0;
 
-    const progress =
+    const distanceAlongRouteKm =
+      snapped.properties.location ?? 0;
+
+    const routeProgress =
       routeLengthKm > 0
         ? (distanceAlongRouteKm / routeLengthKm) * 100
         : 0;
 
-    const distanceFromRouteMetres = distanceFromRouteKm * 1000;
+    const distanceFromRouteMetres =
+      distanceFromRouteKm * 1000;
+
+    const goodThreshold =
+      route.mode === "bus" ? 70 : 50;
+
+    const possibleThreshold =
+      route.mode === "bus" ? 200 : 150;
 
     let status = "OFF ROUTE";
 
-    if (distanceFromRouteMetres <= 50) {
+    if (distanceFromRouteMetres <= goodThreshold) {
       status = "GOOD";
-    } else if (distanceFromRouteMetres <= 150) {
+    } else if (
+      distanceFromRouteMetres <= possibleThreshold
+    ) {
       status = "POSSIBLE";
     }
 
     return {
       status,
-      progress,
+      routeProgress,
       distanceAlongRouteKm,
       distanceFromRouteMetres,
     };
-  }, [location, routeLine, routeLengthKm]);
+  }, [
+    location,
+    routeLine,
+    routeLengthKm,
+    route.mode,
+  ]);
 
   useEffect(() => {
     if (!routeMatch) return;
-    if (routeMatch.status === "OFF ROUTE") return;
 
-    // Do not let normal GPS wobble send the experience backwards.
-    setJourneyProgress((current) =>
-      Math.max(current, routeMatch.progress)
+    if (
+      activeJourneyExperienceId !== experience.id
+    ) {
+      return;
+    }
+
+    if (routeMatch.status === "OFF ROUTE") {
+      return;
+    }
+
+    if (
+      !isInsideExperienceSection(
+        routeMatch.routeProgress,
+        experience
+      )
+    ) {
+      return;
+    }
+
+    const progress = getJourneyProgress(
+      routeMatch.routeProgress,
+      experience,
+      direction
     );
-  }, [routeMatch]);
 
-  const currentCueIndex = useMemo(() => {
+    setJourneyProgress((current) =>
+      Math.max(current, progress)
+    );
+  }, [
+    routeMatch,
+    experience,
+    direction,
+    activeJourneyExperienceId,
+  ]);
+
+  const currentStoryIndex = useMemo(() => {
     let index = 0;
 
-    cues.forEach((cue, cueIndex) => {
-      if (journeyProgress >= cue.progress) {
-        index = cueIndex;
+    journeyStories.forEach(
+      (story, storyIndex) => {
+        if (
+          journeyProgress >=
+          story.journeyProgress
+        ) {
+          index = storyIndex;
+        }
       }
-    });
+    );
 
     return index;
-  }, [journeyProgress]);
+  }, [journeyProgress, journeyStories]);
 
-  const currentCue = cues[currentCueIndex];
-  const previousCue =
-    currentCueIndex > 0 ? cues[currentCueIndex - 1] : null;
-  const nextCue =
-    currentCueIndex < cues.length - 1
-      ? cues[currentCueIndex + 1]
+  const currentStory =
+    journeyStories[currentStoryIndex];
+
+  const previousStory =
+    currentStoryIndex > 0
+      ? journeyStories[currentStoryIndex - 1]
       : null;
 
+  const nextStory =
+    currentStoryIndex <
+    journeyStories.length - 1
+      ? journeyStories[currentStoryIndex + 1]
+      : null;
+
+  const relevantMarkedSpots =
+    markedSpots.filter(
+      (spot) =>
+        spot.experienceId === experience.id
+    );
+
+  const selectedJourneyIsActive =
+    activeJourneyExperienceId === experience.id;
+
+  function selectExperience(
+    experienceId: string
+  ) {
+    setSelectedExperienceId(experienceId);
+
+    if (
+      activeJourneyExperienceId === experienceId
+    ) {
+      setDirection(activeJourneyDirection);
+    } else {
+      setDirection("forward");
+    }
+
+    setScreen("overview");
+  }
+
+  function chooseDirection(
+    newDirection: JourneyDirection
+  ) {
+    if (
+      activeJourneyExperienceId === experience.id &&
+      newDirection !== activeJourneyDirection
+    ) {
+      setJourneyProgress(0);
+      setActiveJourneyExperienceId(null);
+    }
+
+    setDirection(newDirection);
+  }
+
   function startExperience() {
-    setScreen("journey");
-    setWatching(true);
     setJourneyProgress(0);
+
+    setActiveJourneyExperienceId(
+      experience.id
+    );
+
+    setActiveJourneyDirection(direction);
+
+    setWatching(true);
+    setScreen("journey");
+  }
+
+  function resumeExperience() {
+    if (!activeJourneyExperienceId) return;
+
+    const option =
+      experienceOptions.find(
+        (item) =>
+          item.experience.id ===
+          activeJourneyExperienceId
+      );
+
+    if (!option) return;
+
+    setSelectedExperienceId(
+      option.experience.id
+    );
+
+    setDirection(
+      activeJourneyDirection
+    );
+
+    setWatching(true);
+    setScreen("journey");
+  }
+
+  function goToExperienceOverview() {
+    setScreen("overview");
+  }
+
+  function goHome() {
+    setScreen("home");
   }
 
   function markCurrentSpot() {
     if (!location || !routeMatch) return;
 
+    const suggested = `Spot ${
+      relevantMarkedSpots.length + 1
+    }`;
+
+    const label = window.prompt(
+      "What did you notice here?",
+      suggested
+    );
+
+    if (!label?.trim()) return;
+
     const spot: MarkedSpot = {
       id: crypto.randomUUID(),
+
+      experienceId: experience.id,
+
+      label: label.trim(),
+
       latitude: location.latitude,
       longitude: location.longitude,
+
       accuracy: location.accuracy,
-      routeProgress: routeMatch.progress,
-      distanceAlongKm: routeMatch.distanceAlongRouteKm,
+
+      routeProgress:
+        routeMatch.routeProgress,
+
+      distanceAlongKm:
+        routeMatch.distanceAlongRouteKm,
+
       distanceFromRouteMetres:
         routeMatch.distanceFromRouteMetres,
+
+      createdAt: new Date().toISOString(),
     };
 
-    const updated = [...markedSpots, spot];
+    const updated = [
+      ...markedSpots,
+      spot,
+    ];
 
     setMarkedSpots(updated);
 
@@ -265,30 +458,66 @@ export default function Home() {
     );
   }
 
-  function speakCue() {
-    if (!("speechSynthesis" in window)) return;
+  function deleteMarkedSpot(id: string) {
+    const confirmed = window.confirm(
+      "Delete this marked spot?"
+    );
+
+    if (!confirmed) return;
+
+    const updated = markedSpots.filter(
+      (spot) => spot.id !== id
+    );
+
+    setMarkedSpots(updated);
+
+    localStorage.setItem(
+      "between-stops-marked-spots",
+      JSON.stringify(updated)
+    );
+  }
+
+  function speakStory() {
+    if (
+      !currentStory ||
+      !("speechSynthesis" in window)
+    ) {
+      return;
+    }
 
     window.speechSynthesis.cancel();
 
-    const utterance = new SpeechSynthesisUtterance(
-      `${currentCue.title}. ${currentCue.text}`
-    );
+    const utterance =
+      new SpeechSynthesisUtterance(
+        `${currentStory.title}. ${currentStory.text}`
+      );
 
     utterance.rate = 0.95;
 
-    window.speechSynthesis.speak(utterance);
+    window.speechSynthesis.speak(
+      utterance
+    );
   }
+
+  /*
+    HOME
+  */
 
   if (screen === "home") {
     return (
       <main className="shell">
         <header className="brandHeader">
-          <div className="brandMark">BS</div>
+          <div className="brandMark">
+            BS
+          </div>
+
           <span>Between Stops</span>
         </header>
 
         <section className="hero">
-          <p className="kicker">DISCOVER WHAT'S BETWEEN</p>
+          <p className="kicker">
+            DISCOVER WHAT&apos;S BETWEEN
+          </p>
 
           <h1>
             Turn ordinary journeys
@@ -297,64 +526,195 @@ export default function Home() {
           </h1>
 
           <p className="heroCopy">
-            Stories, sights and sounds that unfold as you travel
-            through the city.
+            Stories, sights and sounds that
+            unfold as you travel through the
+            city.
           </p>
         </section>
+
+        {activeOption && (
+          <section
+            style={{
+              padding: "0 14px 26px",
+            }}
+          >
+            <button
+              className="experienceCard"
+              onClick={resumeExperience}
+              style={{
+                background: "#171717",
+                color: "white",
+              }}
+            >
+              <div
+                style={{
+                  padding: "20px 22px",
+                }}
+              >
+                <p
+                  className="kicker"
+                  style={{
+                    color: "#aaa7a0",
+                  }}
+                >
+                  CURRENT JOURNEY
+                </p>
+
+                <h3
+                  style={{
+                    margin: "0 0 6px",
+                    fontSize: "24px",
+                  }}
+                >
+                  {
+                    activeOption.experience
+                      .title
+                  }
+                </h3>
+
+                <p
+                  style={{
+                    margin: 0,
+                    color: "#c9c6bf",
+                    fontSize: "13px",
+                  }}
+                >
+                  {Math.round(
+                    journeyProgress
+                  )}
+                  % complete
+                </p>
+
+                <div
+                  style={{
+                    marginTop: "18px",
+                    fontWeight: 700,
+                    fontSize: "13px",
+                  }}
+                >
+                  Resume journey →
+                </div>
+              </div>
+            </button>
+          </section>
+        )}
 
         <section className="discoverSection">
           <div className="sectionHeading">
             <div>
-              <p className="kicker">NEAR YOU</p>
-              <h2>Available experiences</h2>
+              <p className="kicker">
+                EDINBURGH
+              </p>
+
+              <h2>
+                Available experiences
+              </h2>
             </div>
 
-            <span className="countPill">1</span>
+            <span className="countPill">
+              {experienceOptions.length}
+            </span>
           </div>
 
-          <button
-            className="experienceCard"
-            onClick={() => setScreen("overview")}
-          >
-            <div className="experienceImage">
-              <div className="tramLine">
-                <span />
-                <span />
-                <span />
-                <span />
-              </div>
+          <div className="experienceList">
+            {experienceOptions.map(
+              (option) => (
+                <button
+                  key={option.experience.id}
+                  className="experienceCard"
+                  onClick={() =>
+                    selectExperience(
+                      option.experience.id
+                    )
+                  }
+                  style={{
+                    marginBottom: "18px",
+                  }}
+                >
+                  <div
+                    className={`experienceImage ${option.visualClass}`}
+                  >
+                    <div className="tramLine">
+                      <span />
+                      <span />
+                      <span />
+                      <span />
+                    </div>
 
-              <div className="imageBadge">EDINBURGH TRAM</div>
-            </div>
+                    <div className="imageBadge">
+                      {option.badge}
+                    </div>
+                  </div>
 
-            <div className="experienceBody">
-              <p className="routeLabel">
-                Airport <span>→</span> West End
-              </p>
+                  <div className="experienceBody">
+                    <p className="routeLabel">
+                      {
+                        option.experience
+                          .startLabel
+                      }{" "}
+                      <span>⇄</span>{" "}
+                      {
+                        option.experience
+                          .endLabel
+                      }
+                    </p>
 
-              <h3>Into Edinburgh</h3>
+                    <h3>
+                      {
+                        option.experience
+                          .title
+                      }
+                    </h3>
 
-              <p>
-                A location-aware journey through west Edinburgh
-                as the city gradually comes into view.
-              </p>
+                    <p>
+                      {
+                        option.experience
+                          .description
+                      }
+                    </p>
 
-              <div className="metaRow">
-                <span>🎧 Audio</span>
-                <span>◫ Images</span>
-                <span>◉ Things to spot</span>
-              </div>
+                    <div className="metaRow">
+                      <span>
+                        {
+                          option.transportLabel
+                        }
+                      </span>
 
-              <div className="cardFooter">
-                <span>Approx. 30 mins</span>
-                <strong>Explore →</strong>
-              </div>
-            </div>
-          </button>
+                      <span>🎧 Audio</span>
+                      <span>◫ Images</span>
+
+                      <span>
+                        ◉ Things to spot
+                      </span>
+                    </div>
+
+                    <div className="cardFooter">
+                      <span>
+                        Approx.{" "}
+                        {
+                          option.experience
+                            .durationMinutes
+                        }{" "}
+                        mins
+                      </span>
+
+                      <strong>
+                        Explore →
+                      </strong>
+                    </div>
+                  </div>
+                </button>
+              )
+            )}
+          </div>
         </section>
       </main>
     );
   }
+
+  /*
+    EXPERIENCE OVERVIEW
+  */
 
   if (screen === "overview") {
     return (
@@ -362,189 +722,378 @@ export default function Home() {
         <header className="topBar">
           <button
             className="textButton"
-            onClick={() => setScreen("home")}
+            onClick={goHome}
           >
-            ← Back
+            ← Home
           </button>
 
-          <span className="miniBrand">Between Stops</span>
+          <span className="miniBrand">
+            Between Stops
+          </span>
         </header>
 
         <section className="overviewHero">
-          <div className="overviewArt">
-            <div className="imageBadge">EDINBURGH TRAM</div>
+          <div
+            className={`overviewArt ${selectedOption.visualClass}`}
+          >
+            <div className="imageBadge">
+              {selectedOption.badge}
+            </div>
           </div>
 
-          <p className="kicker">AIRPORT → WEST END</p>
+          <p className="kicker">
+            {experience.startLabel.toUpperCase()}
+            {" ⇄ "}
+            {experience.endLabel.toUpperCase()}
+          </p>
 
-          <h1>Into Edinburgh</h1>
+          <h1>{experience.title}</h1>
 
           <p className="lead">
-            Watch Edinburgh emerge through the window, one story
-            at a time.
+            {experience.description}
           </p>
 
           <div className="overviewMeta">
-            <span>About 30 mins</span>
-            <span>8 moments</span>
-            <span>Mostly seated</span>
+            <span>
+              About{" "}
+              {experience.durationMinutes} mins
+            </span>
+
+            <span>
+              {experience.stories.length} stories
+            </span>
+
+            <span>
+              {selectedOption.transportLabel}
+            </span>
+
+            <span>
+              Mostly seated
+            </span>
+          </div>
+
+          <div
+            className="directionSwitch"
+            style={{
+              margin: "28px 22px 0",
+            }}
+          >
+            <button
+              className={
+                direction === "forward"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                chooseDirection("forward")
+              }
+            >
+              {experience.startLabel} →{" "}
+              {experience.endLabel}
+            </button>
+
+            <button
+              className={
+                direction === "reverse"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                chooseDirection("reverse")
+              }
+            >
+              {experience.endLabel} →{" "}
+              {experience.startLabel}
+            </button>
           </div>
         </section>
 
         <section className="journeyOutline">
-          <p className="kicker">YOUR JOURNEY</p>
+          <p className="kicker">
+            YOUR JOURNEY
+          </p>
 
           <div className="timeline">
             <div className="timelineStop startStop">
               <span className="timelineDot" />
+
               <div>
-                <strong>Edinburgh Airport</strong>
-                <small>Start here</small>
+                <strong>
+                  {directionStart}
+                </strong>
+
+                <small>
+                  Start here
+                </small>
               </div>
             </div>
 
-            {cues.slice(1, -1).map((cue) => (
-              <div className="timelineMoment" key={cue.id}>
-                <span className="timelineDot small" />
+            {journeyStories.map(
+              (story) => (
+                <div
+                  className="timelineMoment"
+                  key={story.id}
+                >
+                  <span className="timelineDot small" />
 
-                <div>
-                  <small>{cue.eyebrow}</small>
-                  <strong>{cue.title}</strong>
+                  <div>
+                    <small>
+                      {story.eyebrow}
+                    </small>
+
+                    <strong>
+                      {story.title}
+                    </strong>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            )}
 
             <div className="timelineStop">
               <span className="timelineDot" />
 
               <div>
-                <strong>West End</strong>
-                <small>Journey ends</small>
+                <strong>
+                  {directionEnd}
+                </strong>
+
+                <small>
+                  Journey ends
+                </small>
               </div>
             </div>
           </div>
         </section>
 
         <div className="stickyAction">
-          <button className="primaryButton" onClick={startExperience}>
-            Start experience
-          </button>
+          {selectedJourneyIsActive ? (
+            <button
+              className="primaryButton"
+              onClick={resumeExperience}
+            >
+              Resume experience
+            </button>
+          ) : (
+            <button
+              className="primaryButton"
+              onClick={startExperience}
+            >
+              Start experience
+            </button>
+          )}
 
           <p>
-            Location access is used to keep the experience in sync
-            with your journey.
+            Location access is used to keep
+            the experience in sync with your
+            journey.
           </p>
         </div>
       </main>
     );
   }
 
+  /*
+    JOURNEY PLAYER
+  */
+
   return (
     <main className="journeyShell">
       <header className="journeyHeader">
         <div>
-          <span className="miniBrand">Between Stops</span>
-          <p>Airport → West End</p>
+          <span className="miniBrand">
+            Between Stops
+          </span>
+
+          <p>
+            {selectedOption.transportLabel}
+            {" · "}
+            {directionLabel}
+          </p>
         </div>
 
-        <button
-          className="iconButton"
-          onClick={() => setTesterOpen(!testerOpen)}
-          aria-label="Toggle test information"
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "4px",
+          }}
         >
-          •••
-        </button>
+          <button
+            className="textButton"
+            onClick={goToExperienceOverview}
+            style={{
+              padding: "8px",
+            }}
+          >
+            Tour
+          </button>
+
+          <button
+            className="textButton"
+            onClick={goHome}
+            style={{
+              padding: "8px",
+            }}
+          >
+            Home
+          </button>
+
+          <button
+            className="iconButton"
+            onClick={() =>
+              setTesterOpen(!testerOpen)
+            }
+            aria-label="Toggle field tools"
+          >
+            •••
+          </button>
+        </div>
       </header>
 
       <div className="progressTrack">
         <div
           className="progressFill"
           style={{
-            width: `${Math.min(100, journeyProgress)}%`,
+            width: `${Math.min(
+              100,
+              journeyProgress
+            )}%`,
           }}
         />
       </div>
 
-      {routeMatch?.status === "OFF ROUTE" && (
+      {routeMatch?.status ===
+        "OFF ROUTE" && (
         <div className="routeNotice">
-          <strong>Waiting to join the route</strong>
+          <strong>
+            {route.mode === "bus"
+              ? "Waiting to join the bus route"
+              : "Waiting to join the tram route"}
+          </strong>
+
           <span>
-            Your experience will begin progressing once you're near
-            the tram line.
+            Your experience will begin
+            progressing once you&apos;re near
+            the expected route.
           </span>
         </div>
       )}
 
       <section className="cueStack">
-        {previousCue && (
+        {previousStory && (
           <article className="cueCard previousCue">
-            <p className="kicker">JUST PASSED</p>
-            <h3>{previousCue.title}</h3>
+            <p className="kicker">
+              JUST PASSED
+            </p>
+
+            <h3>
+              {previousStory.title}
+            </h3>
           </article>
         )}
 
-        <article className="cueCard activeCue">
-          <div className="cueTop">
-            <p className="kicker">{currentCue.eyebrow}</p>
+        {currentStory && (
+          <article className="cueCard activeCue">
+            <div className="cueTop">
+              <p className="kicker">
+                {currentStory.eyebrow}
+              </p>
 
-            <span className="cueNumber">
-              {currentCueIndex + 1} / {cues.length}
-            </span>
-          </div>
-
-          {currentCue.type === "image" && (
-            <div className="mediaPlaceholder">
-              <span>TEST IMAGE</span>
-            </div>
-          )}
-
-          {currentCue.type === "look" && (
-            <div className="lookPanel">
-              <span className="lookArrow">
-                {currentCue.lookDirection === "left" ? "←" : "→"}
-              </span>
-
-              <span>
-                Look {currentCue.lookDirection}
+              <span className="cueNumber">
+                {currentStoryIndex + 1} /{" "}
+                {journeyStories.length}
               </span>
             </div>
-          )}
 
-          {currentCue.type === "question" && (
-            <div className="questionMarker">?</div>
-          )}
+            {currentStory.type === "image" && (
+              <div className="mediaPlaceholder">
+                <span>
+                  TEST IMAGE
+                </span>
+              </div>
+            )}
 
-          <h1>{currentCue.title}</h1>
+            {currentStory.type === "look" && (
+              <div className="lookPanel">
+                <span className="lookArrow">
+                  ◉
+                </span>
 
-          <p className="cueCopy">{currentCue.text}</p>
+                <span>
+                  Something to spot
+                </span>
+              </div>
+            )}
 
-          {currentCue.type === "audio" && (
-            <button className="audioButton" onClick={speakCue}>
-              <span className="playIcon">▶</span>
+            {currentStory.type ===
+              "question" && (
+              <div className="questionMarker">
+                ?
+              </div>
+            )}
 
-              <span>
-                <strong>Play test audio</strong>
-                <small>Temporary voice for prototype</small>
-              </span>
-            </button>
-          )}
+            <h1>
+              {currentStory.title}
+            </h1>
 
-          {currentCue.type === "question" && (
-            <div className="answerChoices">
-              <button>Buildings</button>
-              <button>Landscape</button>
-              <button>People</button>
-            </div>
-          )}
-        </article>
+            <p className="cueCopy">
+              {currentStory.text}
+            </p>
 
-        {nextCue && (
+            {currentStory.type === "audio" && (
+              <button
+                className="audioButton"
+                onClick={speakStory}
+              >
+                <span className="playIcon">
+                  ▶
+                </span>
+
+                <span>
+                  <strong>
+                    Play test audio
+                  </strong>
+
+                  <small>
+                    Temporary voice for
+                    prototype
+                  </small>
+                </span>
+              </button>
+            )}
+
+            {currentStory.type ===
+              "question" && (
+              <div className="answerChoices">
+                <button>
+                  Buildings
+                </button>
+
+                <button>
+                  Landscape
+                </button>
+
+                <button>
+                  People
+                </button>
+              </div>
+            )}
+          </article>
+        )}
+
+        {nextStory && (
           <article className="cueCard nextCue">
-            <p className="kicker">COMING UP</p>
+            <p className="kicker">
+              COMING UP
+            </p>
 
-            <h3>{nextCue.title}</h3>
+            <h3>
+              {nextStory.title}
+            </h3>
 
-            <p>{nextCue.eyebrow}</p>
+            <p>
+              {nextStory.eyebrow}
+            </p>
           </article>
         )}
       </section>
@@ -553,118 +1102,221 @@ export default function Home() {
         <section className="testerPanel">
           <div className="testerHeading">
             <div>
-              <p className="kicker">TEST MODE</p>
-              <h2>Journey diagnostics</h2>
+              <p className="kicker">
+                FIELD TOOLS
+              </p>
+
+              <h2>
+                Mark what you notice
+              </h2>
             </div>
 
             <button
               className="textButton"
-              onClick={() => setTesterOpen(false)}
+              onClick={() =>
+                setTesterOpen(false)
+              }
             >
               Close
             </button>
           </div>
 
-          <div className="diagnosticGrid">
-            <div>
-              <small>GPS accuracy</small>
-              <strong>
-                {location
-                  ? `±${Math.round(location.accuracy)}m`
-                  : "—"}
-              </strong>
-            </div>
-
-            <div>
-              <small>Route match</small>
-              <strong>{routeMatch?.status ?? "—"}</strong>
-            </div>
-
-            <div>
-              <small>Raw route position</small>
-              <strong>
-                {routeMatch
-                  ? `${routeMatch.progress.toFixed(1)}%`
-                  : "—"}
-              </strong>
-            </div>
-
-            <div>
-              <small>Trusted progress</small>
-              <strong>{journeyProgress.toFixed(1)}%</strong>
-            </div>
-
-            <div>
-              <small>Distance from route</small>
-              <strong>
-                {routeMatch
-                  ? `${Math.round(
-                      routeMatch.distanceFromRouteMetres
-                    )}m`
-                  : "—"}
-              </strong>
-            </div>
-
-            <div>
-              <small>Distance along route</small>
-              <strong>
-                {routeMatch
-                  ? `${routeMatch.distanceAlongRouteKm.toFixed(
-                      2
-                    )}km`
-                  : "—"}
-              </strong>
-            </div>
-          </div>
+          <p
+            style={{
+              color: "#aaa7a0",
+              fontSize: "12px",
+              lineHeight: 1.5,
+              marginTop: "10px",
+            }}
+          >
+            Riding the route? Mark somewhere
+            that could become a story. Give it
+            a quick label now and refine the
+            exact subject later in Creator.
+          </p>
 
           <button
             className="markButton"
             onClick={markCurrentSpot}
-            disabled={!location || !routeMatch}
+            disabled={
+              !location ||
+              !routeMatch
+            }
           >
             📍 Mark this spot
           </button>
 
-          <p className="testerHelp">
-            Use this while travelling to record an interesting place
-            that could become a future trigger.
-          </p>
-
-          {markedSpots.length > 0 && (
+          {relevantMarkedSpots.length >
+            0 && (
             <div className="markedList">
               <p className="kicker">
-                MARKED SPOTS ({markedSpots.length})
+                FIELD NOTES (
+                {relevantMarkedSpots.length})
               </p>
 
-              {markedSpots.map((spot, index) => (
-                <div className="markedSpot" key={spot.id}>
-                  <strong>Spot {index + 1}</strong>
+              {relevantMarkedSpots.map(
+                (spot) => (
+                  <div
+                    className="markedSpot"
+                    key={spot.id}
+                  >
+                    <strong>
+                      {spot.label}
+                    </strong>
 
-                  <span>
-                    {spot.routeProgress.toFixed(1)}% ·{" "}
-                    {spot.distanceAlongKm.toFixed(2)}km along route
-                  </span>
+                    <span>
+                      {spot.routeProgress.toFixed(
+                        1
+                      )}
+                      % ·{" "}
+                      {spot.distanceAlongKm.toFixed(
+                        2
+                      )}
+                      km along route
+                    </span>
 
-                  <small>
-                    GPS ±{Math.round(spot.accuracy)}m ·{" "}
-                    {Math.round(spot.distanceFromRouteMetres)}m from
-                    route
-                  </small>
-                </div>
-              ))}
+                    <small>
+                      GPS ±
+                      {Math.round(
+                        spot.accuracy
+                      )}
+                      m ·{" "}
+                      {Math.round(
+                        spot.distanceFromRouteMetres
+                      )}
+                      m from route
+                    </small>
+
+                    <button
+                      className="textButton"
+                      style={{
+                        color: "#d88f86",
+                        marginTop: "6px",
+                        textAlign: "left",
+                      }}
+                      onClick={() =>
+                        deleteMarkedSpot(
+                          spot.id
+                        )
+                      }
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )
+              )}
             </div>
           )}
 
+          <div
+            style={{
+              marginTop: "28px",
+              paddingTop: "22px",
+              borderTop:
+                "1px solid #414141",
+            }}
+          >
+            <p className="kicker">
+              DIAGNOSTICS
+            </p>
+
+            <div className="diagnosticGrid">
+              <div>
+                <small>
+                  Transport
+                </small>
+
+                <strong>
+                  {route.mode === "bus"
+                    ? "Bus"
+                    : "Tram"}
+                </strong>
+              </div>
+
+              <div>
+                <small>
+                  GPS accuracy
+                </small>
+
+                <strong>
+                  {location
+                    ? `±${Math.round(
+                        location.accuracy
+                      )}m`
+                    : "—"}
+                </strong>
+              </div>
+
+              <div>
+                <small>
+                  Route match
+                </small>
+
+                <strong>
+                  {routeMatch?.status ??
+                    "—"}
+                </strong>
+              </div>
+
+              <div>
+                <small>
+                  Route position
+                </small>
+
+                <strong>
+                  {routeMatch
+                    ? `${routeMatch.routeProgress.toFixed(
+                        1
+                      )}%`
+                    : "—"}
+                </strong>
+              </div>
+
+              <div>
+                <small>
+                  Journey progress
+                </small>
+
+                <strong>
+                  {journeyProgress.toFixed(
+                    1
+                  )}
+                  %
+                </strong>
+              </div>
+
+              <div>
+                <small>
+                  From route
+                </small>
+
+                <strong>
+                  {routeMatch
+                    ? `${Math.round(
+                        routeMatch.distanceFromRouteMetres
+                      )}m`
+                    : "—"}
+                </strong>
+              </div>
+            </div>
+          </div>
+
           <button
             className="resetButton"
-            onClick={() => setJourneyProgress(0)}
+            onClick={() =>
+              setJourneyProgress(0)
+            }
           >
             Reset journey progress
           </button>
         </section>
       )}
 
-      {error && <div className="errorNotice">{error}</div>}
+      {error && (
+        <div className="errorNotice">
+          {error}
+        </div>
+      )}
     </main>
   );
 }

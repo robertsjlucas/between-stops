@@ -1,479 +1,2881 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { lineString, point } from "@turf/helpers";
-import nearestPointOnLine from "@turf/nearest-point-on-line";
-import length from "@turf/length";
-import { tramRouteCoordinates } from "@/data/tram-airport-west-end-geometry";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
-type Direction = "airport-west" | "west-airport";
+import {
+  Map,
+  Marker,
+  NavigationControl,
+  LngLatBounds,
+  setWorkerUrl,
+} from "maplibre-gl";
 
-type Story = {
+import {
+  lineString,
+  lineSliceAlong,
+  length,
+  nearestPointOnLine,
+  point,
+} from "@turf/turf";
+
+import "maplibre-gl/dist/maplibre-gl.css";
+import "./creator.css";
+
+import { edinburghTramFullRoute } from "@/data/routes/tram-full";
+import { route35Full } from "@/data/routes/bus35-full";
+
+import {
+  createClient,
+} from "@/lib/supabase/client";
+
+import {
+  deleteCreatorProject,
+  loadBrowserProjects,
+  loadCreatorProjects,
+  saveCreatorProject,
+  uploadStoryMedia,
+} from "@/lib/creator-projects";
+
+import type {
+  CreatorStory,
+  CreatorStoryType,
+  MediaAttachment,
+  SavedProject,
+  SectionMode,
+} from "@/lib/creator-projects";
+
+import type {
+  Coordinates,
+  RouteDefinition,
+  RouteStop,
+  TransportMode,
+} from "@/lib/types";
+
+setWorkerUrl(
+  "/maplibre/maplibre-gl-worker.mjs"
+);
+
+type CreatorStage =
+  | "projects"
+  | "route"
+  | "name"
+  | "studio";
+
+type RouteChoice = {
   id: string;
-  title: string;
-  routeProgress: number;
-  type: "audio" | "image" | "look" | "question";
-  direction: "both" | Direction;
+  route: RouteDefinition;
+  label: string;
+  description: string;
 };
 
-type LocationData = {
-  latitude: number;
-  longitude: number;
-  accuracy: number;
-};
-
-const starterStories: Story[] = [
+const routeChoices: RouteChoice[] = [
   {
-    id: "departure",
-    title: "Your journey starts here",
-    routeProgress: 2,
-    type: "audio",
-    direction: "both",
+    id: "tram",
+    route: edinburghTramFullRoute,
+    label: "Edinburgh Tram",
+    description:
+      "Edinburgh Airport ⇄ Newhaven",
   },
   {
-    id: "leaving-airport",
-    title: "Leaving the airport behind",
-    routeProgress: 14,
-    type: "image",
-    direction: "both",
-  },
-  {
-    id: "gateway",
-    title: "Watch the city begin to appear",
-    routeProgress: 27,
-    type: "look",
-    direction: "both",
-  },
-  {
-    id: "edinburgh-park",
-    title: "A different Edinburgh",
-    routeProgress: 43,
-    type: "audio",
-    direction: "both",
-  },
-  {
-    id: "changing-character",
-    title: "The journey changes character",
-    routeProgress: 58,
-    type: "image",
-    direction: "both",
-  },
-  {
-    id: "balgreen",
-    title: "What do you notice first?",
-    routeProgress: 75,
-    type: "question",
-    direction: "both",
-  },
-  {
-    id: "murrayfield",
-    title: "The centre is getting close",
-    routeProgress: 87,
-    type: "look",
-    direction: "both",
-  },
-  {
-    id: "arrival",
-    title: "Almost there",
-    routeProgress: 97,
-    type: "audio",
-    direction: "both",
+    id: "35",
+    route: route35Full,
+    label: "35",
+    description:
+      "Heriot Watt Campus ⇄ Ocean Terminal",
   },
 ];
 
-export default function CreatorPage() {
-  const [stories, setStories] = useState<Story[]>(starterStories);
-  const [direction, setDirection] =
-    useState<Direction>("airport-west");
+function getSectionCoordinates(
+  route: RouteDefinition,
+  startStop: RouteStop,
+  endStop: RouteStop
+) {
+  const fullLine =
+    lineString(route.coordinates);
 
-  const [location, setLocation] =
-    useState<LocationData | null>(null);
-
-  const [watching, setWatching] = useState(false);
-  const [newTitle, setNewTitle] = useState("");
-  const [newProgress, setNewProgress] = useState("50");
-
-  const routeLine = useMemo(
-    () => lineString(tramRouteCoordinates),
-    []
-  );
-
-  const routeLengthKm = useMemo(
-    () => length(routeLine, { units: "kilometers" }),
-    [routeLine]
-  );
-
-  useEffect(() => {
-    const stored = localStorage.getItem("between-stops-stories");
-
-    if (stored) {
-      try {
-        setStories(JSON.parse(stored));
-      } catch {
-        setStories(starterStories);
-      }
-    }
-  }, []);
-
-  function saveStories(updated: Story[]) {
-    setStories(updated);
-
-    localStorage.setItem(
-      "between-stops-stories",
-      JSON.stringify(updated)
-    );
-  }
-
-  useEffect(() => {
-    if (!watching) return;
-
-    const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        setLocation({
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-        });
-      },
-      () => {},
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 10000,
-      }
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [watching]);
-
-  const currentRoutePosition = useMemo(() => {
-    if (!location) return null;
-
-    const userPoint = point([
-      location.longitude,
-      location.latitude,
-    ]);
-
-    const snapped = nearestPointOnLine(routeLine, userPoint, {
+  const totalLength =
+    length(fullLine, {
       units: "kilometers",
     });
 
-    const distanceAlongKm =
-      snapped.properties.location ?? 0;
-
-    const distanceFromRouteMetres =
-      (snapped.properties.dist ?? 0) * 1000;
-
-    const progress =
-      (distanceAlongKm / routeLengthKm) * 100;
-
-    return {
-      progress,
-      distanceAlongKm,
-      distanceFromRouteMetres,
-    };
-  }, [location, routeLine, routeLengthKm]);
-
-  const displayedStories = useMemo(() => {
-    const filtered = stories.filter(
-      (story) =>
-        story.direction === "both" ||
-        story.direction === direction
+  const lowProgress =
+    Math.min(
+      startStop.routeProgress,
+      endStop.routeProgress
     );
 
-    return [...filtered].sort((a, b) =>
-      direction === "airport-west"
-        ? a.routeProgress - b.routeProgress
-        : b.routeProgress - a.routeProgress
-    );
-  }, [stories, direction]);
-
-  function addStory(progress?: number) {
-    const title = newTitle.trim() || "Untitled story";
-
-    const routeProgress =
-      progress ??
-      Math.min(
-        100,
-        Math.max(0, Number(newProgress) || 0)
-      );
-
-    const story: Story = {
-      id: crypto.randomUUID(),
-      title,
-      routeProgress,
-      type: "audio",
-      direction: "both",
-    };
-
-    saveStories([...stories, story]);
-
-    setNewTitle("");
-  }
-
-  function markCurrentPosition() {
-    if (!currentRoutePosition) return;
-
-    addStory(currentRoutePosition.progress);
-  }
-
-  function deleteStory(id: string) {
-    saveStories(
-      stories.filter((story) => story.id !== id)
-    );
-  }
-
-  function renameStory(id: string) {
-    const current = stories.find(
-      (story) => story.id === id
+  const highProgress =
+    Math.max(
+      startStop.routeProgress,
+      endStop.routeProgress
     );
 
-    if (!current) return;
+  const startDistance =
+    totalLength *
+    (lowProgress / 100);
 
-    const title = window.prompt(
-      "Story title",
-      current.title
+  const endDistance =
+    totalLength *
+    (highProgress / 100);
+
+  const sliced =
+    lineSliceAlong(
+      fullLine,
+      startDistance,
+      endDistance,
+      {
+        units: "kilometers",
+      }
     );
 
-    if (!title?.trim()) return;
+  return sliced.geometry.coordinates as Coordinates[];
+}
 
-    saveStories(
-      stories.map((story) =>
-        story.id === id
-          ? { ...story, title: title.trim() }
-          : story
-      )
+function getRouteProgress(
+  route: RouteDefinition,
+  coordinates: Coordinates
+) {
+  const routeLine =
+    lineString(route.coordinates);
+
+  const totalLength =
+    length(routeLine, {
+      units: "kilometers",
+    });
+
+  const snapped =
+    nearestPointOnLine(
+      routeLine,
+      point(coordinates),
+      {
+        units: "kilometers",
+      }
     );
+
+  const distanceAlong =
+    Number(
+      snapped.properties.location ?? 0
+    );
+
+  if (totalLength <= 0) {
+    return 0;
   }
 
   return (
-    <main className="creatorShell">
-      <header className="creatorHeader">
-        <div>
-          <p className="kicker">BETWEEN STOPS</p>
-          <h1>Creator</h1>
-        </div>
+    distanceAlong /
+    totalLength
+  ) * 100;
+}
 
-        <a href="/" className="creatorPreviewLink">
-          Passenger view →
-        </a>
-      </header>
+export default function CreatorPage() {
+  const mapContainer =
+    useRef<HTMLDivElement | null>(null);
 
-      <section className="creatorRoute">
-        <p className="kicker">EXPERIENCE</p>
+  const mapRef =
+    useRef<Map | null>(null);
 
-        <h2>Into Edinburgh</h2>
+  const routeMarkerRefs =
+    useRef<Marker[]>([]);
 
-        <p>Edinburgh Tram · Airport ⇄ West End</p>
+  const storyMarkerRefs =
+    useRef<Marker[]>([]);
 
-        <div className="directionSwitch">
-          <button
-            className={
-              direction === "airport-west"
-                ? "active"
-                : ""
+  const draftMarkerRef =
+    useRef<Marker | null>(null);
+
+  const [stage, setStage] =
+    useState<CreatorStage>("projects");
+
+  const [city] =
+    useState("Edinburgh");
+
+  const [mode, setMode] =
+    useState<TransportMode>("tram");
+
+  const [
+    selectedRouteId,
+    setSelectedRouteId,
+  ] = useState("tram");
+
+  const [
+    sectionMode,
+    setSectionMode,
+  ] =
+    useState<SectionMode>("whole");
+
+  const [
+    startStopId,
+    setStartStopId,
+  ] = useState("");
+
+  const [
+    endStopId,
+    setEndStopId,
+  ] = useState("");
+
+  const [
+    experienceName,
+    setExperienceName,
+  ] = useState("");
+
+  const [
+    projectId,
+    setProjectId,
+  ] = useState<string | null>(
+    null
+  );
+
+  const [
+    projects,
+    setProjects,
+  ] = useState<SavedProject[]>(
+    []
+  );
+
+  const [
+    stories,
+    setStories,
+  ] = useState<CreatorStory[]>(
+    []
+  );
+
+  const [
+    placementMode,
+    setPlacementMode,
+  ] = useState(false);
+
+  const [
+    draftCoordinates,
+    setDraftCoordinates,
+  ] =
+    useState<Coordinates | null>(
+      null
+    );
+
+  const [
+    editingStoryId,
+    setEditingStoryId,
+  ] =
+    useState<string | null>(
+      null
+    );
+
+  const [
+    storyTitle,
+    setStoryTitle,
+  ] = useState("");
+
+  const [
+    storyText,
+    setStoryText,
+  ] = useState("");
+
+  const [
+    storyType,
+    setStoryType,
+  ] =
+    useState<CreatorStoryType>(
+      "audio"
+    );
+
+  const [
+    storyAudio,
+    setStoryAudio,
+  ] =
+    useState<
+      MediaAttachment | undefined
+    >(undefined);
+
+  const [
+    storyImage,
+    setStoryImage,
+  ] =
+    useState<
+      MediaAttachment | undefined
+    >(undefined);
+
+  const [
+    pendingAudioFile,
+    setPendingAudioFile,
+  ] = useState<File | null>(
+    null
+  );
+
+  const [
+    pendingImageFile,
+    setPendingImageFile,
+  ] = useState<File | null>(
+    null
+  );
+
+  const [
+    storySaving,
+    setStorySaving,
+  ] = useState(false);
+
+  const [
+    saveMessage,
+    setSaveMessage,
+  ] = useState("");
+
+  const [
+    projectsLoading,
+    setProjectsLoading,
+  ] = useState(true);
+
+  const [
+    projectError,
+    setProjectError,
+  ] = useState("");
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function initialiseProjects() {
+      const supabase =
+        createClient();
+
+      try {
+        const remoteProjects =
+          await loadCreatorProjects(
+            supabase
+          );
+
+        const browserProjects =
+          loadBrowserProjects();
+
+        const remoteIds =
+          new Set(
+            remoteProjects.map(
+              (project) =>
+                project.id
+            )
+          );
+
+        const projectsToImport =
+          browserProjects.filter(
+            (project) =>
+              !remoteIds.has(
+                project.id
+              )
+          );
+
+        if (
+          projectsToImport.length >
+          0
+        ) {
+          const shouldImport =
+            window.confirm(
+              `We found ${projectsToImport.length} draft experience${
+                projectsToImport.length ===
+                1
+                  ? ""
+                  : "s"
+              } saved in this browser. Import ${
+                projectsToImport.length ===
+                1
+                  ? "it"
+                  : "them"
+              } into your account?`
+            );
+
+          if (shouldImport) {
+            for (const project of projectsToImport) {
+              await saveCreatorProject(
+                supabase,
+                {
+                  ...project,
+                  status: "draft",
+                }
+              );
             }
-            onClick={() =>
-              setDirection("airport-west")
-            }
-          >
-            Airport → West End
-          </button>
+          }
+        }
 
-          <button
-            className={
-              direction === "west-airport"
-                ? "active"
-                : ""
-            }
-            onClick={() =>
-              setDirection("west-airport")
-            }
-          >
-            West End → Airport
-          </button>
-        </div>
-      </section>
+        const latestProjects =
+          await loadCreatorProjects(
+            supabase
+          );
 
-      <section className="creatorStories">
-        <div className="creatorSectionHeading">
-          <div>
-            <p className="kicker">STORIES</p>
-            <h2>
-              {displayedStories.length} along this journey
-            </h2>
+        if (isActive) {
+          setProjects(
+            latestProjects
+          );
+
+          setProjectError("");
+        }
+      } catch (error) {
+        const detail =
+          error instanceof Error
+            ? error.message
+            : typeof error ===
+                  "object" &&
+                error !== null &&
+                "message" in error
+              ? String(
+                  error.message
+                )
+              : JSON.stringify(
+                  error
+                );
+
+        if (isActive) {
+          setProjectError(
+            `Your drafts could not be loaded: ${
+              detail ||
+              "Unknown error"
+            }`
+          );
+        }
+      } finally {
+        if (isActive) {
+          setProjectsLoading(
+            false
+          );
+        }
+      }
+    }
+
+    void initialiseProjects();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const availableRoutes =
+    useMemo(
+      () =>
+        routeChoices.filter(
+          (choice) =>
+            choice.route.mode ===
+            mode
+        ),
+      [mode]
+    );
+
+  const selectedChoice =
+    routeChoices.find(
+      (choice) =>
+        choice.id ===
+        selectedRouteId
+    ) ?? routeChoices[0];
+
+  const route =
+    selectedChoice.route;
+
+  const stops =
+    route.stops ?? [];
+
+  const practicalStops =
+    useMemo(() => {
+      if (
+        route.id ===
+        "route-35-full"
+      ) {
+        const heriotIndex =
+          stops.findIndex(
+            (stop) =>
+              stop.name ===
+              "Heriot Watt Campus"
+          );
+
+        if (heriotIndex >= 0) {
+          return stops.slice(
+            heriotIndex
+          );
+        }
+      }
+
+      return stops;
+    }, [
+      route.id,
+      stops,
+    ]);
+
+  useEffect(() => {
+    if (
+      startStopId &&
+      endStopId
+    ) {
+      return;
+    }
+
+    const firstStop =
+      practicalStops[0];
+
+    const lastStop =
+      practicalStops[
+        practicalStops.length -
+          1
+      ];
+
+    if (firstStop) {
+      setStartStopId(
+        firstStop.id
+      );
+    }
+
+    if (lastStop) {
+      setEndStopId(
+        lastStop.id
+      );
+    }
+  }, [
+    practicalStops,
+    startStopId,
+    endStopId,
+  ]);
+
+  const selectedStartStop =
+    practicalStops.find(
+      (stop) =>
+        stop.id ===
+        startStopId
+    ) ?? practicalStops[0];
+
+  const selectedEndStop =
+    practicalStops.find(
+      (stop) =>
+        stop.id ===
+        endStopId
+    ) ??
+    practicalStops[
+      practicalStops.length -
+        1
+    ];
+
+  const selectedSectionCoordinates =
+    useMemo(() => {
+      if (
+        sectionMode ===
+          "whole" ||
+        !selectedStartStop ||
+        !selectedEndStop
+      ) {
+        return route.coordinates;
+      }
+
+      return getSectionCoordinates(
+        route,
+        selectedStartStop,
+        selectedEndStop
+      );
+    }, [
+      route,
+      sectionMode,
+      selectedStartStop,
+      selectedEndStop,
+    ]);
+
+  const startLabel =
+    sectionMode === "whole"
+      ? practicalStops[0]
+          ?.name ??
+        route.canonicalStart
+      : selectedStartStop
+          ?.name ??
+        route.canonicalStart;
+
+  const endLabel =
+    sectionMode === "whole"
+      ? practicalStops[
+          practicalStops.length -
+            1
+        ]?.name ??
+        route.canonicalEnd
+      : selectedEndStop
+          ?.name ??
+        route.canonicalEnd;
+
+  const sectionIsValid =
+    Boolean(
+      selectedStartStop &&
+        selectedEndStop &&
+        selectedStartStop.id !==
+          selectedEndStop.id
+    );
+
+  const sectionLowProgress =
+    Math.min(
+      selectedStartStop
+        ?.routeProgress ?? 0,
+      selectedEndStop
+        ?.routeProgress ?? 100
+    );
+
+  const sectionHighProgress =
+    Math.max(
+      selectedStartStop
+        ?.routeProgress ?? 0,
+      selectedEndStop
+        ?.routeProgress ?? 100
+    );
+
+  const selectedSectionStops =
+    practicalStops.filter(
+      (stop) =>
+        stop.routeProgress >=
+          sectionLowProgress &&
+        stop.routeProgress <=
+          sectionHighProgress
+    );
+
+  /*
+    MAP
+  */
+
+  useEffect(() => {
+    const shouldShowMap =
+      stage === "route" ||
+      stage === "studio";
+
+    if (
+      !shouldShowMap ||
+      !mapContainer.current
+    ) {
+      return;
+    }
+
+    mapRef.current?.remove();
+    mapRef.current = null;
+
+    routeMarkerRefs.current.forEach(
+      (marker) => marker.remove()
+    );
+
+    storyMarkerRefs.current.forEach(
+      (marker) => marker.remove()
+    );
+
+    draftMarkerRef.current?.remove();
+
+    routeMarkerRefs.current = [];
+    storyMarkerRefs.current = [];
+    draftMarkerRef.current = null;
+
+    const map =
+      new Map({
+        container:
+          mapContainer.current,
+
+        style: {
+          version: 8,
+
+          sources: {
+            osm: {
+              type: "raster",
+
+              tiles: [
+                "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+              ],
+
+              tileSize: 256,
+
+              attribution:
+                "© OpenStreetMap contributors",
+            },
+          },
+
+          layers: [
+            {
+              id: "osm",
+              type: "raster",
+              source: "osm",
+            },
+          ],
+        },
+
+        center: [
+          -3.22,
+          55.95,
+        ],
+
+        zoom: 11,
+      });
+
+    mapRef.current = map;
+
+    map.addControl(
+      new NavigationControl({
+        showCompass: false,
+      }),
+      "top-right"
+    );
+
+    function drawMap() {
+      map.addSource(
+        "full-route",
+        {
+          type: "geojson",
+
+          data: {
+            type: "Feature",
+            properties: {},
+
+            geometry: {
+              type: "LineString",
+              coordinates:
+                route.coordinates,
+            },
+          },
+        }
+      );
+
+      map.addLayer({
+        id: "full-route",
+        type: "line",
+        source: "full-route",
+
+        paint: {
+          "line-color":
+            "#aaa69d",
+
+          "line-width": 5,
+
+          "line-opacity":
+            sectionMode ===
+            "section"
+              ? 0.35
+              : 0,
+        },
+      });
+
+      map.addSource(
+        "selected-section",
+        {
+          type: "geojson",
+
+          data: {
+            type: "Feature",
+            properties: {},
+
+            geometry: {
+              type: "LineString",
+
+              coordinates:
+                selectedSectionCoordinates,
+            },
+          },
+        }
+      );
+
+      map.addLayer({
+        id:
+          "selected-section",
+
+        type: "line",
+
+        source:
+          "selected-section",
+
+        paint: {
+          "line-color":
+            "#171717",
+
+          "line-width": 7,
+
+          "line-opacity": 0.95,
+        },
+      });
+
+      const bounds =
+        new LngLatBounds();
+
+      selectedSectionCoordinates.forEach(
+        ([
+          longitude,
+          latitude,
+        ]) => {
+          bounds.extend([
+            longitude,
+            latitude,
+          ]);
+        }
+      );
+
+      if (
+        selectedStartStop &&
+        selectedEndStop
+      ) {
+        routeMarkerRefs.current.push(
+          new Marker({
+            color: "#171717",
+          })
+            .setLngLat(
+              selectedStartStop
+                .coordinates
+            )
+            .addTo(map),
+
+          new Marker({
+            color: "#171717",
+          })
+            .setLngLat(
+              selectedEndStop
+                .coordinates
+            )
+            .addTo(map)
+        );
+      }
+
+      if (
+        stage === "studio"
+      ) {
+        stories.forEach(
+          (story) => {
+            const wrapper =
+              document.createElement(
+                "button"
+              );
+
+            wrapper.type =
+              "button";
+
+            wrapper.className =
+              "storyMapPinLabel";
+
+            const dot =
+              document.createElement(
+                "span"
+              );
+
+            dot.className =
+              "storyMapDot";
+
+            dot.innerText = "●";
+
+            const label =
+              document.createElement(
+                "span"
+              );
+
+            label.className =
+              "storyMapLabel";
+
+            label.innerText =
+              story.title;
+
+            wrapper.append(
+              dot,
+              label
+            );
+
+            wrapper.addEventListener(
+              "click",
+              (event) => {
+                event.stopPropagation();
+
+                openStoryForEditing(
+                  story
+                );
+              }
+            );
+
+            const marker =
+              new Marker({
+                element:
+                  wrapper,
+                anchor:
+                  "left",
+              })
+                .setLngLat(
+                  story.subjectCoordinates
+                )
+                .addTo(map);
+
+            storyMarkerRefs.current.push(
+              marker
+            );
+          }
+        );
+      }
+
+      if (!bounds.isEmpty()) {
+        map.fitBounds(
+          bounds,
+          {
+            padding:
+              stage ===
+              "studio"
+                ? 90
+                : 75,
+
+            duration: 500,
+          }
+        );
+      }
+
+      window.setTimeout(
+        () => {
+          map.resize();
+          map.triggerRepaint();
+        },
+        150
+      );
+    }
+
+    map.once(
+      "load",
+      drawMap
+    );
+
+    if (
+      stage === "studio"
+    ) {
+      map.on(
+        "click",
+        (event) => {
+          if (
+            !placementMode
+          ) {
+            return;
+          }
+
+          const coordinates: Coordinates =
+            [
+              event.lngLat.lng,
+              event.lngLat.lat,
+            ];
+
+          setDraftCoordinates(
+            coordinates
+          );
+
+          setEditingStoryId(
+            null
+          );
+
+          setStoryTitle("");
+          setStoryText("");
+          setStoryType(
+            "audio"
+          );
+
+          setPlacementMode(
+            false
+          );
+        }
+      );
+    }
+
+    return () => {
+      routeMarkerRefs.current.forEach(
+        (marker) =>
+          marker.remove()
+      );
+
+      storyMarkerRefs.current.forEach(
+        (marker) =>
+          marker.remove()
+      );
+
+      draftMarkerRef.current?.remove();
+
+      routeMarkerRefs.current =
+        [];
+
+      storyMarkerRefs.current =
+        [];
+
+      draftMarkerRef.current =
+        null;
+
+      map.remove();
+
+      if (
+        mapRef.current ===
+        map
+      ) {
+        mapRef.current =
+          null;
+      }
+    };
+  }, [
+    stage,
+    route,
+    selectedSectionCoordinates,
+    sectionMode,
+    selectedStartStop,
+    selectedEndStop,
+    stories,
+    placementMode,
+  ]);
+
+  useEffect(() => {
+    if (
+      stage !== "studio" ||
+      !mapRef.current
+    ) {
+      return;
+    }
+
+    draftMarkerRef.current?.remove();
+
+    if (!draftCoordinates) {
+      return;
+    }
+
+    const element =
+      document.createElement(
+        "div"
+      );
+
+    element.className =
+      "draftMapPin";
+
+    element.innerHTML = "＋";
+
+    draftMarkerRef.current =
+      new Marker({
+        element,
+        anchor: "center",
+      })
+        .setLngLat(
+          draftCoordinates
+        )
+        .addTo(
+          mapRef.current
+        );
+
+    return () => {
+      draftMarkerRef.current?.remove();
+      draftMarkerRef.current =
+        null;
+    };
+  }, [
+    stage,
+    draftCoordinates,
+  ]);
+
+  /*
+    PROJECTS
+  */
+
+  function newProject() {
+    setProjectId(null);
+    setExperienceName("");
+    setStories([]);
+
+    setMode("tram");
+    setSelectedRouteId(
+      "tram"
+    );
+
+    setSectionMode(
+      "whole"
+    );
+
+    setStartStopId("");
+    setEndStopId("");
+
+    setStage("route");
+  }
+
+  function openProject(
+    project: SavedProject
+  ) {
+    const choice =
+      routeChoices.find(
+        (item) =>
+          item.id ===
+          project.selectedRouteId
+      );
+
+    setProjectId(
+      project.id
+    );
+
+    setExperienceName(
+      project.name
+    );
+
+    setSelectedRouteId(
+      project.selectedRouteId
+    );
+
+    if (choice) {
+      setMode(
+        choice.route.mode
+      );
+    }
+
+    setSectionMode(
+      project.sectionMode
+    );
+
+    setStartStopId(
+      project.startStopId
+    );
+
+    setEndStopId(
+      project.endStopId
+    );
+
+    setStories(
+      project.stories
+    );
+
+    setStage("studio");
+  }
+
+  async function saveProject(
+    returnToProjects = false
+  ) {
+    if (
+      !experienceName.trim()
+    ) {
+      return;
+    }
+
+    const id =
+      projectId ??
+      crypto.randomUUID();
+
+    const project: SavedProject =
+      {
+        id,
+
+        name:
+          experienceName.trim(),
+
+        city,
+
+        selectedRouteId,
+
+        sectionMode,
+
+        startStopId:
+          selectedStartStop?.id ??
+          startStopId,
+
+        endStopId:
+          selectedEndStop?.id ??
+          endStopId,
+
+        stories,
+
+        status: "draft",
+
+        updatedAt:
+          new Date().toISOString(),
+      };
+
+    const exists =
+      projects.some(
+        (item) =>
+          item.id === id
+      );
+
+    const updated =
+      exists
+        ? projects.map(
+            (item) =>
+              item.id === id
+                ? project
+                : item
+          )
+        : [
+            project,
+            ...projects,
+          ];
+
+    setSaveMessage(
+      "Saving…"
+    );
+
+    setProjectError("");
+
+    try {
+      const supabase =
+        createClient();
+
+      await saveCreatorProject(
+        supabase,
+        project
+      );
+
+      setProjects(updated);
+      setProjectId(id);
+
+      setSaveMessage(
+        "Saved"
+      );
+
+      window.setTimeout(
+        () =>
+          setSaveMessage(""),
+        1600
+      );
+
+      if (
+        returnToProjects
+      ) {
+        setStage("projects");
+      }
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : typeof error ===
+                "object" &&
+              error !== null &&
+              "message" in error
+            ? String(
+                error.message
+              )
+            : JSON.stringify(
+                error
+              );
+
+      setSaveMessage("");
+
+      setProjectError(
+        `This draft could not be saved: ${
+          detail ||
+          "Unknown error"
+        }`
+      );
+    }
+  }
+
+  async function deleteProject(
+    id: string
+  ) {
+    const confirmed =
+      window.confirm(
+        "Delete this draft experience?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setProjectError("");
+
+    try {
+      const supabase =
+        createClient();
+
+      await deleteCreatorProject(
+        supabase,
+        id
+      );
+
+      setProjects(
+        (current) =>
+          current.filter(
+            (project) =>
+              project.id !== id
+          )
+      );
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : typeof error ===
+                "object" &&
+              error !== null &&
+              "message" in error
+            ? String(
+                error.message
+              )
+            : JSON.stringify(
+                error
+              );
+
+      setProjectError(
+        `This draft could not be deleted: ${
+          detail ||
+          "Unknown error"
+        }`
+      );
+    }
+  }
+
+  async function signOut() {
+    const supabase =
+      createClient();
+
+    await supabase.auth.signOut();
+
+    window.location.href =
+      "/login";
+  }
+
+  /*
+    ROUTE / NAME / STORIES
+  */
+
+  function goToNameStage() {
+    if (
+      sectionMode ===
+        "section" &&
+      !sectionIsValid
+    ) {
+      return;
+    }
+
+    setExperienceName(
+      (current) =>
+        current ||
+        `${startLabel} to ${endLabel}`
+    );
+
+    setStage("name");
+  }
+
+  function enterStudio() {
+    if (
+      !experienceName.trim()
+    ) {
+      return;
+    }
+
+    setExperienceName(
+      experienceName.trim()
+    );
+
+    setProjectId(
+      (current) =>
+        current ??
+        crypto.randomUUID()
+    );
+
+    setStage("studio");
+  }
+
+  function startAddingStory() {
+    setEditingStoryId(
+      null
+    );
+
+    setDraftCoordinates(
+      null
+    );
+
+    setStoryTitle("");
+    setStoryText("");
+    setStoryType("audio");
+    setStoryAudio(undefined);
+    setStoryImage(undefined);
+    setPendingAudioFile(null);
+    setPendingImageFile(null);
+
+    setPlacementMode(
+      true
+    );
+  }
+
+  function cancelStory() {
+    setPlacementMode(
+      false
+    );
+
+    setDraftCoordinates(
+      null
+    );
+
+    setEditingStoryId(
+      null
+    );
+
+    setStoryTitle("");
+    setStoryText("");
+    setStoryAudio(undefined);
+    setStoryImage(undefined);
+    setPendingAudioFile(null);
+    setPendingImageFile(null);
+  }
+
+  function openStoryForEditing(
+    story: CreatorStory
+  ) {
+    setPlacementMode(
+      false
+    );
+
+    setDraftCoordinates(
+      story.subjectCoordinates
+    );
+
+    setEditingStoryId(
+      story.id
+    );
+
+    setStoryTitle(
+      story.title
+    );
+
+    setStoryText(
+      story.text
+    );
+
+    setStoryType(
+      story.type
+    );
+
+    setStoryAudio(
+      story.audio
+    );
+
+    setStoryImage(
+      story.image
+    );
+
+    setPendingAudioFile(null);
+    setPendingImageFile(null);
+  }
+
+  async function saveStory() {
+    if (
+      !draftCoordinates ||
+      !storyTitle.trim() ||
+      storySaving
+    ) {
+      return;
+    }
+
+    setStorySaving(true);
+    setProjectError("");
+
+    try {
+      const supabase =
+        createClient();
+
+      const resolvedProjectId =
+        projectId ??
+        crypto.randomUUID();
+
+      const resolvedStoryId =
+        editingStoryId ??
+        crypto.randomUUID();
+
+      let audio = storyAudio;
+      let image = storyImage;
+
+      if (pendingAudioFile) {
+        audio =
+          await uploadStoryMedia(
+            supabase,
+            resolvedProjectId,
+            resolvedStoryId,
+            "audio",
+            pendingAudioFile
+          );
+      }
+
+      if (pendingImageFile) {
+        image =
+          await uploadStoryMedia(
+            supabase,
+            resolvedProjectId,
+            resolvedStoryId,
+            "image",
+            pendingImageFile
+          );
+      }
+
+      const routeProgress =
+        getRouteProgress(
+          route,
+          draftCoordinates
+        );
+
+      const story: CreatorStory =
+        {
+          id: resolvedStoryId,
+          title:
+            storyTitle.trim(),
+          text:
+            storyText.trim(),
+          type: storyType,
+          subjectCoordinates:
+            draftCoordinates,
+          routeProgress,
+          audio,
+          image,
+        };
+
+      const updatedStories =
+        editingStoryId
+          ? stories.map(
+              (currentStory) =>
+                currentStory.id ===
+                editingStoryId
+                  ? story
+                  : currentStory
+            )
+          : [
+              ...stories,
+              story,
+            ];
+
+      const project: SavedProject =
+        {
+          id: resolvedProjectId,
+          name:
+            experienceName.trim(),
+          city,
+          selectedRouteId,
+          sectionMode,
+          startStopId:
+            selectedStartStop?.id ??
+            startStopId,
+          endStopId:
+            selectedEndStop?.id ??
+            endStopId,
+          stories:
+            updatedStories,
+          status: "draft",
+          updatedAt:
+            new Date().toISOString(),
+        };
+
+      await saveCreatorProject(
+        supabase,
+        project
+      );
+
+      setStories(updatedStories);
+      setProjectId(
+        resolvedProjectId
+      );
+
+      setProjects(
+        (current) => {
+          const exists =
+            current.some(
+              (item) =>
+                item.id ===
+                resolvedProjectId
+            );
+
+          return exists
+            ? current.map(
+                (item) =>
+                  item.id ===
+                  resolvedProjectId
+                    ? project
+                    : item
+              )
+            : [
+                project,
+                ...current,
+              ];
+        }
+      );
+
+      setSaveMessage("Saved");
+
+      window.setTimeout(
+        () =>
+          setSaveMessage(""),
+        1600
+      );
+
+      cancelStory();
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : "Unknown error";
+
+      setProjectError(
+        `This Story could not be saved: ${detail}`
+      );
+    } finally {
+      setStorySaving(false);
+    }
+  }
+
+  function deleteStory() {
+    if (!editingStoryId) {
+      return;
+    }
+
+    const confirmed =
+      window.confirm(
+        "Delete this Story?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setStories(
+      (current) =>
+        current.filter(
+          (story) =>
+            story.id !==
+            editingStoryId
+        )
+    );
+
+    cancelStory();
+  }
+
+  /*
+    PROJECTS SCREEN
+  */
+
+  if (stage === "projects") {
+    return (
+      <main className="creatorStudioShell">
+        <header className="creatorBrandHeader">
+          <div className="creatorLogo">
+            Between Stops
           </div>
-        </div>
 
-        <div className="storyList">
-          {displayedStories.map((story, index) => (
-            <article
-              className="creatorStoryCard"
-              key={story.id}
+          <div>
+            <a href="/">
+              Passenger view →
+            </a>
+
+            <button
+              className="headerTextButton"
+              onClick={signOut}
             >
-              <div className="storyOrder">
-                {index + 1}
+              Sign out
+            </button>
+          </div>
+        </header>
+
+        <section className="projectsPage">
+          <div className="projectsIntro">
+            <p className="creatorKicker">
+              CREATOR
+            </p>
+
+            <h1>
+              Your experiences
+            </h1>
+
+            <p>
+              Continue a draft or start
+              something new.
+            </p>
+
+            <button
+              className="newProjectButton"
+              onClick={
+                newProject
+              }
+            >
+              + New experience
+            </button>
+          </div>
+
+          <div className="projectsGrid">
+            {projectsLoading && (
+              <div className="emptyProjects">
+                <strong>
+                  Loading drafts…
+                </strong>
               </div>
+            )}
 
-              <div className="creatorStoryMain">
-                <span className="storyType">
-                  {story.type}
-                </span>
+            {!projectsLoading &&
+              projectError && (
+                <div className="emptyProjects">
+                  <strong>
+                    Something went wrong
+                  </strong>
 
-                <h3>{story.title}</h3>
+                  <p>
+                    {projectError}
+                  </p>
+                </div>
+              )}
+
+            {!projectsLoading &&
+              !projectError &&
+              projects.length ===
+                0 && (
+              <div className="emptyProjects">
+                <strong>
+                  No saved drafts yet
+                </strong>
 
                 <p>
-                  {story.routeProgress.toFixed(1)}% along
-                  canonical route
+                  Create an experience
+                  and save it here to
+                  continue later.
                 </p>
-
-                <small>
-                  {story.direction === "both"
-                    ? "Both directions"
-                    : story.direction ===
-                        "airport-west"
-                      ? "Airport → West End only"
-                      : "West End → Airport only"}
-                </small>
               </div>
+            )}
 
-              <div className="storyActions">
-                <button
-                  onClick={() =>
-                    renameStory(story.id)
-                  }
-                >
-                  Edit
-                </button>
+            {!projectsLoading &&
+              projects.map(
+              (project) => {
+                const choice =
+                  routeChoices.find(
+                    (item) =>
+                      item.id ===
+                      project.selectedRouteId
+                  );
 
-                <button
-                  className="deleteAction"
-                  onClick={() =>
-                    deleteStory(story.id)
-                  }
-                >
-                  Delete
-                </button>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
+                return (
+                  <article
+                    className="projectCard"
+                    key={
+                      project.id
+                    }
+                  >
+                    <div className="projectCardTop">
+                      <span className="draftStatus">
+                        Draft
+                      </span>
 
-      <section className="creatorAdd">
-        <p className="kicker">ADD STORY</p>
+                      <small>
+                        {new Date(
+                          project.updatedAt
+                        ).toLocaleDateString(
+                          "en-GB"
+                        )}
+                      </small>
+                    </div>
 
-        <h2>Add by route position</h2>
+                    <h2>
+                      {
+                        project.name
+                      }
+                    </h2>
 
-        <label>
-          Story title
-          <input
-            value={newTitle}
-            onChange={(event) =>
-              setNewTitle(event.target.value)
-            }
-            placeholder="Something worth noticing"
-          />
-        </label>
+                    <p>
+                      {
+                        choice?.label
+                      }{" "}
+                      ·{" "}
+                      {
+                        project.stories.length
+                      }{" "}
+                      Stories
+                    </p>
 
-        <label>
-          Route position %
-          <input
-            type="number"
-            min="0"
-            max="100"
-            step="0.1"
-            value={newProgress}
-            onChange={(event) =>
-              setNewProgress(event.target.value)
-            }
-          />
-        </label>
+                    <div className="projectCardActions">
+                      <button
+                        onClick={() =>
+                          openProject(
+                            project
+                          )
+                        }
+                      >
+                        Open draft →
+                      </button>
 
-        <button
-          className="creatorPrimaryButton"
-          onClick={() => addStory()}
-        >
-          + Add story
-        </button>
-      </section>
+                      <button
+                        className="projectDelete"
+                        onClick={() =>
+                          deleteProject(
+                            project.id
+                          )
+                        }
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </article>
+                );
+              }
+            )}
+          </div>
+        </section>
+      </main>
+    );
+  }
 
-      <section className="creatorLocation">
-        <p className="kicker">ON LOCATION</p>
+  /*
+    NAME SCREEN
+  */
 
-        <h2>Mark a spot while travelling</h2>
+  if (stage === "name") {
+    return (
+      <main className="creatorStudioShell">
+        <header className="creatorBrandHeader">
+          <div className="creatorLogo">
+            Between Stops
+          </div>
 
-        <p>
-          When you see somewhere worth using in an
-          experience, mark your current position. Between
-          Stops will snap it to the tram route.
-        </p>
-
-        {!watching ? (
           <button
-            className="creatorSecondaryButton"
-            onClick={() => setWatching(true)}
+            className="headerTextButton"
+            onClick={() =>
+              setStage(
+                "projects"
+              )
+            }
           >
-            Enable live location
+            Projects
           </button>
-        ) : (
-          <>
-            {currentRoutePosition ? (
-              <div className="locationReadout">
-                <div>
-                  <small>Route position</small>
-                  <strong>
-                    {currentRoutePosition.progress.toFixed(
-                      1
-                    )}
-                    %
-                  </strong>
-                </div>
+        </header>
 
-                <div>
-                  <small>Along route</small>
-                  <strong>
-                    {currentRoutePosition.distanceAlongKm.toFixed(
-                      2
-                    )}
-                    km
-                  </strong>
-                </div>
+        <section className="nameExperiencePanel">
+          <p className="creatorKicker">
+            DRAFT EXPERIENCE
+          </p>
 
-                <div>
-                  <small>Distance from line</small>
-                  <strong>
-                    {Math.round(
-                      currentRoutePosition.distanceFromRouteMetres
-                    )}
-                    m
-                  </strong>
-                </div>
+          <h1>
+            Name your experience
+          </h1>
 
-                <div>
-                  <small>GPS accuracy</small>
-                  <strong>
-                    ±
-                    {Math.round(
-                      location?.accuracy ?? 0
-                    )}
-                    m
-                  </strong>
-                </div>
-              </div>
-            ) : (
-              <p>Waiting for location…</p>
+          <p>
+            This is only a working
+            title. You can change it
+            until you submit the
+            experience for review.
+          </p>
+
+          <label>
+            Experience name
+          </label>
+
+          <input
+            value={
+              experienceName
+            }
+            onChange={(event) =>
+              setExperienceName(
+                event.target.value
+              )
+            }
+            placeholder="e.g. Royal Mile to the Shore"
+            autoFocus
+          />
+
+          <div className="nameJourneySummary">
+            <span>
+              {
+                selectedChoice.label
+              }
+            </span>
+
+            <strong>
+              {startLabel}
+            </strong>
+
+            <i>→</i>
+
+            <strong>
+              {endLabel}
+            </strong>
+          </div>
+
+          <div className="nameActions">
+            <button
+              className="creatorBackButton"
+              onClick={() =>
+                setStage("route")
+              }
+            >
+              ← Change journey
+            </button>
+
+            <button
+              className="creatorContinueButton inlineContinue"
+              disabled={
+                !experienceName.trim()
+              }
+              onClick={
+                enterStudio
+              }
+            >
+              Create draft →
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
+  /*
+    STUDIO
+  */
+
+  if (stage === "studio") {
+    return (
+      <main className="creatorStudioShell studioMode">
+        <header className="creatorBrandHeader studioBrandHeader">
+          <div>
+            <div className="creatorLogo">
+              Between Stops
+            </div>
+
+            <p className="creatorAreaLabel">
+              Creator Studio
+            </p>
+          </div>
+
+          <div className="studioTopActions">
+            {projectError && (
+              <span className="saveMessage">
+                {projectError}
+              </span>
+            )}
+
+            {saveMessage && (
+              <span className="saveMessage">
+                {saveMessage}
+              </span>
             )}
 
             <button
-              className="creatorPrimaryButton"
-              onClick={markCurrentPosition}
-              disabled={!currentRoutePosition}
+              className="headerTextButton"
+              onClick={() =>
+                saveProject(
+                  true
+                )
+              }
             >
-              📍 Mark this spot as a story
+              Save for later
             </button>
-          </>
-        )}
+
+            <button
+              className="reviewButton"
+              disabled
+            >
+              Submit for review
+            </button>
+          </div>
+        </header>
+
+        <section className="experienceHeader">
+          <div className="experienceHeaderMain">
+            <div className="experienceStatusRow">
+              <span className="draftStatus">
+                Draft experience
+              </span>
+
+              <span>
+                {
+                  selectedChoice.label
+                }{" "}
+                · {startLabel} →{" "}
+                {endLabel}
+              </span>
+            </div>
+
+            <input
+              className="experienceTitleInput"
+              value={
+                experienceName
+              }
+              onChange={(event) =>
+                setExperienceName(
+                  event.target
+                    .value
+                )
+              }
+              aria-label="Experience name"
+            />
+          </div>
+
+          <button
+            className="saveDraftButton"
+            onClick={() =>
+              saveProject(
+                false
+              )
+            }
+          >
+            Save draft
+          </button>
+        </section>
+
+        <section className="studioWorkspace">
+          <aside className="studioSidebar">
+            {!draftCoordinates &&
+              !editingStoryId && (
+                <>
+                  <div className="studioSidebarIntro">
+                    <p className="creatorKicker">
+                      STORIES
+                    </p>
+
+                    <h2>
+                      Build around the
+                      journey
+                    </h2>
+
+                    <p>
+                      Place a pin on
+                      the actual place,
+                      building or object
+                      your Story is
+                      about.
+                    </p>
+                  </div>
+
+                  <button
+                    className={
+                      placementMode
+                        ? "addStoryButton placing"
+                        : "addStoryButton"
+                    }
+                    onClick={
+                      startAddingStory
+                    }
+                  >
+                    {placementMode
+                      ? "Click somewhere on the map…"
+                      : "+ Add story"}
+                  </button>
+
+                  {placementMode && (
+                    <button
+                      className="cancelPlacementButton"
+                      onClick={
+                        cancelStory
+                      }
+                    >
+                      Cancel
+                    </button>
+                  )}
+
+                  <div className="storyList">
+                    <div className="storyListHeading">
+                      <span>
+                        Stories
+                      </span>
+
+                      <strong>
+                        {
+                          stories.length
+                        }
+                      </strong>
+                    </div>
+
+                    {stories.length ===
+                      0 && (
+                      <div className="emptyStories">
+                        <strong>
+                          No Stories yet
+                        </strong>
+
+                        <p>
+                          Add your first
+                          subject pin to
+                          begin.
+                        </p>
+                      </div>
+                    )}
+
+                    {stories
+                      .slice()
+                      .sort(
+                        (a, b) =>
+                          a.routeProgress -
+                          b.routeProgress
+                      )
+                      .map(
+                        (
+                          story,
+                          index
+                        ) => (
+                          <button
+                            key={
+                              story.id
+                            }
+                            className="storyListItem"
+                            onClick={() =>
+                              openStoryForEditing(
+                                story
+                              )
+                            }
+                          >
+                            <span className="storyIndex">
+                              {index +
+                                1}
+                            </span>
+
+                            <span>
+                              <strong>
+                                {
+                                  story.title
+                                }
+                              </strong>
+
+                              <small>
+                                {story.type ===
+                                "look"
+                                  ? "Something to spot"
+                                  : story.type}
+                              </small>
+                            </span>
+                          </button>
+                        )
+                      )}
+                  </div>
+                </>
+              )}
+
+            {draftCoordinates && (
+              <div className="storyEditor">
+                <p className="creatorKicker">
+                  {editingStoryId
+                    ? "EDIT STORY"
+                    : "NEW STORY"}
+                </p>
+
+                <h2>
+                  {editingStoryId
+                    ? "Story details"
+                    : "What happens here?"}
+                </h2>
+
+                <p className="editorHelp">
+                  Place the pin on the
+                  actual subject. Trigger
+                  timing and left/right
+                  behaviour will be worked
+                  out separately by the
+                  journey engine.
+                </p>
+
+                <div className="storyField">
+                  <label>
+                    Story title
+                  </label>
+
+                  <input
+                    value={
+                      storyTitle
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setStoryTitle(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder="e.g. Scottish Parliament"
+                    autoFocus
+                  />
+                </div>
+
+                <div className="storyField">
+                  <label>
+                    Story type
+                  </label>
+
+                  <select
+                    value={
+                      storyType
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setStoryType(
+                        event.target
+                          .value as CreatorStoryType
+                      )
+                    }
+                  >
+                    <option value="audio">
+                      Audio
+                    </option>
+
+                    <option value="image">
+                      Image
+                    </option>
+
+                    <option value="look">
+                      Something to spot
+                    </option>
+                  </select>
+                </div>
+
+                <div className="storyField">
+                  <label>
+                    Description / notes
+                  </label>
+
+                  <textarea
+                    value={
+                      storyText
+                    }
+                    onChange={(
+                      event
+                    ) =>
+                      setStoryText(
+                        event.target
+                          .value
+                      )
+                    }
+                    placeholder="Working notes or Story text…"
+                  />
+                </div>
+
+                <div className="mediaUploadRow">
+                  <label className="mediaUploadControl">
+                    <input
+                      type="file"
+                      accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav,.mp3,.m4a,.wav"
+                      onChange={(event) => {
+                        const file =
+                          event.target
+                            .files?.[0] ??
+                          null;
+
+                        setPendingAudioFile(
+                          file
+                        );
+
+                        event.target.value =
+                          "";
+                      }}
+                    />
+
+                    <span>
+                      🎙{" "}
+                      {pendingAudioFile
+                        ? "Replace selected audio"
+                        : storyAudio
+                          ? "Replace audio"
+                          : "Upload audio"}
+                    </span>
+                  </label>
+
+                  <label className="mediaUploadControl">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                      onChange={(event) => {
+                        const file =
+                          event.target
+                            .files?.[0] ??
+                          null;
+
+                        setPendingImageFile(
+                          file
+                        );
+
+                        event.target.value =
+                          "";
+                      }}
+                    />
+
+                    <span>
+                      ◫{" "}
+                      {pendingImageFile
+                        ? "Replace selected image"
+                        : storyImage
+                          ? "Replace image"
+                          : "Add image"}
+                    </span>
+                  </label>
+                </div>
+
+                {pendingAudioFile && (
+                  <div className="pendingMedia">
+                    <span>
+                      {
+                        pendingAudioFile.name
+                      }
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPendingAudioFile(
+                          null
+                        )
+                      }
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                {!pendingAudioFile &&
+                  storyAudio && (
+                    <div className="savedMedia">
+                      <div>
+                        <strong>
+                          Audio
+                        </strong>
+
+                        <span>
+                          {
+                            storyAudio.filename
+                          }
+                        </span>
+                      </div>
+
+                      {storyAudio.url && (
+                        <audio
+                          controls
+                          preload="metadata"
+                          src={
+                            storyAudio.url
+                          }
+                        />
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStoryAudio(
+                            undefined
+                          )
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+
+                {pendingImageFile && (
+                  <div className="pendingMedia">
+                    <span>
+                      {
+                        pendingImageFile.name
+                      }
+                    </span>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPendingImageFile(
+                          null
+                        )
+                      }
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                {!pendingImageFile &&
+                  storyImage && (
+                    <div className="savedMedia imageMedia">
+                      {storyImage.url && (
+                        <img
+                          src={
+                            storyImage.url
+                          }
+                          alt=""
+                        />
+                      )}
+
+                      <div>
+                        <strong>
+                          Image
+                        </strong>
+
+                        <span>
+                          {
+                            storyImage.filename
+                          }
+                        </span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setStoryImage(
+                            undefined
+                          )
+                        }
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+
+                <small className="mediaHelpNote">
+                  Draft media is private.
+                  Maximum file size:
+                  25 MB.
+                </small>
+
+                <div className="editorActions">
+                  <button
+                    className="creatorContinueButton inlineContinue"
+                    disabled={
+                      !storyTitle.trim() ||
+                      storySaving
+                    }
+                    onClick={
+                      saveStory
+                    }
+                  >
+                    {storySaving
+                      ? "Saving…"
+                      : editingStoryId
+                        ? "Save changes"
+                        : "Save Story"}
+                  </button>
+
+                  <button
+                    className="creatorBackButton"
+                    onClick={
+                      cancelStory
+                    }
+                  >
+                    Cancel
+                  </button>
+                </div>
+
+                {editingStoryId && (
+                  <button
+                    className="deleteStoryButton"
+                    onClick={
+                      deleteStory
+                    }
+                  >
+                    Delete Story
+                  </button>
+                )}
+              </div>
+            )}
+          </aside>
+
+          <section className="studioMapPanel">
+            <div className="studioMapTopbar">
+              <div>
+                <strong>
+                  {startLabel}
+                </strong>
+
+                <span>→</span>
+
+                <strong>
+                  {endLabel}
+                </strong>
+              </div>
+
+              <span>
+                {
+                  selectedSectionStops.length
+                }{" "}
+                stops
+              </span>
+            </div>
+
+            {placementMode && (
+              <div className="mapInstruction">
+                <strong>
+                  Add Story
+                </strong>
+
+                <span>
+                  Click the actual
+                  place or object.
+                </span>
+              </div>
+            )}
+
+            <div
+              ref={
+                mapContainer
+              }
+              className={
+                placementMode
+                  ? "creatorMap studioMap placementCursor"
+                  : "creatorMap studioMap"
+              }
+            />
+
+            <div className="mapFootnote studioFootnote">
+              <div className="routeLegendGroup">
+                <span className="routeLegend">
+                  <i />
+                  Experience route
+                </span>
+
+                <span className="storyLegend">
+                  <b>●</b>
+                  Story subject
+                </span>
+              </div>
+
+              <span>
+                Story order follows
+                the route automatically.
+              </span>
+            </div>
+          </section>
+        </section>
+      </main>
+    );
+  }
+
+  /*
+    ROUTE SCREEN
+  */
+
+  return (
+    <main className="creatorStudioShell">
+      <header className="creatorBrandHeader">
+        <div>
+          <div className="creatorLogo">
+            Between Stops
+          </div>
+
+          <p className="creatorAreaLabel">
+            Creator
+          </p>
+        </div>
+
+        <button
+          className="headerTextButton"
+          onClick={() =>
+            setStage(
+              "projects"
+            )
+          }
+        >
+          Projects
+        </button>
+      </header>
+
+      <section className="creatorWorkspace">
+        <aside className="creatorSidebar">
+          <div className="creatorIntro">
+            <p className="creatorKicker">
+              ROUTE
+            </p>
+
+            <h2>
+              Where does your story
+              travel?
+            </h2>
+
+            <p>
+              Choose a transport route,
+              then decide whether your
+              experience uses all of it
+              or only part of the
+              journey.
+            </p>
+          </div>
+
+          <div className="creatorField">
+            <label>
+              City
+            </label>
+
+            <select
+              value={city}
+              disabled
+            >
+              <option>
+                Edinburgh
+              </option>
+            </select>
+          </div>
+
+          <div className="creatorField">
+            <label>
+              Mode of transport
+            </label>
+
+            <select
+              value={mode}
+              onChange={(
+                event
+              ) => {
+                const nextMode =
+                  event.target
+                    .value as TransportMode;
+
+                setMode(nextMode);
+
+                const first =
+                  routeChoices.find(
+                    (choice) =>
+                      choice.route
+                        .mode ===
+                      nextMode
+                  );
+
+                if (first) {
+                  setSelectedRouteId(
+                    first.id
+                  );
+                }
+
+                setStartStopId("");
+                setEndStopId("");
+
+                setSectionMode(
+                  "whole"
+                );
+              }}
+            >
+              <option value="tram">
+                Tram
+              </option>
+
+              <option value="bus">
+                Bus
+              </option>
+
+              <option
+                value="train"
+                disabled
+              >
+                Train — coming later
+              </option>
+
+              <option
+                value="cab"
+                disabled
+              >
+                Cab — coming later
+              </option>
+            </select>
+          </div>
+
+          <div className="creatorField">
+            <label>
+              Route
+            </label>
+
+            <select
+              value={
+                selectedRouteId
+              }
+              onChange={(
+                event
+              ) => {
+                setSelectedRouteId(
+                  event.target
+                    .value
+                );
+
+                setStartStopId("");
+                setEndStopId("");
+
+                setSectionMode(
+                  "whole"
+                );
+              }}
+            >
+              {availableRoutes.map(
+                (choice) => (
+                  <option
+                    key={
+                      choice.id
+                    }
+                    value={
+                      choice.id
+                    }
+                  >
+                    {
+                      choice.label
+                    }{" "}
+                    —{" "}
+                    {
+                      choice.description
+                    }
+                  </option>
+                )
+              )}
+            </select>
+          </div>
+
+          <div className="creatorSectionChoice">
+            <p className="creatorKicker">
+              EXPERIENCE LENGTH
+            </p>
+
+            <button
+              className={
+                sectionMode ===
+                "whole"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setSectionMode(
+                  "whole"
+                )
+              }
+            >
+              <strong>
+                Use the whole route
+              </strong>
+
+              <span>
+                {startLabel} to{" "}
+                {endLabel}
+              </span>
+            </button>
+
+            <button
+              className={
+                sectionMode ===
+                "section"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setSectionMode(
+                  "section"
+                )
+              }
+            >
+              <strong>
+                Choose part of the
+                route
+              </strong>
+
+              <span>
+                Select first and last
+                stop.
+              </span>
+            </button>
+          </div>
+
+          {sectionMode ===
+            "section" && (
+            <div className="sectionSelector">
+              <div>
+                <label>
+                  Start stop
+                </label>
+
+                <select
+                  value={
+                    startStopId
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setStartStopId(
+                      event.target
+                        .value
+                    )
+                  }
+                >
+                  {practicalStops.map(
+                    (stop) => (
+                      <option
+                        key={
+                          stop.id
+                        }
+                        value={
+                          stop.id
+                        }
+                      >
+                        {
+                          stop.name
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+
+              <div className="sectionConnector">
+                ↓
+              </div>
+
+              <div>
+                <label>
+                  End stop
+                </label>
+
+                <select
+                  value={
+                    endStopId
+                  }
+                  onChange={(
+                    event
+                  ) =>
+                    setEndStopId(
+                      event.target
+                        .value
+                    )
+                  }
+                >
+                  {practicalStops.map(
+                    (stop) => (
+                      <option
+                        key={
+                          stop.id
+                        }
+                        value={
+                          stop.id
+                        }
+                      >
+                        {
+                          stop.name
+                        }
+                      </option>
+                    )
+                  )}
+                </select>
+              </div>
+            </div>
+          )}
+
+          <button
+            className="creatorContinueButton"
+            disabled={
+              sectionMode ===
+                "section" &&
+              !sectionIsValid
+            }
+            onClick={
+              goToNameStage
+            }
+          >
+            Use this journey →
+          </button>
+        </aside>
+
+        <section className="creatorMapPanel">
+          <div className="mapHeader">
+            <div>
+              <p className="creatorKicker">
+                EDINBURGH
+              </p>
+
+              <h2>
+                {
+                  selectedChoice.label
+                }
+              </h2>
+
+              <p className="mapJourneyLabel">
+                {startLabel}{" "}
+                <span>→</span>{" "}
+                {endLabel}
+              </p>
+            </div>
+
+            <span>
+              {route.mode === "bus"
+                ? "Bus"
+                : "Tram"}
+            </span>
+          </div>
+
+          <div
+            ref={mapContainer}
+            className="creatorMap"
+          />
+
+          <div className="mapFootnote">
+            <span className="routeLegend">
+              <i />
+              Selected journey
+            </span>
+
+            <span>
+              Pan and zoom to inspect
+              the route.
+            </span>
+          </div>
+        </section>
       </section>
     </main>
   );

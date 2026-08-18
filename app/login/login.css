@@ -1,0 +1,172 @@
+.loginShell {
+  display: grid;
+  min-height: 100vh;
+  padding: 20px;
+  place-items: center;
+}
+
+.loginCard {
+  width: min(720px, 100%);
+  overflow: hidden;
+  border-radius: 26px;
+  background: #f7f6f1;
+  color: #171717;
+  box-shadow:
+    0 24px 80px
+    rgba(0, 0, 0, 0.1);
+}
+
+.loginHeader {
+  display: flex;
+  min-height: 78px;
+  padding: 0 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom:
+    1px solid #dedbd2;
+}
+
+.loginHeader a {
+  color: #171717;
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.loginLogo {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.loginArea {
+  margin: 2px 0 0;
+  color: #918d84;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.loginContent {
+  width: min(480px, 100%);
+  padding: 70px 46px 80px;
+}
+
+.loginKicker {
+  margin: 0 0 12px;
+  color: #77736b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.loginContent h1 {
+  margin: 0;
+  font-size: clamp(
+    38px,
+    7vw,
+    58px
+  );
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+}
+
+.loginIntro {
+  margin: 24px 0 32px;
+  color: #5f5b54;
+  font-size: 16px;
+  line-height: 1.55;
+}
+
+.loginContent form {
+  display: grid;
+  gap: 10px;
+}
+
+.loginContent label {
+  color: #67635c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.loginContent input {
+  width: 100%;
+  min-height: 50px;
+  padding: 0 14px;
+  border: 1px solid #d6d3cb;
+  border-radius: 12px;
+  background: white;
+  color: #171717;
+  font: inherit;
+}
+
+.loginContent form button {
+  min-height: 50px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 999px;
+  background: #171717;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.loginContent form button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.loginError {
+  margin: 18px 0 0;
+  color: #a22d22;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.loginConfirmation {
+  margin-top: 32px;
+  padding: 22px;
+  border: 1px solid #d8d4cb;
+  border-radius: 16px;
+  background: white;
+}
+
+.loginConfirmation strong {
+  font-size: 18px;
+}
+
+.loginConfirmation p {
+  color: #5f5b54;
+  line-height: 1.5;
+}
+
+.loginConfirmation button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #171717;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .loginShell {
+    padding: 0;
+    place-items: stretch;
+  }
+
+  .loginCard {
+    min-height: 100vh;
+    border-radius: 0;
+  }
+
+  .loginHeader {
+    padding: 0 22px;
+  }
+
+  .loginContent {
+    padding: 56px 22px;
+  }
+}

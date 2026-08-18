@@ -961,3 +961,28 @@ button:focus-visible {
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.1);
   }
 }
+
+.experienceList {
+  display: grid;
+  gap: 0;
+}
+
+.busExperience {
+  background:
+    radial-gradient(
+      circle at 24% 72%,
+      #c48765 0 9%,
+      transparent 10%
+    ),
+    radial-gradient(
+      circle at 76% 28%,
+      #8ba7aa 0 10%,
+      transparent 11%
+    ),
+    linear-gradient(
+      145deg,
+      #667c80,
+      #bca27e 55%,
+      #7b8d89
+    );
+}

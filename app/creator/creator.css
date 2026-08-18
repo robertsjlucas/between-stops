@@ -1,0 +1,848 @@
+.creatorStudioShell {
+  width: min(1440px, calc(100% - 40px));
+  min-height: calc(100vh - 40px);
+  margin: 20px auto;
+  overflow: hidden;
+  border-radius: 26px;
+  background: #f7f6f1;
+  color: #171717;
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.1);
+}
+
+.creatorBrandHeader {
+  display: flex;
+  min-height: 78px;
+  padding: 0 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid #dedbd2;
+  background: #f7f6f1;
+}
+
+.creatorLogo {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+}
+
+.creatorAreaLabel {
+  margin: 2px 0 0;
+  color: #918d84;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.headerTextButton {
+  padding: 9px 11px;
+  border: 0;
+  background: transparent;
+  color: #171717;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.creatorKicker {
+  margin: 0 0 9px;
+  color: #77736b;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.creatorWorkspace,
+.studioWorkspace {
+  display: grid;
+  min-height: 730px;
+  grid-template-columns:
+    minmax(320px, 390px)
+    minmax(0, 1fr);
+}
+
+.creatorSidebar,
+.studioSidebar {
+  padding: 32px;
+  border-right: 1px solid #dfdcd3;
+  background: #fbfaf7;
+}
+
+.creatorIntro h2,
+.studioSidebar h2 {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.04;
+  letter-spacing: -0.04em;
+}
+
+.creatorIntro > p:last-child,
+.studioSidebarIntro > p:last-child {
+  color: #6d6962;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.creatorField,
+.storyField {
+  margin-top: 22px;
+}
+
+.creatorField label,
+.sectionSelector label,
+.storyField label,
+.nameExperiencePanel label {
+  display: block;
+  margin-bottom: 7px;
+  color: #67635c;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.creatorField select,
+.sectionSelector select,
+.storyField select,
+.storyField input,
+.storyField textarea,
+.nameExperiencePanel input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d6d3cb;
+  border-radius: 12px;
+  background: white;
+  color: #171717;
+  font: inherit;
+}
+
+.creatorField select,
+.sectionSelector select,
+.storyField select,
+.storyField input,
+.nameExperiencePanel input {
+  min-height: 46px;
+  padding: 0 13px;
+}
+
+.storyField textarea {
+  min-height: 120px;
+  padding: 12px 13px;
+  resize: vertical;
+}
+
+.creatorSectionChoice {
+  display: grid;
+  gap: 8px;
+  margin-top: 28px;
+}
+
+.creatorSectionChoice button {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 15px;
+  border: 1px solid #dad7cf;
+  border-radius: 14px;
+  background: white;
+  color: #171717;
+  text-align: left;
+  cursor: pointer;
+}
+
+.creatorSectionChoice button span {
+  color: #7a766e;
+  font-size: 11px;
+}
+
+.creatorSectionChoice button.active {
+  border-color: #171717;
+  background: #171717;
+  color: white;
+}
+
+.creatorSectionChoice button.active span {
+  color: #bdb9b1;
+}
+
+.sectionSelector {
+  margin-top: 14px;
+  padding: 17px;
+  border: 1px solid #d8d4cb;
+  border-radius: 16px;
+  background: white;
+}
+
+.sectionConnector {
+  padding: 8px 12px;
+  color: #959087;
+}
+
+.creatorContinueButton,
+.newProjectButton,
+.addStoryButton,
+.reviewButton,
+.saveDraftButton {
+  border: 0;
+  border-radius: 999px;
+  background: #171717;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.creatorContinueButton {
+  width: 100%;
+  margin-top: 28px;
+  padding: 16px 18px;
+}
+
+.creatorContinueButton:disabled,
+.reviewButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.creatorBackButton {
+  padding: 12px 17px;
+  border: 1px solid #d6d2c9;
+  border-radius: 999px;
+  background: transparent;
+  color: #171717;
+  cursor: pointer;
+}
+
+/* ROUTE MAP */
+
+.creatorMapPanel,
+.studioMapPanel {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  grid-template-rows:
+    auto
+    1fr
+    auto;
+  background: #eae7df;
+}
+
+.mapHeader,
+.studioMapTopbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px 26px;
+  background: #f7f6f1;
+}
+
+.mapHeader h2 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.04em;
+}
+
+.mapHeader > span,
+.studioMapTopbar > span {
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #e5e2da;
+  color: #5e5a54;
+  font-size: 11px;
+}
+
+.mapJourneyLabel {
+  margin: 6px 0 0;
+  color: #77736b;
+  font-size: 11px;
+}
+
+.creatorMap {
+  width: 100%;
+  min-height: 620px;
+}
+
+.studioMap {
+  min-height: 660px;
+}
+
+.mapFootnote {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 24px;
+  background: #f7f6f1;
+  color: #767269;
+  font-size: 10px;
+}
+
+.routeLegendGroup {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.routeLegend,
+.storyLegend {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.routeLegend i {
+  width: 24px;
+  height: 5px;
+  border-radius: 999px;
+  background: #171717;
+}
+
+/* NAME */
+
+.nameExperiencePanel {
+  max-width: 650px;
+  margin: 70px auto;
+  padding: 46px;
+  border-radius: 26px;
+  background: white;
+  box-shadow:
+    0 18px 60px rgba(0, 0, 0, 0.07);
+}
+
+.nameExperiencePanel h1 {
+  margin: 0;
+  font-size: 44px;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.nameExperiencePanel > p {
+  color: #6d6962;
+  line-height: 1.55;
+}
+
+.nameJourneySummary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 14px;
+  background: #ece9e1;
+  font-size: 12px;
+}
+
+.nameJourneySummary > span {
+  margin-right: auto;
+  font-weight: 700;
+}
+
+.nameJourneySummary i {
+  color: #8c887f;
+  font-style: normal;
+}
+
+.nameActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.inlineContinue {
+  width: auto;
+  margin: 0;
+}
+
+/* PROJECTS */
+
+.projectsPage {
+  padding: 50px;
+}
+
+.projectsIntro {
+  max-width: 650px;
+}
+
+.projectsIntro h1 {
+  margin: 0;
+  font-size: 54px;
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.projectsIntro > p {
+  color: #77736b;
+}
+
+.newProjectButton {
+  margin-top: 15px;
+  padding: 14px 20px;
+}
+
+.projectsGrid {
+  display: grid;
+  grid-template-columns:
+    repeat(
+      auto-fill,
+      minmax(280px, 1fr)
+    );
+  gap: 16px;
+  margin-top: 44px;
+}
+
+.emptyProjects,
+.projectCard {
+  padding: 24px;
+  border-radius: 20px;
+  background: white;
+}
+
+.emptyProjects {
+  border: 1px dashed #d3cfc6;
+  color: #77736b;
+}
+
+.emptyProjects strong {
+  color: #171717;
+}
+
+.projectCardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.projectCardTop small {
+  color: #979289;
+}
+
+.projectCard h2 {
+  margin: 25px 0 8px;
+  font-size: 25px;
+  letter-spacing: -0.04em;
+}
+
+.projectCard > p {
+  color: #77736b;
+  font-size: 11px;
+}
+
+.projectCardActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.projectCardActions button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #171717;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.projectCardActions .projectDelete {
+  color: #a66b64;
+  font-size: 10px;
+}
+
+/* EXPERIENCE HEADER */
+
+.experienceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 24px 34px 27px;
+  border-bottom: 1px solid #dfdcd3;
+  background: #fbfaf7;
+}
+
+.experienceHeaderMain {
+  min-width: 0;
+  flex: 1;
+}
+
+.experienceStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: #77736b;
+  font-size: 10px;
+}
+
+.draftStatus {
+  display: inline-flex;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: #e7e3da;
+  color: #66625c;
+  font-size: 9px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.experienceTitleInput {
+  display: block;
+  width: 100%;
+  max-width: none;
+  padding: 2px 0 5px;
+  overflow: visible;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: #171717;
+  font-size: clamp(36px, 4.5vw, 64px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.055em;
+}
+
+.saveDraftButton {
+  flex: 0 0 auto;
+  padding: 12px 18px;
+}
+
+.studioBrandHeader {
+  min-height: 70px;
+}
+
+.studioTopActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.saveMessage {
+  color: #77736b;
+  font-size: 10px;
+}
+
+/* STORIES */
+
+.addStoryButton {
+  width: 100%;
+  margin-top: 25px;
+  padding: 15px;
+}
+
+.addStoryButton.placing {
+  background: #ece9e1;
+  color: #171717;
+}
+
+.cancelPlacementButton {
+  width: 100%;
+  margin-top: 7px;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  color: #817d75;
+  cursor: pointer;
+}
+
+.storyList {
+  margin-top: 30px;
+}
+
+.storyListHeading {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e0ddd5;
+  font-size: 11px;
+}
+
+.emptyStories {
+  margin-top: 16px;
+  padding: 19px;
+  border: 1px dashed #d4d0c7;
+  border-radius: 14px;
+}
+
+.emptyStories p {
+  color: #89857d;
+  font-size: 11px;
+}
+
+.storyListItem {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 13px 2px;
+  border: 0;
+  border-bottom: 1px solid #e3e0d9;
+  background: transparent;
+  color: #171717;
+  text-align: left;
+  cursor: pointer;
+}
+
+.storyListItem strong,
+.storyListItem small {
+  display: block;
+}
+
+.storyListItem small {
+  margin-top: 3px;
+  color: #918d84;
+  font-size: 9px;
+  text-transform: capitalize;
+}
+
+.storyIndex {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  place-items: center;
+  border-radius: 50%;
+  background: #171717;
+  color: white;
+  font-size: 9px;
+}
+
+.editorHelp {
+  color: #77736b;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.mediaUploadRow {
+  display: grid;
+  grid-template-columns:
+    1fr
+    1fr;
+  gap: 7px;
+  margin-top: 20px;
+}
+
+.mediaUploadControl {
+  display: grid;
+  min-height: 46px;
+  place-items: center;
+  padding: 13px;
+  border: 1px dashed #b9b4aa;
+  border-radius: 12px;
+  background: white;
+  color: #171717;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+}
+
+.mediaUploadControl:hover {
+  border-color: #171717;
+}
+
+.mediaUploadControl input {
+  display: none;
+}
+
+.pendingMedia,
+.savedMedia {
+  display: flex;
+  margin-top: 8px;
+  padding: 11px 12px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid #d8d4cb;
+  border-radius: 12px;
+  background: white;
+  font-size: 10px;
+}
+
+.pendingMedia span,
+.savedMedia span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.savedMedia > div {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.savedMedia audio {
+  width: 150px;
+  height: 32px;
+}
+
+.savedMedia img {
+  width: 54px;
+  height: 54px;
+  flex: 0 0 auto;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.pendingMedia button,
+.savedMedia button {
+  padding: 5px 7px;
+  border: 0;
+  background: transparent;
+  color: #6f332c;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mediaHelpNote {
+  display: block;
+  margin-top: 7px;
+  color: #918d84;
+  font-size: 9px;
+}
+
+.editorActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 25px;
+}
+
+.deleteStoryButton {
+  width: 100%;
+  margin-top: 14px;
+  padding: 10px;
+  border: 0;
+  background: transparent;
+  color: #a25d56;
+  cursor: pointer;
+}
+
+/* MAP LABELS */
+
+.storyMapPinLabel {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 170px;
+  padding: 3px 7px 3px 4px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #171717;
+  box-shadow:
+    0 3px 9px rgba(0, 0, 0, 0.13);
+  cursor: pointer;
+}
+
+.storyMapDot {
+  display: grid;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: #171717;
+  color: white;
+  font-size: 8px;
+}
+
+.storyMapLabel {
+  overflow: hidden;
+  font-size: 9px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.draftMapPin {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 3px solid #171717;
+  border-radius: 50%;
+  background: white;
+  color: #171717;
+  box-shadow:
+    0 5px 14px rgba(0, 0, 0, 0.24);
+  font-size: 22px;
+}
+
+.placementCursor {
+  cursor: crosshair;
+}
+
+.mapInstruction {
+  position: absolute;
+  z-index: 5;
+  top: 78px;
+  left: 50%;
+  display: flex;
+  gap: 8px;
+  padding: 11px 15px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: #171717;
+  color: white;
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.18);
+  font-size: 10px;
+}
+
+.mapInstruction span {
+  color: #c9c6be;
+}
+
+.reviewButton {
+  padding: 12px 18px;
+}
+
+@media (max-width: 900px) {
+  .creatorStudioShell {
+    width: 100%;
+    min-height: 100vh;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .creatorWorkspace,
+  .studioWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .creatorSidebar,
+  .studioSidebar {
+    border-right: 0;
+    border-bottom: 1px solid #dfdcd3;
+  }
+
+  .creatorMap,
+  .studioMap {
+    min-height: 500px;
+  }
+
+  .experienceHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .experienceTitleInput {
+    font-size: 38px;
+  }
+
+  .projectsPage {
+    padding: 28px;
+  }
+
+  .projectsIntro h1 {
+    font-size: 43px;
+  }
+
+  .mapFootnote {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
