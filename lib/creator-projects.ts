@@ -12,7 +12,6 @@ export type SectionMode =
 
 export type CreatorStoryType =
   | "audio"
-  | "image"
   | "look";
 
 export type ProjectStatus =
@@ -33,6 +32,10 @@ export type TourAccessType =
   | "free"
   | "paid"
   | "sponsored";
+
+export type AgeGuidance =
+  | "all_ages"
+  | "not_for_children";
 
 export type MediaAttachment = {
   path: string;
@@ -64,7 +67,11 @@ export type SavedProject = {
   summary: string;
   description: string;
   coverImage?: MediaAttachment;
+  galleryImages: MediaAttachment[];
   durationMinutes?: number;
+  availableFrom?: string;
+  availableTo?: string;
+  ageGuidance: AgeGuidance;
   startCoordinates?: Coordinates;
   visibility: TourVisibility;
   accessType: TourAccessType;
@@ -73,6 +80,7 @@ export type SavedProject = {
   languageCode: string;
   publishedAt?: string;
   rightsConfirmedAt?: string;
+  reviewNote?: string;
   stories: CreatorStory[];
   status: ProjectStatus;
   updatedAt: string;
@@ -91,7 +99,9 @@ type DatabaseStory = {
   id: string;
   title: string;
   notes: string;
-  story_type: CreatorStoryType;
+  story_type:
+    | CreatorStoryType
+    | "image";
   subject_longitude: number;
   subject_latitude: number;
   route_progress: number;
@@ -119,6 +129,9 @@ type DatabaseExperience = {
   cover_image_filename: string | null;
   cover_image_mime_type: string | null;
   cover_image_size_bytes: number | null;
+  available_from: string | null;
+  available_to: string | null;
+  age_guidance: AgeGuidance;
   duration_minutes: number | null;
   start_longitude: number | null;
   start_latitude: number | null;
@@ -131,6 +144,19 @@ type DatabaseExperience = {
   rights_confirmed_at: string | null;
   status: ProjectStatus;
   updated_at: string;
+  experience_status_history?: {
+    to_status: string;
+    note: string | null;
+    created_at: string;
+  }[];
+  experience_gallery_images?: {
+    id: string;
+    path: string;
+    filename: string;
+    mime_type: string;
+    size_bytes: number;
+    position: number;
+  }[];
   stories: DatabaseStory[];
 };
 
@@ -188,7 +214,8 @@ export function loadBrowserProjects():
 }
 
 export async function loadCreatorProjects(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  retryFutureJwt = true
 ): Promise<SavedProject[]> {
   const { data, error } =
     await supabase
@@ -207,6 +234,9 @@ export async function loadCreatorProjects(
         cover_image_filename,
         cover_image_mime_type,
         cover_image_size_bytes,
+        available_from,
+        available_to,
+        age_guidance,
         duration_minutes,
         start_longitude,
         start_latitude,
@@ -219,6 +249,19 @@ export async function loadCreatorProjects(
         rights_confirmed_at,
         status,
         updated_at,
+        experience_status_history (
+          to_status,
+          note,
+          created_at
+        ),
+        experience_gallery_images (
+          id,
+          path,
+          filename,
+          mime_type,
+          size_bytes,
+          position
+        ),
         stories (
           id,
           title,
@@ -245,6 +288,44 @@ export async function loadCreatorProjects(
       );
 
   if (error) {
+    if (
+      retryFutureJwt &&
+      error.message
+        .toLowerCase()
+        .includes(
+          "jwt issued at future"
+        )
+    ) {
+      const {
+        error: refreshError,
+      } =
+        await supabase.auth.refreshSession();
+
+      if (!refreshError) {
+        try {
+          return await loadCreatorProjects(
+            supabase,
+            false
+          );
+        } catch (retryError) {
+          if (
+            retryError instanceof Error &&
+            retryError.message
+              .toLowerCase()
+              .includes(
+                "jwt issued at future"
+              )
+          ) {
+            throw new Error(
+              "Your sign-in session is temporarily out of sync. Sign out, then sign in again."
+            );
+          }
+
+          throw retryError;
+        }
+      }
+    }
+
     throw error;
   }
 
@@ -310,9 +391,12 @@ export async function loadCreatorProjects(
 
   const coverPaths =
     rows
-      .map(
-        (experience) =>
-          experience.cover_image_path
+      .flatMap(
+        (experience) => [
+          experience.cover_image_path,
+          ...(experience.experience_gallery_images ?? [])
+            .map((image) => image.path),
+        ]
       )
       .filter(
         (path): path is string =>
@@ -390,9 +474,28 @@ export async function loadCreatorProjects(
                 ),
             }
           : undefined,
+      galleryImages:
+        (experience.experience_gallery_images ?? [])
+          .sort(
+            (first, second) =>
+              first.position - second.position
+          )
+          .map((image) => ({
+            path: image.path,
+            filename: image.filename,
+            mimeType: image.mime_type,
+            sizeBytes: image.size_bytes,
+            url: coverSignedUrls.get(image.path),
+          })),
       durationMinutes:
         experience.duration_minutes ??
         undefined,
+      availableFrom:
+        experience.available_from ?? undefined,
+      availableTo:
+        experience.available_to ?? undefined,
+      ageGuidance:
+        experience.age_guidance ?? "all_ages",
       startCoordinates:
         experience.start_longitude !==
           null &&
@@ -424,6 +527,18 @@ export async function loadCreatorProjects(
       rightsConfirmedAt:
         experience.rights_confirmed_at ??
         undefined,
+      reviewNote:
+        (experience.experience_status_history ?? [])
+          .filter(
+            (item) =>
+              item.to_status === "changes_requested" &&
+              Boolean(item.note)
+          )
+          .sort(
+            (first, second) =>
+              Date.parse(second.created_at) -
+              Date.parse(first.created_at)
+          )[0]?.note ?? undefined,
       status: experience.status,
       updatedAt:
         experience.updated_at,
@@ -435,7 +550,10 @@ export async function loadCreatorProjects(
             id: story.id,
             title: story.title,
             text: story.notes,
-            type: story.story_type,
+            type:
+              story.story_type === "look"
+                ? "look"
+                : "audio" as CreatorStoryType,
             subjectCoordinates: [
               story.subject_longitude,
               story.subject_latitude,
@@ -495,6 +613,38 @@ export async function loadCreatorProjects(
   );
 }
 
+export async function submitCreatorProjectForReview(
+  supabase: SupabaseClient,
+  experienceId: string
+) {
+  const { error } = await supabase.rpc(
+    "submit_experience_for_review",
+    {
+      p_experience_id: experienceId,
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function retractCreatorProjectReview(
+  supabase: SupabaseClient,
+  experienceId: string
+) {
+  const { error } = await supabase.rpc(
+    "retract_experience_submission",
+    {
+      p_experience_id: experienceId,
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function saveCreatorProject(
   supabase: SupabaseClient,
   project: SavedProject
@@ -541,6 +691,12 @@ export async function saveCreatorProject(
           duration_minutes:
             project.durationMinutes ??
             null,
+          available_from:
+            project.availableFrom ?? null,
+          available_to:
+            project.availableTo ?? null,
+          age_guidance:
+            project.ageGuidance ?? "all_ages",
           start_longitude:
             project.startCoordinates?.[0] ??
             null,
@@ -574,6 +730,69 @@ export async function saveCreatorProject(
 
   if (experienceError) {
     throw experienceError;
+  }
+
+  const {
+    data: existingGallery,
+    error: existingGalleryError,
+  } = await supabase
+    .from("experience_gallery_images")
+    .select("id, path")
+    .eq("experience_id", project.id);
+
+  if (existingGalleryError) {
+    throw existingGalleryError;
+  }
+
+  const currentGalleryPaths = new Set(
+    project.galleryImages.map((image) => image.path)
+  );
+  const staleGallery = (existingGallery ?? []).filter(
+    (item) => !currentGalleryPaths.has(item.path)
+  );
+
+  if ((existingGallery ?? []).length > 0) {
+    const { error: galleryDeleteError } = await supabase
+      .from("experience_gallery_images")
+      .delete()
+      .in("id", (existingGallery ?? []).map((item) => item.id));
+
+    if (galleryDeleteError) {
+      throw galleryDeleteError;
+    }
+  }
+
+  if (project.galleryImages.length > 0) {
+    const { error: galleryError } = await supabase
+      .from("experience_gallery_images")
+      .insert(
+        project.galleryImages.map((image, position) => ({
+          id:
+            (existingGallery ?? []).find(
+              (item) => item.path === image.path
+            )?.id ?? crypto.randomUUID(),
+          experience_id: project.id,
+          path: image.path,
+          filename: image.filename,
+          mime_type: image.mimeType,
+          size_bytes: image.sizeBytes,
+          position,
+        }))
+      );
+
+    if (galleryError) {
+      throw galleryError;
+    }
+  }
+
+  if (staleGallery.length > 0) {
+    const { error: galleryMediaError } = await supabase.storage
+      .from("tour-media")
+      .remove(staleGallery.map((item) => item.path));
+
+    if (galleryMediaError) {
+      throw new Error(galleryMediaError.message);
+    }
   }
 
   const {
@@ -1023,6 +1242,47 @@ export async function uploadTourCover(
   };
 }
 
+export async function uploadTourGalleryImage(
+  supabase: SupabaseClient,
+  projectId: string,
+  position: number,
+  file: File
+): Promise<MediaAttachment> {
+  validateImageFile(file, 10 * 1024 * 1024);
+
+  const user = await getCurrentUser(supabase);
+  const extension = getExtension(file, "image");
+  const path = `${user.id}/${projectId}/gallery-${position}-${crypto.randomUUID()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("tour-media")
+    .upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+
+  const { data, error } = await supabase.storage
+    .from("tour-media")
+    .createSignedUrl(path, 60 * 60);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  return {
+    path,
+    filename: file.name,
+    mimeType: file.type,
+    sizeBytes: file.size,
+    url: data.signedUrl,
+  };
+}
+
 export async function loadCreatorProfile(
   supabase: SupabaseClient
 ): Promise<CreatorProfile | null> {
@@ -1251,6 +1511,18 @@ export async function deleteCreatorProject(
   }
 
   const {
+    data: projectGallery,
+    error: galleryError,
+  } = await supabase
+    .from("experience_gallery_images")
+    .select("path")
+    .eq("experience_id", projectId);
+
+  if (galleryError) {
+    throw galleryError;
+  }
+
+  const {
     data: projectStories,
     error: storiesError,
   } =
@@ -1302,14 +1574,17 @@ export async function deleteCreatorProject(
     }
   }
 
-  if (project?.cover_image_path) {
+  const tourMediaPaths = [
+    project?.cover_image_path,
+    ...(projectGallery ?? []).map((image) => image.path),
+  ].filter((path): path is string => Boolean(path));
+
+  if (tourMediaPaths.length > 0) {
     const {
       error: coverError,
     } = await supabase.storage
       .from("tour-media")
-      .remove([
-        project.cover_image_path,
-      ]);
+      .remove(tourMediaPaths);
 
     if (coverError) {
       throw new Error(

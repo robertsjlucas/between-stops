@@ -51,19 +51,35 @@ button:focus-visible {
 }
 
 .brandMark {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  place-items: center;
-  border-radius: 50%;
-  background: #171717;
-  color: white;
-  font-size: 11px;
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: white;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.brandMark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .miniBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
   font-size: 13px;
   font-weight: 700;
+}
+
+.miniBrand img {
+  display: block;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
 }
 
 .hero {
@@ -100,6 +116,76 @@ button:focus-visible {
   padding: 0 14px 36px;
 }
 
+.catalogueSection {
+  padding-top: 10px;
+}
+
+.nearbyPrompt {
+  display: flex;
+  margin: 0 14px 34px;
+  padding: 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid #dedbd3;
+  border-radius: 18px;
+  background: #eeece5;
+}
+
+.nearbyPrompt strong {
+  display: block;
+  max-width: 280px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.nearbyPrompt button {
+  flex: 0 0 auto;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: #171717;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.nearbyPrompt button:disabled {
+  cursor: wait;
+  opacity: 0.5;
+}
+
+.catalogueNotice,
+.catalogueEmpty {
+  margin: 0 14px 34px;
+  padding: 22px;
+  border: 1px dashed #d1cdc4;
+  border-radius: 18px;
+  color: #77736b;
+  background: white;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.catalogueNotice.error {
+  border-style: solid;
+  border-color: #e2c9c4;
+  background: #f7e9e6;
+  color: #733b33;
+}
+
+.catalogueEmpty h2 {
+  margin: 0;
+  color: #171717;
+  font-size: 28px;
+  letter-spacing: -0.04em;
+}
+
+.catalogueEmpty p:last-child {
+  margin-bottom: 0;
+}
+
 .sectionHeading {
   display: flex;
   align-items: end;
@@ -124,6 +210,7 @@ button:focus-visible {
 }
 
 .experienceCard {
+  position: relative;
   width: 100%;
   overflow: hidden;
   padding: 0;
@@ -136,6 +223,45 @@ button:focus-visible {
   cursor: pointer;
 }
 
+.experienceCardMain {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.experienceList .experienceCard {
+  margin-bottom: 18px;
+}
+
+.favouriteButton {
+  position: absolute;
+  z-index: 5;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(248, 247, 243, 0.9);
+  color: #171717;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  font-size: 22px;
+  cursor: pointer;
+}
+
+.favouriteButton.active {
+  background: #171717;
+  color: white;
+}
+
 .experienceImage,
 .overviewArt {
   position: relative;
@@ -145,6 +271,15 @@ button:focus-visible {
     radial-gradient(circle at 15% 80%, #d3a35b 0 8%, transparent 9%),
     radial-gradient(circle at 70% 35%, #9bb6a3 0 9%, transparent 10%),
     linear-gradient(145deg, #8fa69a, #d9c39b 52%, #8c9a95);
+}
+
+.experienceCoverImage {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .experienceImage::after,
@@ -162,9 +297,12 @@ button:focus-visible {
 
 .imageBadge {
   position: absolute;
+  display: inline-flex;
   top: 18px;
   left: 18px;
   z-index: 2;
+  align-items: center;
+  gap: 6px;
   padding: 8px 10px;
   border-radius: 999px;
   background: rgba(248, 247, 243, 0.88);
@@ -172,6 +310,35 @@ button:focus-visible {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.1em;
+}
+
+.transportIcon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cardCreator {
+  display: flex;
+  margin: -1px 0 13px;
+  align-items: center;
+  gap: 8px;
+  color: #77736b;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cardCreator img {
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .tramLine {
@@ -229,6 +396,13 @@ button:focus-visible {
   line-height: 1.5;
 }
 
+.tourCardSummary {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
 .metaRow {
   display: flex;
   flex-wrap: wrap;
@@ -261,6 +435,14 @@ button:focus-visible {
   font-size: 13px;
 }
 
+.homeBubbleButton {
+  min-height: 42px;
+  padding: 10px 15px;
+  border-radius: 999px;
+  background: #e7e3da;
+  font-weight: 750;
+}
+
 .iconButton {
   width: 42px;
   height: 42px;
@@ -290,6 +472,18 @@ button:focus-visible {
   margin-top: 20px !important;
 }
 
+.readMoreButton {
+  margin: 12px 22px 0;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid #171717;
+  background: transparent;
+  color: #171717;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+}
+
 .overviewMeta {
   display: flex;
   flex-wrap: wrap;
@@ -303,6 +497,89 @@ button:focus-visible {
   background: #e9e6dd;
   color: #57544e;
   font-size: 12px;
+}
+
+.overviewCreator {
+  display: flex;
+  margin: 26px 22px 0;
+  padding: 17px;
+  align-items: flex-start;
+  gap: 13px;
+  border-radius: 18px;
+  background: #ebe8df;
+}
+
+.overviewCreator > img {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 52px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.overviewCreator div {
+  display: grid;
+  gap: 3px;
+}
+
+.overviewCreator small {
+  color: #858078;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.overviewCreator p {
+  margin: 5px 0 0;
+  color: #66625c;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.overviewCreator .creatorBio {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.overviewCreator .creatorBio.expanded {
+  display: block;
+  overflow: visible;
+}
+
+.tourGallery {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin: 24px 22px 0;
+}
+
+.tourGallery img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.tourGallery img:only-child {
+  grid-column: 1 / -1;
+  aspect-ratio: 16 / 9;
+}
+
+.creatorReadMoreButton {
+  width: fit-content;
+  margin-top: 4px;
+  padding: 0;
+  border: 0;
+  border-bottom: 1px solid #5d5952;
+  background: transparent;
+  color: #5d5952;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .journeyOutline {
@@ -526,6 +803,15 @@ button:focus-visible {
   letter-spacing: 0.14em;
 }
 
+.storyImage {
+  display: block;
+  width: calc(100% + 20px);
+  max-height: 360px;
+  margin: 18px -10px 24px;
+  border-radius: 20px;
+  object-fit: cover;
+}
+
 .lookPanel {
   display: flex;
   align-items: center;
@@ -577,6 +863,12 @@ button:focus-visible {
 .audioButton small {
   color: #aaa7a0;
   font-size: 10px;
+}
+
+.storyAudioPlayer {
+  display: block;
+  width: 100%;
+  margin-top: 26px;
 }
 
 .playIcon {
@@ -794,6 +1086,197 @@ button:focus-visible {
 .directionSwitch button.active {
   background: #171717;
   color: white;
+}
+
+.directionChoiceBlock {
+  margin: 28px 22px 0;
+  padding: 16px;
+  border: 1px solid #dedbd3;
+  border-radius: 18px;
+  background: white;
+}
+
+.directionChoiceHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.directionChoiceHeading strong,
+.directionChoiceHeading span {
+  display: block;
+}
+
+.directionChoiceHeading strong {
+  font-size: 13px;
+}
+
+.directionChoiceHeading span {
+  max-width: 260px;
+  margin-top: 3px;
+  color: #77736c;
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.automaticDirectionButton {
+  flex: 0 0 auto;
+  padding: 9px 11px;
+  border: 1px solid #cbc7bd;
+  border-radius: 999px;
+  background: transparent;
+  color: #625f58;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.automaticDirectionButton.active {
+  border-color: #171717;
+  background: #171717;
+  color: white;
+}
+
+.directionChoiceBlock .directionSwitch {
+  margin-top: 14px;
+}
+
+.completedMeta {
+  border-color: #b9d4c0 !important;
+  background: #e5f1e7 !important;
+  color: #28603a !important;
+}
+
+.directionNotice,
+.detectedDirectionNotice {
+  margin: 16px 16px 0;
+  border-radius: 14px;
+}
+
+.directionNotice {
+  display: flex;
+  padding: 14px 15px;
+  align-items: flex-start;
+  gap: 11px;
+  background: #e8e7f4;
+}
+
+.directionNotice strong,
+.directionNotice div > span {
+  display: block;
+}
+
+.directionNotice strong {
+  font-size: 12px;
+}
+
+.directionNotice div > span {
+  margin-top: 3px;
+  color: #5f5d6f;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.directionPulse {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  margin-top: 3px;
+  border-radius: 50%;
+  background: #6670bc;
+  box-shadow: 0 0 0 5px rgba(102, 112, 188, 0.15);
+}
+
+.detectedDirectionNotice {
+  padding: 10px 13px;
+  background: #e5f1e7;
+  color: #28603a;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.journeyCompleteCard {
+  margin: 20px 14px 0;
+  padding: 25px;
+  border-radius: 24px;
+  background: #171717;
+  color: white;
+}
+
+.journeyCompleteCard > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 20px;
+  place-items: center;
+  border-radius: 50%;
+  background: #e5f1e7;
+  color: #28603a;
+  font-weight: 800;
+}
+
+.journeyCompleteCard .kicker {
+  color: #aaa7a0;
+}
+
+.journeyCompleteCard h2 {
+  margin: 0;
+  font-size: 30px;
+  letter-spacing: -0.045em;
+}
+
+.journeyCompleteCard > p:not(.kicker) {
+  color: #c6c2ba;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.journeyCompleteCard button {
+  margin-top: 8px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: white;
+  color: #171717;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+@media (max-width: 420px) {
+  .brandHeader,
+  .topBar,
+  .journeyHeader {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .overviewHero h1,
+  .activeCue h1 {
+    overflow-wrap: anywhere;
+    font-size: clamp(36px, 11vw, 48px);
+  }
+
+  .directionChoiceHeading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .directionSwitch {
+    grid-template-columns: 1fr;
+  }
+
+  .journeyHeader {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .journeyHeader > div:last-child {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
 }
 
 .storyList {

@@ -1,0 +1,140 @@
+.previewShell {
+  padding-bottom: 50px;
+}
+
+.previewBanner {
+  display: grid;
+  padding: 13px 18px;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 3px 16px;
+  background: #171717;
+  color: white;
+}
+
+.previewBanner strong {
+  font-size: 12px;
+}
+
+.previewBanner span {
+  grid-column: 1;
+  color: #c8c5be;
+  font-size: 10px;
+}
+
+.previewBanner a {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.previewStories {
+  margin: 36px 14px 0;
+  padding: 25px 20px;
+  border-radius: 20px;
+  background: white;
+}
+
+.previewCardSection {
+  padding: 24px 14px 4px;
+}
+
+.previewCardSection > .kicker {
+  margin-left: 8px;
+}
+
+.previewCardSection .experienceCardMain {
+  cursor: default;
+}
+
+.previewStories > h2 {
+  margin: 0 0 22px;
+  font-size: 30px;
+  letter-spacing: -0.045em;
+}
+
+.previewStories article {
+  display: grid;
+  grid-template-columns: 30px 1fr;
+  padding: 18px 0;
+  gap: 12px;
+  border-top: 1px solid #e5e2db;
+}
+
+.previewStories article > span {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  background: #171717;
+  color: white;
+  font-size: 10px;
+}
+
+.previewStories small {
+  color: #77736b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.previewStories h3 {
+  margin: 4px 0 7px;
+  font-size: 20px;
+}
+
+.previewStories p {
+  color: #5f5b54;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.previewStories img {
+  display: block;
+  width: 100%;
+  max-height: 270px;
+  margin: 12px 0;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.previewStories audio {
+  width: 100%;
+  margin-top: 10px;
+}
+
+.previewStories em {
+  display: block;
+  margin-top: 10px;
+  color: #9a4d40;
+  font-size: 11px;
+}
+
+.previewMessage {
+  display: grid;
+  width: min(500px, calc(100% - 32px));
+  min-height: 70vh;
+  margin: 16px auto;
+  padding: 30px;
+  align-content: center;
+  justify-items: center;
+  border-radius: 24px;
+  background: #f8f7f3;
+  text-align: center;
+}
+
+.previewMessage img {
+  width: 64px;
+  height: 64px;
+  border-radius: 17px;
+}
+
+.previewMessage a {
+  color: #171717;
+  font-weight: 700;
+}

@@ -26,8 +26,9 @@ import {
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./creator.css";
 
-import { edinburghTramFullRoute } from "@/data/routes/tram-full";
-import { route35Full } from "@/data/routes/bus35-full";
+import {
+  routeChoices,
+} from "@/data/routes/catalogue";
 
 import {
   createClient,
@@ -39,18 +40,23 @@ import {
   loadCreatorProfile,
   loadCreatorProjects,
   removeMediaFile,
+  retractCreatorProjectReview,
   saveCreatorProfile,
   saveCreatorProject,
+  submitCreatorProjectForReview,
   uploadProfileAvatar,
   uploadStoryMedia,
   uploadTourCover,
+  uploadTourGalleryImage,
 } from "@/lib/creator-projects";
 
 import type {
   CreatorStory,
   CreatorStoryType,
   CreatorProfile,
+  AgeGuidance,
   MediaAttachment,
+  ProjectStatus,
   SavedProject,
   SectionMode,
 } from "@/lib/creator-projects";
@@ -61,6 +67,10 @@ import type {
   RouteStop,
   TransportMode,
 } from "@/lib/types";
+
+import {
+  TransportIcon,
+} from "@/components/transport-icon";
 
 setWorkerUrl(
   "/maplibre/maplibre-gl-worker.mjs"
@@ -74,29 +84,50 @@ type CreatorStage =
   | "profile"
   | "studio";
 
-type RouteChoice = {
-  id: string;
-  route: RouteDefinition;
-  label: string;
-  description: string;
-};
+function getProjectStatusLabel(
+  status: ProjectStatus
+) {
+  const labels: Record<ProjectStatus, string> = {
+    draft: "Draft",
+    ready_for_review: "Ready for review",
+    submitted: "Awaiting review",
+    changes_requested: "Changes requested",
+    approved: "Approved",
+    published: "Published",
+    archived: "Archived",
+  };
 
-const routeChoices: RouteChoice[] = [
-  {
-    id: "tram",
-    route: edinburghTramFullRoute,
-    label: "Edinburgh Tram",
-    description:
-      "Edinburgh Airport ⇄ Newhaven",
-  },
-  {
-    id: "35",
-    route: route35Full,
-    label: "35",
-    description:
-      "Heriot Watt Campus ⇄ Ocean Terminal",
-  },
-];
+  return labels[status];
+}
+
+function estimateJourneyMinutes(
+  distanceKm: number,
+  stopCount: number,
+  mode: TransportMode
+) {
+  const movingSpeed =
+    mode === "tram"
+      ? 32
+      : mode === "train"
+        ? 55
+        : mode === "cab"
+          ? 24
+          : 22;
+  const dwellMinutes =
+    mode === "tram"
+      ? 0.65
+      : mode === "bus"
+        ? 0.55
+        : 0.2;
+  const rawMinutes =
+    (distanceKm / movingSpeed) * 60 +
+    Math.max(0, stopCount - 1) * dwellMinutes;
+
+  return Math.max(
+    5,
+    Math.ceil(rawMinutes / 5) * 5
+  );
+}
 
 function getSectionCoordinates(
   route: RouteDefinition,
@@ -180,6 +211,73 @@ function getRouteProgress(
   ) * 100;
 }
 
+function CreatorFooter() {
+  return (
+    <footer className="creatorFooter">
+      <div>
+        <strong className="creatorFooterBrand">
+          <img
+            src="/branding/between-stops-icon.png"
+            alt=""
+          />
+          <span>Between Stops</span>
+        </strong>
+        <span>
+          © {new Date().getFullYear()}
+        </span>
+      </div>
+
+      <nav aria-label="Creator information">
+        <a href="/creator/help">
+          How to build your experience
+        </a>
+
+        <button
+          type="button"
+          disabled
+          title="Privacy information will be added before launch."
+        >
+          Privacy
+        </button>
+
+        <button
+          type="button"
+          disabled
+          title="Creator terms will be added before launch."
+        >
+          Creator terms
+        </button>
+
+        <button
+          type="button"
+          disabled
+          title="Contact details will be added before launch."
+        >
+          Contact
+        </button>
+      </nav>
+    </footer>
+  );
+}
+
+function PendingImagePreview({
+  file,
+}: {
+  file: File;
+}) {
+  const previewUrl = useMemo(
+    () => URL.createObjectURL(file),
+    [file]
+  );
+
+  useEffect(
+    () => () => URL.revokeObjectURL(previewUrl),
+    [previewUrl]
+  );
+
+  return <img src={previewUrl} alt="Selected upload preview" />;
+}
+
 export default function CreatorPage() {
   const mapContainer =
     useRef<HTMLDivElement | null>(null);
@@ -242,9 +340,9 @@ export default function CreatorPage() {
   ] = useState("");
 
   const [
-    experienceDuration,
-    setExperienceDuration,
-  ] = useState("");
+    rightsConfirmed,
+    setRightsConfirmed,
+  ] = useState(false);
 
   const [
     coverImage,
@@ -258,6 +356,43 @@ export default function CreatorPage() {
     setPendingCoverFile,
   ] = useState<File | null>(
     null
+  );
+
+  const [
+    galleryImages,
+    setGalleryImages,
+  ] = useState<MediaAttachment[]>([]);
+
+  const [
+    pendingGalleryFiles,
+    setPendingGalleryFiles,
+  ] = useState<(File | null)[]>([
+    null,
+    null,
+    null,
+    null,
+  ]);
+
+  const [
+    availableFrom,
+    setAvailableFrom,
+  ] = useState("");
+
+  const [
+    availableTo,
+    setAvailableTo,
+  ] = useState("");
+
+  const [
+    seasonalAvailability,
+    setSeasonalAvailability,
+  ] = useState(false);
+
+  const [
+    ageGuidance,
+    setAgeGuidance,
+  ] = useState<AgeGuidance>(
+    "all_ages"
   );
 
   const [
@@ -411,6 +546,9 @@ export default function CreatorPage() {
     setProjectError,
   ] = useState("");
 
+  const [isAdmin, setIsAdmin] =
+    useState(false);
+
   useEffect(() => {
     let isActive = true;
 
@@ -485,6 +623,13 @@ export default function CreatorPage() {
             supabase
           );
 
+        const {
+          data: adminMembership,
+        } = await supabase
+          .from("platform_admins")
+          .select("user_id")
+          .maybeSingle();
+
         if (isActive) {
           setProjects(
             latestProjects
@@ -507,6 +652,10 @@ export default function CreatorPage() {
 
           setProfileAvatar(
             profile?.avatar
+          );
+
+          setIsAdmin(
+            Boolean(adminMembership)
           );
         }
       } catch (error) {
@@ -568,6 +717,18 @@ export default function CreatorPage() {
 
   const route =
     selectedChoice.route;
+
+  const activeProject =
+    projects.find(
+      (project) =>
+        project.id === projectId
+    );
+
+  const canEditActiveProject =
+    !activeProject ||
+    activeProject.status === "draft" ||
+    activeProject.status ===
+      "changes_requested";
 
   const stops =
     route.stops ?? [];
@@ -672,6 +833,59 @@ export default function CreatorPage() {
       selectedStartStop,
       selectedEndStop,
     ]);
+
+  const selectedJourneyDistanceKm =
+    useMemo(() => {
+      if (
+        selectedSectionCoordinates.length <
+        2
+      ) {
+        return 0;
+      }
+
+      return length(
+        lineString(
+          selectedSectionCoordinates
+        ),
+        {
+          units: "kilometers",
+        }
+      );
+    }, [
+      selectedSectionCoordinates,
+    ]);
+
+  const selectedJourneyDistanceMiles =
+    selectedJourneyDistanceKm *
+    0.621371;
+
+  const selectedJourneyStopCount =
+    practicalStops.filter((stop) => {
+      if (sectionMode === "whole") {
+        return true;
+      }
+
+      const low = Math.min(
+        selectedStartStop?.routeProgress ?? 0,
+        selectedEndStop?.routeProgress ?? 100
+      );
+      const high = Math.max(
+        selectedStartStop?.routeProgress ?? 0,
+        selectedEndStop?.routeProgress ?? 100
+      );
+
+      return (
+        stop.routeProgress >= low &&
+        stop.routeProgress <= high
+      );
+    }).length;
+
+  const estimatedJourneyMinutes =
+    estimateJourneyMinutes(
+      selectedJourneyDistanceKm,
+      selectedJourneyStopCount,
+      route.mode
+    );
 
   const startLabel =
     sectionMode === "whole"
@@ -1160,18 +1374,13 @@ export default function CreatorPage() {
   function buildProject(
     id: string,
     projectStories = stories,
-    projectCover = coverImage
+    projectCover = coverImage,
+    projectGallery = galleryImages
   ): SavedProject {
     const existing =
       projects.find(
         (project) =>
           project.id === id
-      );
-
-    const parsedDuration =
-      Number.parseInt(
-        experienceDuration,
-        10
       );
 
     return {
@@ -1192,12 +1401,18 @@ export default function CreatorPage() {
       description:
         experienceDescription.trim(),
       coverImage: projectCover,
+      galleryImages: projectGallery,
       durationMinutes:
-        Number.isFinite(
-          parsedDuration
-        ) && parsedDuration > 0
-          ? parsedDuration
+        estimatedJourneyMinutes,
+      availableFrom:
+        seasonalAvailability
+          ? availableFrom || undefined
           : undefined,
+      availableTo:
+        seasonalAvailability
+          ? availableTo || undefined
+          : undefined,
+      ageGuidance,
       startCoordinates:
         selectedStartStop
           ?.coordinates,
@@ -1218,7 +1433,12 @@ export default function CreatorPage() {
       publishedAt:
         existing?.publishedAt,
       rightsConfirmedAt:
-        existing?.rightsConfirmedAt,
+        rightsConfirmed
+          ? existing?.rightsConfirmedAt ??
+            new Date().toISOString()
+          : undefined,
+      reviewNote:
+        existing?.reviewNote,
       stories: projectStories,
       status:
         existing?.status ??
@@ -1233,9 +1453,15 @@ export default function CreatorPage() {
     setExperienceName("");
     setExperienceSummary("");
     setExperienceDescription("");
-    setExperienceDuration("");
+    setRightsConfirmed(false);
     setCoverImage(undefined);
     setPendingCoverFile(null);
+    setGalleryImages([]);
+    setPendingGalleryFiles([null, null, null, null]);
+    setAvailableFrom("");
+    setAvailableTo("");
+    setSeasonalAvailability(false);
+    setAgeGuidance("all_ages");
     setStories([]);
 
     setMode("tram");
@@ -1279,16 +1505,39 @@ export default function CreatorPage() {
       project.description ?? ""
     );
 
-    setExperienceDuration(
-      project.durationMinutes
-        ? String(
-            project.durationMinutes
-          )
-        : ""
+    setRightsConfirmed(
+      Boolean(
+        project.rightsConfirmedAt
+      )
     );
 
     setCoverImage(
       project.coverImage
+    );
+
+    setGalleryImages(
+      project.galleryImages ?? []
+    );
+
+    setPendingGalleryFiles([null, null, null, null]);
+
+    setAvailableFrom(
+      project.availableFrom ?? ""
+    );
+
+    setAvailableTo(
+      project.availableTo ?? ""
+    );
+
+    setSeasonalAvailability(
+      Boolean(
+        project.availableFrom ||
+          project.availableTo
+      )
+    );
+
+    setAgeGuidance(
+      project.ageGuidance ?? "all_ages"
     );
 
     setPendingCoverFile(null);
@@ -1325,6 +1574,13 @@ export default function CreatorPage() {
   async function saveProject(
     returnToProjects = false
   ) {
+    if (!canEditActiveProject) {
+      window.alert(
+        "This experience is locked while it is in review or published."
+      );
+      return;
+    }
+
     if (
       !experienceName.trim()
     ) {
@@ -1417,10 +1673,27 @@ export default function CreatorPage() {
   }
 
   async function saveTourDetails() {
+    if (!canEditActiveProject) {
+      window.alert(
+        "This experience is locked while it is in review or published."
+      );
+      return;
+    }
+
     if (
       !experienceName.trim() ||
       detailsSaving
     ) {
+      return;
+    }
+
+    if (
+      seasonalAvailability &&
+      (!availableFrom || !availableTo)
+    ) {
+      window.alert(
+        "Choose both the first and last available dates."
+      );
       return;
     }
 
@@ -1436,8 +1709,14 @@ export default function CreatorPage() {
       const supabase =
         createClient();
 
-      let project =
-        buildProject(id);
+      let nextCover = coverImage;
+      let nextGallery = [...galleryImages];
+      let project = buildProject(
+        id,
+        stories,
+        nextCover,
+        nextGallery
+      );
 
       await saveCreatorProject(
         supabase,
@@ -1455,17 +1734,7 @@ export default function CreatorPage() {
             pendingCoverFile
           );
 
-        project =
-          buildProject(
-            id,
-            stories,
-            uploadedCover
-          );
-
-        await saveCreatorProject(
-          supabase,
-          project
-        );
+        nextCover = uploadedCover;
 
         if (
           previousPath &&
@@ -1479,11 +1748,43 @@ export default function CreatorPage() {
           );
         }
 
-        setCoverImage(
-          uploadedCover
-        );
-        setPendingCoverFile(null);
       }
+
+      for (let position = 0; position < 4; position += 1) {
+        const file = pendingGalleryFiles[position];
+
+        if (file) {
+          const image = await uploadTourGalleryImage(
+            supabase,
+            id,
+            position,
+            file
+          );
+
+          if (nextGallery[position]) {
+            nextGallery[position] = image;
+          } else {
+            nextGallery.push(image);
+          }
+        }
+      }
+
+      project = buildProject(
+        id,
+        stories,
+        nextCover,
+        nextGallery
+      );
+
+      await saveCreatorProject(
+        supabase,
+        project
+      );
+
+      setCoverImage(nextCover);
+      setPendingCoverFile(null);
+      setGalleryImages(nextGallery);
+      setPendingGalleryFiles([null, null, null, null]);
 
       setProjectId(id);
 
@@ -1620,6 +1921,183 @@ export default function CreatorPage() {
       );
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+  async function submitForReview() {
+    if (!projectId) {
+      window.alert(
+        "Save the draft before submitting it."
+      );
+      return;
+    }
+
+    const missing: string[] = [];
+
+    if (!creatorProfile?.displayName) {
+      missing.push(
+        "a creator profile"
+      );
+    }
+
+    if (!experienceSummary.trim()) {
+      missing.push(
+        "a short summary"
+      );
+    }
+
+    if (!coverImage) {
+      missing.push(
+        "a tour cover image"
+      );
+    }
+
+    if (stories.length === 0) {
+      missing.push(
+        "at least one Story"
+      );
+    }
+
+    if (
+      stories.some(
+        (story) => !story.audio
+      )
+    ) {
+      missing.push(
+        "audio for every Story"
+      );
+    }
+
+    if (!rightsConfirmed) {
+      missing.push(
+        "the rights confirmation"
+      );
+    }
+
+    if (missing.length > 0) {
+      window.alert(
+        `Before submitting, add ${missing.join(
+          ", "
+        )}.`
+      );
+      return;
+    }
+
+    const confirmed = window.confirm(
+      "Submit this experience for administrator review? You can make further changes if changes are requested."
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setSaveMessage("Submitting…");
+    setProjectError("");
+
+    try {
+      const supabase =
+        createClient();
+
+      const project =
+        buildProject(projectId);
+
+      await saveCreatorProject(
+        supabase,
+        project
+      );
+
+      await submitCreatorProjectForReview(
+        supabase,
+        projectId
+      );
+
+      const submittedProject: SavedProject = {
+        ...project,
+        status: "submitted",
+        visibility: "private",
+        publishedAt: undefined,
+        reviewNote: undefined,
+      };
+
+      setProjects(
+        (current) =>
+          current.map(
+            (item) =>
+              item.id ===
+              projectId
+                ? submittedProject
+                : item
+          )
+      );
+
+      setSaveMessage(
+        "Submitted for review"
+      );
+
+      window.setTimeout(
+        () =>
+          setSaveMessage(""),
+        1800
+      );
+    } catch (error) {
+      const detail =
+        error instanceof Error
+          ? error.message
+          : "Unknown error";
+
+      setSaveMessage("");
+      setProjectError(
+        `The experience could not be submitted: ${detail}`
+      );
+    }
+  }
+
+  async function retractReview() {
+    if (!projectId || activeProject?.status !== "submitted") {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        "Retract this experience from review and return it to draft?"
+      )
+    ) {
+      return;
+    }
+
+    setSaveMessage("Retracting…");
+    setProjectError("");
+
+    try {
+      const supabase = createClient();
+      await retractCreatorProjectReview(
+        supabase,
+        projectId
+      );
+
+      setProjects((current) =>
+        current.map((project) =>
+          project.id === projectId
+            ? {
+                ...project,
+                status: "draft",
+                visibility: "private",
+                publishedAt: undefined,
+              }
+            : project
+        )
+      );
+      setSaveMessage("Returned to draft");
+      window.setTimeout(() => setSaveMessage(""), 1800);
+    } catch (retractError) {
+      setSaveMessage("");
+      setProjectError(
+        `The review could not be retracted: ${
+          retractError instanceof Error
+            ? retractError.message
+            : "Unknown error"
+        }`
+      );
     }
   }
 
@@ -1796,7 +2274,9 @@ export default function CreatorPage() {
     );
 
     setStoryType(
-      story.type
+      story.type === "look"
+        ? "look"
+        : "audio"
     );
 
     setStoryAudio(
@@ -1812,11 +2292,28 @@ export default function CreatorPage() {
   }
 
   async function saveStory() {
+    if (!canEditActiveProject) {
+      window.alert(
+        "This experience is locked while it is in review or published."
+      );
+      return;
+    }
+
     if (
       !draftCoordinates ||
       !storyTitle.trim() ||
       storySaving
     ) {
+      return;
+    }
+
+    if (
+      !storyAudio &&
+      !pendingAudioFile
+    ) {
+      window.alert(
+        "Every Story needs an audio file. You can also add an optional image."
+      );
       return;
     }
 
@@ -1993,12 +2490,22 @@ export default function CreatorPage() {
       <main className="creatorStudioShell">
         <header className="creatorBrandHeader">
           <div className="creatorLogo">
-            Between Stops
+            <img
+              src="/branding/between-stops-icon.png"
+              alt=""
+            />
+            <span>Between Stops</span>
           </div>
 
           <div>
-            <a href="/">
-              Passenger view →
+            {isAdmin && (
+              <a href="/admin">
+                Admin review →
+              </a>
+            )}
+
+            <a href="/tours">
+              Passenger tours →
             </a>
 
             <button
@@ -2010,8 +2517,8 @@ export default function CreatorPage() {
               }
             >
               {creatorProfile
-                ? "Your profile"
-                : "Create profile"}
+                ? "Your guide profile"
+                : "Create guide profile"}
             </button>
 
             <button
@@ -2026,7 +2533,7 @@ export default function CreatorPage() {
         <section className="projectsPage">
           <div className="projectsIntro">
             <p className="creatorKicker">
-              CREATOR
+              GUIDE STUDIO
             </p>
 
             <h1>
@@ -2117,8 +2624,10 @@ export default function CreatorPage() {
                     )}
 
                     <div className="projectCardTop">
-                      <span className="draftStatus">
-                        Draft
+                      <span className={`draftStatus status-${project.status}`}>
+                        {getProjectStatusLabel(
+                          project.status
+                        )}
                       </span>
 
                       <small>
@@ -2136,16 +2645,27 @@ export default function CreatorPage() {
                       }
                     </h2>
 
-                    <p>
-                      {
-                        choice?.label
-                      }{" "}
-                      ·{" "}
-                      {
-                        project.stories.length
-                      }{" "}
-                      Stories
-                    </p>
+                    <div className="projectRouteMeta">
+                      <span className="routeIdentity">
+                        <TransportIcon
+                          mode={
+                            choice?.route.mode ??
+                            "bus"
+                          }
+                        />
+                        {
+                          choice?.label
+                        }
+                      </span>
+                      <span>·</span>
+                      <span>{project.stories.length} Stories</span>
+                      {project.durationMinutes && (
+                        <>
+                          <span>·</span>
+                          <span>About {project.durationMinutes} mins</span>
+                        </>
+                      )}
+                    </div>
 
                     <div className="projectCardActions">
                       <button
@@ -2155,19 +2675,27 @@ export default function CreatorPage() {
                           )
                         }
                       >
-                        Open draft →
+                        {project.status ===
+                        "published"
+                          ? "Open tour →"
+                          : "Open draft →"}
                       </button>
 
-                      <button
-                        className="projectDelete"
-                        onClick={() =>
-                          deleteProject(
-                            project.id
-                          )
-                        }
-                      >
-                        Delete
-                      </button>
+                      {(project.status ===
+                        "draft" ||
+                        project.status ===
+                          "changes_requested") && (
+                        <button
+                          className="projectDelete"
+                          onClick={() =>
+                            deleteProject(
+                              project.id
+                            )
+                          }
+                        >
+                          Delete
+                        </button>
+                      )}
                     </div>
                   </article>
                 );
@@ -2175,6 +2703,7 @@ export default function CreatorPage() {
             )}
           </div>
         </section>
+        <CreatorFooter />
       </main>
     );
   }
@@ -2189,7 +2718,11 @@ export default function CreatorPage() {
         <header className="creatorBrandHeader">
           <div>
             <div className="creatorLogo">
-              Between Stops
+              <img
+                src="/branding/between-stops-icon.png"
+                alt=""
+              />
+              <span>Between Stops</span>
             </div>
 
             <p className="creatorAreaLabel">
@@ -2332,6 +2865,7 @@ export default function CreatorPage() {
             </div>
           </div>
         </section>
+        <CreatorFooter />
       </main>
     );
   }
@@ -2345,7 +2879,11 @@ export default function CreatorPage() {
       <main className="creatorStudioShell">
         <header className="creatorBrandHeader">
           <div className="creatorLogo">
-            Between Stops
+            <img
+              src="/branding/between-stops-icon.png"
+              alt=""
+            />
+            <span>Between Stops</span>
           </div>
 
           <button
@@ -2434,6 +2972,7 @@ export default function CreatorPage() {
             </button>
           </div>
         </section>
+        <CreatorFooter />
       </main>
     );
   }
@@ -2448,7 +2987,11 @@ export default function CreatorPage() {
         <header className="creatorBrandHeader">
           <div>
             <div className="creatorLogo">
-              Between Stops
+              <img
+                src="/branding/between-stops-icon.png"
+                alt=""
+              />
+              <span>Between Stops</span>
             </div>
 
             <p className="creatorAreaLabel">
@@ -2483,6 +3026,17 @@ export default function CreatorPage() {
               remains private while the
               experience is a draft.
             </p>
+
+            {projectId && (
+              <a
+                className="detailsPreviewLink"
+                href={`/preview?id=${projectId}&from=creator`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Preview passenger view →
+              </a>
+            )}
           </div>
 
           <div className="marketplaceFormCard">
@@ -2546,25 +3100,87 @@ export default function CreatorPage() {
               rows={7}
             />
 
-            <label htmlFor="tour-duration">
-              Approximate duration
-              <span>Minutes</span>
+            <div className="automaticDurationCard">
+              <span>Estimated journey time</span>
+              <strong>
+                About {estimatedJourneyMinutes} mins
+              </strong>
+              <small>
+                Calculated from the selected route, distance,
+                transport type and stops. Actual operator times
+                can vary with traffic and service changes.
+              </small>
+            </div>
+
+            <label htmlFor="tour-age-guidance">
+              Age guidance
             </label>
 
-            <input
-              id="tour-duration"
-              type="number"
-              min="1"
-              max="600"
-              inputMode="numeric"
-              value={experienceDuration}
+            <select
+              id="tour-age-guidance"
+              value={ageGuidance}
               onChange={(event) =>
-                setExperienceDuration(
-                  event.target.value
+                setAgeGuidance(
+                  event.target.value as AgeGuidance
                 )
               }
-              placeholder="e.g. 35"
-            />
+            >
+              <option value="all_ages">
+                Suitable for all ages
+              </option>
+              <option value="not_for_children">
+                Not suitable for children
+              </option>
+            </select>
+
+            <label htmlFor="tour-availability">
+              Availability
+            </label>
+
+            <select
+              id="tour-availability"
+              value={seasonalAvailability ? "seasonal" : "always"}
+              onChange={(event) => {
+                const seasonal = event.target.value === "seasonal";
+                setSeasonalAvailability(seasonal);
+                if (!seasonal) {
+                  setAvailableFrom("");
+                  setAvailableTo("");
+                }
+              }}
+            >
+              <option value="always">Always available</option>
+              <option value="seasonal">Available between dates</option>
+            </select>
+
+            {seasonalAvailability && (
+              <div className="availabilityDates">
+                <label htmlFor="available-from">
+                  Available from
+                  <input
+                    id="available-from"
+                    type="date"
+                    value={availableFrom}
+                    onChange={(event) =>
+                      setAvailableFrom(event.target.value)
+                    }
+                  />
+                </label>
+
+                <label htmlFor="available-to">
+                  Available until
+                  <input
+                    id="available-to"
+                    type="date"
+                    min={availableFrom || undefined}
+                    value={availableTo}
+                    onChange={(event) =>
+                      setAvailableTo(event.target.value)
+                    }
+                  />
+                </label>
+              </div>
+            )}
 
             <label htmlFor="tour-cover">
               Tour cover image
@@ -2605,6 +3221,104 @@ export default function CreatorPage() {
               image works best.
             </p>
 
+            <label htmlFor="tour-gallery">
+              Additional tour images
+              <span>Optional, up to four</span>
+            </label>
+
+            <p className="marketplaceFormHint galleryHint">
+              Add each picture separately. You can replace or remove any
+              slot without affecting the others.
+            </p>
+
+            <div className="tourGallerySlots" id="tour-gallery">
+              {[0, 1, 2, 3].map((index) => {
+                const savedImage = galleryImages[index];
+                const pendingFile = pendingGalleryFiles[index];
+
+                return (
+                  <div className="tourGallerySlot" key={index}>
+                    <span className="gallerySlotNumber">
+                      Image {index + 1}
+                    </span>
+
+                    {pendingFile ? (
+                      <PendingImagePreview file={pendingFile} />
+                    ) : savedImage?.url ? (
+                      <img src={savedImage.url} alt="" />
+                    ) : (
+                      <div className="emptyGallerySlot">No image</div>
+                    )}
+
+                    <div className="gallerySlotActions">
+                      <label>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/webp"
+                          onChange={(event) => {
+                            const file = event.target.files?.[0] ?? null;
+                            setPendingGalleryFiles((current) => {
+                              const next = [...current];
+                              next[index] = file;
+                              return next;
+                            });
+                            event.target.value = "";
+                          }}
+                        />
+                        {savedImage || pendingFile ? "Replace" : "Add image"}
+                      </label>
+
+                      {(savedImage || pendingFile) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (pendingFile) {
+                              setPendingGalleryFiles((current) => {
+                                const next = [...current];
+                                next[index] = null;
+                                return next;
+                              });
+                            } else {
+                              setGalleryImages((current) =>
+                                current.filter((_, itemIndex) => itemIndex !== index)
+                              );
+                            }
+                          }}
+                        >
+                          {pendingFile && savedImage ? "Cancel" : "Remove"}
+                        </button>
+                      )}
+                    </div>
+
+                    {pendingFile && (
+                      <small>{pendingFile.name}</small>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <label className="rightsConfirmation">
+              <input
+                type="checkbox"
+                checked={
+                  rightsConfirmed
+                }
+                onChange={(event) =>
+                  setRightsConfirmed(
+                    event.target.checked
+                  )
+                }
+              />
+
+              <span>
+                I confirm that I own or
+                have permission to use
+                the text, audio and images
+                in this tour.
+              </span>
+            </label>
+
             <div className="tourAccessSummary">
               <span>Passenger access</span>
               <strong>
@@ -2632,7 +3346,8 @@ export default function CreatorPage() {
                 className="creatorContinueButton inlineContinue"
                 disabled={
                   !experienceName.trim() ||
-                  detailsSaving
+                  detailsSaving ||
+                  !canEditActiveProject
                 }
                 onClick={saveTourDetails}
               >
@@ -2643,6 +3358,7 @@ export default function CreatorPage() {
             </div>
           </div>
         </section>
+        <CreatorFooter />
       </main>
     );
   }
@@ -2657,7 +3373,11 @@ export default function CreatorPage() {
         <header className="creatorBrandHeader studioBrandHeader">
           <div>
             <div className="creatorLogo">
-              Between Stops
+              <img
+                src="/branding/between-stops-icon.png"
+                alt=""
+              />
+              <span>Between Stops</span>
             </div>
 
             <p className="creatorAreaLabel">
@@ -2680,6 +3400,25 @@ export default function CreatorPage() {
 
             <button
               className="headerTextButton"
+              onClick={() => setStage("projects")}
+            >
+              Back to projects
+            </button>
+
+            {projectId && (
+              <a
+                className="previewExperienceLink"
+                href={`/preview?id=${projectId}&from=creator`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Passenger preview
+              </a>
+            )}
+
+            <button
+              className="headerTextButton"
+              disabled={!canEditActiveProject}
               onClick={() =>
                 saveProject(
                   true
@@ -2689,33 +3428,66 @@ export default function CreatorPage() {
               Save for later
             </button>
 
-            <button
-              className="reviewButton"
-              disabled
-            >
-              Submit for review
-            </button>
+            {activeProject?.status === "submitted" ? (
+              <button
+                className="reviewButton retractButton"
+                onClick={retractReview}
+              >
+                Retract review
+              </button>
+            ) : (activeProject?.status ===
+              "draft" ||
+              activeProject?.status ===
+                "changes_requested") ? (
+              <button
+                className="reviewButton"
+                onClick={submitForReview}
+              >
+                Submit for review
+              </button>
+            ) : (
+              <button
+                className="reviewButton"
+                disabled
+              >
+                {activeProject
+                  ? getProjectStatusLabel(
+                      activeProject.status
+                    )
+                  : "Save before submitting"}
+              </button>
+            )}
           </div>
         </header>
 
         <section className="experienceHeader">
           <div className="experienceHeaderMain">
             <div className="experienceStatusRow">
-              <span className="draftStatus">
-                Draft experience
+              <span className={`draftStatus status-${activeProject?.status ?? "draft"}`}>
+                {activeProject
+                  ? getProjectStatusLabel(
+                      activeProject.status
+                    )
+                  : "Draft experience"}
               </span>
 
-              <span>
-                {
-                  selectedChoice.label
-                }{" "}
-                · {startLabel} →{" "}
-                {endLabel}
-              </span>
+              <div className="studioRouteMeta">
+                <span className="routeIdentity">
+                  <TransportIcon
+                    mode={route.mode}
+                  />
+                  {
+                    selectedChoice.label
+                  }
+                </span>
+                <span>· About {estimatedJourneyMinutes} mins</span>
+                <span>· {startLabel} → {endLabel}</span>
+              </div>
             </div>
 
-            <input
+            <textarea
               className="experienceTitleInput"
+              readOnly={!canEditActiveProject}
               value={
                 experienceName
               }
@@ -2726,6 +3498,7 @@ export default function CreatorPage() {
                 )
               }
               aria-label="Experience name"
+              rows={2}
             />
           </div>
 
@@ -2743,16 +3516,37 @@ export default function CreatorPage() {
 
             <button
               className="saveDraftButton"
+              disabled={!canEditActiveProject}
               onClick={() =>
                 saveProject(
                   false
                 )
               }
             >
-              Save draft
+              {projects.find(
+                (project) =>
+                  project.id ===
+                  projectId
+              )?.status ===
+              "published"
+                ? "Save changes"
+                : "Save draft"}
             </button>
           </div>
         </section>
+
+        {activeProject?.status ===
+          "changes_requested" && (
+          <aside className="reviewNotice">
+            <strong>
+              Changes requested
+            </strong>
+            <p>
+              {activeProject.reviewNote ||
+                "Open the tour details, make the requested updates, then submit it again."}
+            </p>
+          </aside>
+        )}
 
         <section className="studioWorkspace">
           <aside className="studioSidebar">
@@ -2870,8 +3664,10 @@ export default function CreatorPage() {
                               <small>
                                 {story.type ===
                                 "look"
-                                  ? "Something to spot"
-                                  : story.type}
+                                  ? "Audio · Something to spot"
+                                  : story.image
+                                    ? "Audio + image"
+                                    : "Audio"}
                               </small>
                             </span>
                           </button>
@@ -2926,37 +3722,31 @@ export default function CreatorPage() {
                   />
                 </div>
 
-                <div className="storyField">
-                  <label>
-                    Story type
-                  </label>
-
-                  <select
-                    value={
-                      storyType
+                <label className="storySpotlightToggle">
+                  <input
+                    type="checkbox"
+                    checked={
+                      storyType === "look"
                     }
-                    onChange={(
-                      event
-                    ) =>
+                    onChange={(event) =>
                       setStoryType(
-                        event.target
-                          .value as CreatorStoryType
+                        event.target.checked
+                          ? "look"
+                          : "audio"
                       )
                     }
-                  >
-                    <option value="audio">
-                      Audio
-                    </option>
+                  />
 
-                    <option value="image">
-                      Image
-                    </option>
+                  <span>
+                    <strong>
+                      Highlight this as something to spot
+                    </strong>
 
-                    <option value="look">
-                      Something to spot
-                    </option>
-                  </select>
-                </div>
+                    <small>
+                      Use this when the passenger should look out of the window for a particular place or object.
+                    </small>
+                  </span>
+                </label>
 
                 <div className="storyField">
                   <label>
@@ -3157,9 +3947,7 @@ export default function CreatorPage() {
                   )}
 
                 <small className="mediaHelpNote">
-                  Draft media is private.
-                  Maximum file size:
-                  25 MB.
+                  Every Story needs audio. An image is optional and appears alongside it. Draft media is private. Maximum file size: 25 MB.
                 </small>
 
                 <div className="editorActions">
@@ -3167,7 +3955,10 @@ export default function CreatorPage() {
                     className="creatorContinueButton inlineContinue"
                     disabled={
                       !storyTitle.trim() ||
-                      storySaving
+                      storySaving ||
+                      !canEditActiveProject ||
+                      (!storyAudio &&
+                        !pendingAudioFile)
                     }
                     onClick={
                       saveStory
@@ -3223,6 +4014,7 @@ export default function CreatorPage() {
                   selectedSectionStops.length
                 }{" "}
                 stops
+                {` · About ${estimatedJourneyMinutes} mins`}
               </span>
             </div>
 
@@ -3270,6 +4062,7 @@ export default function CreatorPage() {
             </div>
           </section>
         </section>
+        <CreatorFooter />
       </main>
     );
   }
@@ -3283,7 +4076,11 @@ export default function CreatorPage() {
       <header className="creatorBrandHeader">
         <div>
           <div className="creatorLogo">
-            Between Stops
+            <img
+              src="/branding/between-stops-icon.png"
+              alt=""
+            />
+            <span>Between Stops</span>
           </div>
 
           <p className="creatorAreaLabel">
@@ -3585,6 +4382,36 @@ export default function CreatorPage() {
             </div>
           )}
 
+          <div className="routeDistanceSummary">
+            <span>
+              Approximate journey distance
+            </span>
+
+            <strong>
+              {selectedJourneyDistanceMiles <
+              10
+                ? selectedJourneyDistanceMiles.toFixed(
+                    1
+                  )
+                : Math.round(
+                    selectedJourneyDistanceMiles
+                  )}{" "}
+              miles
+            </strong>
+
+            <small>
+              {selectedJourneyDistanceKm.toFixed(
+                1
+              )}{" "}
+              km
+              {` · About ${estimatedJourneyMinutes} mins`}
+            </small>
+            <small>
+              Estimated from route distance, transport type and stops.
+              Actual operator times may vary.
+            </small>
+          </div>
+
           <button
             className="creatorContinueButton"
             disabled={
@@ -3621,6 +4448,9 @@ export default function CreatorPage() {
             </div>
 
             <span>
+              <TransportIcon
+                mode={route.mode}
+              />
               {route.mode === "bus"
                 ? "Bus"
                 : "Tram"}
@@ -3645,6 +4475,7 @@ export default function CreatorPage() {
           </div>
         </section>
       </section>
+      <CreatorFooter />
     </main>
   );
 }

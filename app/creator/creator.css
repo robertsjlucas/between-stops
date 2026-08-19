@@ -21,10 +21,34 @@
   background: #f7f6f1;
 }
 
+.creatorBrandHeader > div:last-child {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.creatorBrandHeader > div:last-child > a {
+  color: #5f5b54;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .creatorLogo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.045em;
+}
+
+.creatorLogo img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .creatorAreaLabel {
@@ -36,6 +60,89 @@
   text-transform: uppercase;
 }
 
+.routeIdentity {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1;
+  vertical-align: middle;
+}
+
+.creatorStudioShell .transportIcon {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  flex: 0 0 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transform: translateY(-0.5px);
+}
+
+.creatorFooter {
+  display: flex;
+  min-height: 104px;
+  padding: 28px 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 28px;
+  background: #171717;
+  color: white;
+}
+
+.creatorFooter > div {
+  display: grid;
+  gap: 5px;
+}
+
+.creatorFooterBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.creatorFooterBrand img {
+  width: 40px;
+  height: 40px;
+  border: 3px solid white;
+  border-radius: 10px;
+  background: white;
+}
+
+.creatorFooter > div > span {
+  color: #918e87;
+  font-size: 9px;
+}
+
+.creatorFooter nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px 18px;
+}
+
+.creatorFooter a,
+.creatorFooter button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d8d5ce;
+  font-size: 10px;
+  text-decoration: none;
+}
+
+.creatorFooter a {
+  font-weight: 700;
+}
+
+.creatorFooter button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .headerTextButton {
   padding: 9px 11px;
   border: 0;
@@ -43,6 +150,12 @@
   color: #171717;
   font-size: 12px;
   cursor: pointer;
+}
+
+.headerTextButton:disabled,
+.saveDraftButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
 }
 
 .creatorKicker {
@@ -170,6 +283,40 @@
   border: 1px solid #d8d4cb;
   border-radius: 16px;
   background: white;
+}
+
+.routeDistanceSummary {
+  display: grid;
+  margin-top: 14px;
+  padding: 16px 17px;
+  gap: 4px;
+  border: 1px solid #d8d4cb;
+  border-radius: 16px;
+  background: #ece9e1;
+}
+
+.routeDistanceSummary span {
+  color: #767169;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.routeDistanceSummary strong {
+  font-size: 24px;
+  letter-spacing: -0.04em;
+}
+
+.routeDistanceSummary small,
+.creatorFieldHint {
+  color: #77736b;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.creatorFieldHint {
+  margin: -5px 0 15px;
 }
 
 .sectionConnector {
@@ -437,6 +584,16 @@
   font-size: 11px;
 }
 
+.projectRouteMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  color: #77736b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .projectCardActions {
   display: flex;
   align-items: center;
@@ -485,6 +642,14 @@
   font-size: 10px;
 }
 
+.studioRouteMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.4;
+}
+
 .draftStatus {
   display: inline-flex;
   padding: 7px 10px;
@@ -494,6 +659,52 @@
   font-size: 9px;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.draftStatus.status-submitted,
+.draftStatus.status-ready_for_review {
+  background: #fff0c7;
+  color: #74560b;
+}
+
+.draftStatus.status-changes_requested {
+  background: #f8dcd4;
+  color: #7b3022;
+}
+
+.draftStatus.status-approved {
+  background: #dcebdc;
+  color: #275c35;
+}
+
+.draftStatus.status-published {
+  background: #d9e8f6;
+  color: #245579;
+}
+
+.draftStatus.status-archived {
+  background: #dedde2;
+  color: #5c5864;
+}
+
+.reviewNotice {
+  margin: 14px 30px 0;
+  padding: 15px 17px;
+  border: 1px solid #e7b9ab;
+  border-radius: 14px;
+  background: #fbebe5;
+  color: #6d2d22;
+}
+
+.reviewNotice strong,
+.reviewNotice p {
+  margin: 0;
+}
+
+.reviewNotice p {
+  margin-top: 5px;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .experienceTitleInput {
@@ -506,10 +717,14 @@
   outline: 0;
   background: transparent;
   color: #171717;
-  font-size: clamp(36px, 4.5vw, 64px);
+  min-height: 2.2em;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: clamp(27px, 3vw, 41px);
   font-weight: 800;
   line-height: 1.05;
   letter-spacing: -0.055em;
+  resize: none;
 }
 
 .saveDraftButton {
@@ -568,6 +783,18 @@
   top: 30px;
 }
 
+.detailsPreviewLink {
+  display: inline-flex;
+  margin-top: 14px;
+  padding: 11px 14px;
+  border-radius: 999px;
+  background: #171717;
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .marketplaceFormIntro h1 {
   margin: 0;
   font-size: clamp(40px, 5vw, 62px);
@@ -575,7 +802,7 @@
   letter-spacing: -0.055em;
 }
 
-.marketplaceFormIntro > p:last-child {
+.marketplaceFormIntro > p:not(.creatorKicker) {
   color: #77736b;
   font-size: 14px;
   line-height: 1.6;
@@ -612,7 +839,8 @@
 }
 
 .marketplaceFormCard input:not([type="file"]),
-.marketplaceFormCard textarea {
+.marketplaceFormCard textarea,
+.marketplaceFormCard select {
   width: 100%;
   box-sizing: border-box;
   border: 1px solid #d6d3cb;
@@ -620,6 +848,198 @@
   background: #fbfaf7;
   color: #171717;
   font: inherit;
+}
+
+.marketplaceFormCard select {
+  min-height: 46px;
+  padding: 0 12px;
+  background: white;
+}
+
+.automaticDurationCard {
+  display: grid;
+  margin: 4px 0 18px;
+  padding: 16px;
+  gap: 4px;
+  border-radius: 14px;
+  background: #ebe8df;
+}
+
+.automaticDurationCard span,
+.automaticDurationCard small {
+  color: #77736b;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.automaticDurationCard strong {
+  font-size: 20px;
+}
+
+.availabilityDates {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.availabilityDates label {
+  margin: 0;
+}
+
+.availabilityDates input {
+  width: 100%;
+  margin-top: 7px;
+}
+
+.tourGalleryEditor {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.tourGalleryEditor figure {
+  position: relative;
+  min-height: 130px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #e7e3da;
+}
+
+.tourGalleryEditor img {
+  width: 100%;
+  height: 100%;
+  min-height: 130px;
+  object-fit: cover;
+}
+
+.tourGalleryEditor button {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(23, 23, 23, 0.9);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.galleryHint {
+  margin-top: -2px;
+}
+
+.storySpotlightToggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #dedad1;
+  border-radius: 14px;
+  background: #f7f5ef;
+  cursor: pointer;
+}
+
+.storySpotlightToggle input {
+  width: 18px;
+  height: 18px;
+  margin: 2px 0 0;
+  accent-color: #171717;
+}
+
+.storySpotlightToggle span,
+.storySpotlightToggle strong,
+.storySpotlightToggle small {
+  display: block;
+}
+
+.storySpotlightToggle strong {
+  color: #171717;
+  font-size: 12px;
+}
+
+.storySpotlightToggle small {
+  margin-top: 4px;
+  color: #77736b;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.tourGallerySlots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.tourGallerySlot {
+  display: grid;
+  min-width: 0;
+  padding: 10px;
+  gap: 8px;
+  border: 1px solid #dedad1;
+  border-radius: 14px;
+  background: #fbfaf7;
+}
+
+.tourGallerySlot > img,
+.emptyGallerySlot {
+  display: grid;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  place-items: center;
+  border-radius: 10px;
+  background: #e9e6de;
+  object-fit: cover;
+  color: #918d84;
+  font-size: 10px;
+}
+
+.gallerySlotNumber {
+  color: #77736b;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.gallerySlotActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.gallerySlotActions label,
+.gallerySlotActions button {
+  margin: 0;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: #171717;
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.gallerySlotActions label input {
+  display: none;
+}
+
+.gallerySlotActions button {
+  background: transparent;
+  color: #9a4d40;
+}
+
+.tourGallerySlot > small {
+  overflow: hidden;
+  color: #77736b;
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .marketplaceFormCard input:not([type="file"]) {
@@ -698,6 +1118,33 @@
   padding: 17px;
   border-radius: 14px;
   background: #ece9e1;
+}
+
+.marketplaceFormCard .rightsConfirmation {
+  display: flex;
+  margin-top: 24px;
+  padding: 15px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 11px;
+  border: 1px solid #d8d4cb;
+  border-radius: 14px;
+  background: #fbfaf7;
+  cursor: pointer;
+}
+
+.marketplaceFormCard .rightsConfirmation input {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  margin: 1px 0 0;
+}
+
+.marketplaceFormCard .rightsConfirmation span {
+  color: #4e4b46;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.5;
 }
 
 .tourAccessSummary span {
@@ -999,6 +1446,28 @@
   padding: 12px 18px;
 }
 
+.reviewButton.unpublishButton {
+  border: 1px solid #cfcac0;
+  background: transparent;
+  color: #171717;
+}
+
+.previewExperienceLink {
+  padding: 10px 13px;
+  border: 1px solid #cbc7bd;
+  border-radius: 999px;
+  color: #171717;
+  font-size: 10px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.reviewButton.retractButton {
+  border: 1px solid #d8a99d;
+  background: #fff5f1;
+  color: #7b3022;
+}
+
 @media (max-width: 900px) {
   .creatorStudioShell {
     width: 100%;
@@ -1037,7 +1506,25 @@
   }
 
   .experienceTitleInput {
-    font-size: 38px;
+    font-size: 27px;
+  }
+
+  .studioTopActions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .experienceStatusRow {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .availabilityDates {
+    grid-template-columns: 1fr;
+  }
+
+  .tourGallerySlots {
+    grid-template-columns: 1fr;
   }
 
   .projectsPage {
@@ -1074,5 +1561,14 @@
 
   .marketplaceFormActions button {
     width: 100%;
+  }
+
+  .creatorFooter {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .creatorFooter nav {
+    justify-content: flex-start;
   }
 }
