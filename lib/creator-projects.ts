@@ -42,6 +42,7 @@ export type MediaAttachment = {
   filename: string;
   mimeType: string;
   sizeBytes: number;
+  durationSeconds?: number;
   url?: string;
 };
 
@@ -91,6 +92,8 @@ export type CreatorProfile = {
   displayName: string;
   bio: string;
   avatar?: MediaAttachment;
+  leftPrompt?: MediaAttachment;
+  rightPrompt?: MediaAttachment;
   isPublic: boolean;
   updatedAt: string;
 };
@@ -109,6 +112,7 @@ type DatabaseStory = {
   audio_filename: string | null;
   audio_mime_type: string | null;
   audio_size_bytes: number | null;
+  audio_duration_seconds: number | null;
   image_path: string | null;
   image_filename: string | null;
   image_mime_type: string | null;
@@ -168,6 +172,14 @@ type DatabaseCreatorProfile = {
   avatar_filename: string | null;
   avatar_mime_type: string | null;
   avatar_size_bytes: number | null;
+  left_prompt_path: string | null;
+  left_prompt_filename: string | null;
+  left_prompt_mime_type: string | null;
+  left_prompt_size_bytes: number | null;
+  right_prompt_path: string | null;
+  right_prompt_filename: string | null;
+  right_prompt_mime_type: string | null;
+  right_prompt_size_bytes: number | null;
   is_public: boolean;
   updated_at: string;
 };
@@ -274,6 +286,7 @@ export async function loadCreatorProjects(
           audio_filename,
           audio_mime_type,
           audio_size_bytes,
+          audio_duration_seconds,
           image_path,
           image_filename,
           image_mime_type,
@@ -575,6 +588,9 @@ export async function loadCreatorProjects(
                     sizeBytes:
                       story.audio_size_bytes ??
                       0,
+                    durationSeconds:
+                      story.audio_duration_seconds ??
+                      undefined,
                     url:
                       signedUrls.get(
                         story.audio_path
@@ -848,6 +864,10 @@ export async function saveCreatorProject(
             story.audio
               ?.sizeBytes ?? null,
 
+          audio_duration_seconds:
+            story.audio
+              ?.durationSeconds ?? null,
+
           image_path:
             story.image?.path ??
             null,
@@ -1096,6 +1116,11 @@ export async function uploadStoryMedia(
   const path =
     `${user.id}/${projectId}/${storyId}/${kind}.${extension}`;
 
+  const durationSeconds =
+    kind === "audio"
+      ? await readAudioDuration(file)
+      : undefined;
+
   const { error: uploadError } =
     await supabase.storage
       .from("story-media")
@@ -1133,8 +1158,51 @@ export async function uploadStoryMedia(
     filename: file.name,
     mimeType: file.type,
     sizeBytes: file.size,
+    durationSeconds,
     url: signedData.signedUrl,
   };
+}
+
+async function readAudioDuration(
+  file: File
+): Promise<number | undefined> {
+  if (
+    typeof document === "undefined" ||
+    typeof URL === "undefined"
+  ) {
+    return undefined;
+  }
+
+  return new Promise((resolve) => {
+    const audio = document.createElement("audio");
+    const objectUrl = URL.createObjectURL(file);
+    let settled = false;
+
+    const finish = (duration?: number) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeoutId);
+      audio.removeAttribute("src");
+      audio.load();
+      URL.revokeObjectURL(objectUrl);
+      resolve(
+        duration && Number.isFinite(duration)
+          ? Math.round(duration * 10) / 10
+          : undefined
+      );
+    };
+
+    const timeoutId = window.setTimeout(
+      () => finish(),
+      10000
+    );
+
+    audio.preload = "metadata";
+    audio.onloadedmetadata = () =>
+      finish(audio.duration);
+    audio.onerror = () => finish();
+    audio.src = objectUrl;
+  });
 }
 
 function validateImageFile(
@@ -1302,6 +1370,14 @@ export async function loadCreatorProfile(
         avatar_filename,
         avatar_mime_type,
         avatar_size_bytes,
+        left_prompt_path,
+        left_prompt_filename,
+        left_prompt_mime_type,
+        left_prompt_size_bytes,
+        right_prompt_path,
+        right_prompt_filename,
+        right_prompt_mime_type,
+        right_prompt_size_bytes,
         is_public,
         updated_at
       `)
@@ -1319,18 +1395,24 @@ export async function loadCreatorProfile(
   const row =
     data as DatabaseCreatorProfile;
 
-  let avatarUrl:
-    | string
-    | undefined;
+  const profileMediaPaths = [
+    row.avatar_path,
+    row.left_prompt_path,
+    row.right_prompt_path,
+  ].filter(
+    (path): path is string => Boolean(path)
+  );
 
-  if (row.avatar_path) {
+  const profileMediaUrls = new Map<string, string>();
+
+  if (profileMediaPaths.length > 0) {
     const {
       data: signedData,
       error: signedError,
     } = await supabase.storage
       .from("profile-media")
-      .createSignedUrl(
-        row.avatar_path,
+      .createSignedUrls(
+        profileMediaPaths,
         60 * 60
       );
 
@@ -1340,8 +1422,14 @@ export async function loadCreatorProfile(
       );
     }
 
-    avatarUrl =
-      signedData.signedUrl;
+    (signedData ?? []).forEach((item, index) => {
+      if (item.signedUrl) {
+        profileMediaUrls.set(
+          profileMediaPaths[index],
+          item.signedUrl
+        );
+      }
+    });
   }
 
   return {
@@ -1362,7 +1450,33 @@ export async function loadCreatorProfile(
             sizeBytes:
               row.avatar_size_bytes ??
               0,
-            url: avatarUrl,
+            url: profileMediaUrls.get(row.avatar_path),
+          }
+        : undefined,
+    leftPrompt:
+      row.left_prompt_path
+        ? {
+            path: row.left_prompt_path,
+            filename:
+              row.left_prompt_filename ?? "Look left prompt",
+            mimeType:
+              row.left_prompt_mime_type ?? "audio/mpeg",
+            sizeBytes:
+              row.left_prompt_size_bytes ?? 0,
+            url: profileMediaUrls.get(row.left_prompt_path),
+          }
+        : undefined,
+    rightPrompt:
+      row.right_prompt_path
+        ? {
+            path: row.right_prompt_path,
+            filename:
+              row.right_prompt_filename ?? "Look right prompt",
+            mimeType:
+              row.right_prompt_mime_type ?? "audio/mpeg",
+            sizeBytes:
+              row.right_prompt_size_bytes ?? 0,
+            url: profileMediaUrls.get(row.right_prompt_path),
           }
         : undefined,
     isPublic: row.is_public,
@@ -1430,6 +1544,62 @@ export async function uploadProfileAvatar(
   };
 }
 
+export async function uploadProfileDirectionPrompt(
+  supabase: SupabaseClient,
+  side: "left" | "right",
+  file: File
+): Promise<MediaAttachment> {
+  const maximumSize = 25 * 1024 * 1024;
+  const allowedAudioTypes = new Set([
+    "audio/mpeg",
+    "audio/mp4",
+    "audio/x-m4a",
+    "audio/wav",
+    "audio/x-wav",
+  ]);
+
+  if (file.size > maximumSize) {
+    throw new Error("Audio files must be 25 MB or smaller.");
+  }
+
+  if (!allowedAudioTypes.has(file.type)) {
+    throw new Error("Choose an MP3, M4A or WAV audio file.");
+  }
+
+  const user = await getCurrentUser(supabase);
+  const extension = getExtension(file, "audio");
+  const path = `${user.id}/direction-${side}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("profile-media")
+    .upload(path, file, {
+      cacheControl: "3600",
+      contentType: file.type,
+      upsert: true,
+    });
+
+  if (uploadError) {
+    throw new Error(uploadError.message);
+  }
+
+  const { data: signedData, error: signedError } =
+    await supabase.storage
+      .from("profile-media")
+      .createSignedUrl(path, 60 * 60);
+
+  if (signedError) {
+    throw new Error(signedError.message);
+  }
+
+  return {
+    path,
+    filename: file.name,
+    mimeType: file.type,
+    sizeBytes: file.size,
+    url: signedData.signedUrl,
+  };
+}
+
 export async function saveCreatorProfile(
   supabase: SupabaseClient,
   profile: Omit<
@@ -1463,6 +1633,22 @@ export async function saveCreatorProfile(
           avatar_size_bytes:
             profile.avatar?.sizeBytes ??
             null,
+          left_prompt_path:
+            profile.leftPrompt?.path ?? null,
+          left_prompt_filename:
+            profile.leftPrompt?.filename ?? null,
+          left_prompt_mime_type:
+            profile.leftPrompt?.mimeType ?? null,
+          left_prompt_size_bytes:
+            profile.leftPrompt?.sizeBytes ?? null,
+          right_prompt_path:
+            profile.rightPrompt?.path ?? null,
+          right_prompt_filename:
+            profile.rightPrompt?.filename ?? null,
+          right_prompt_mime_type:
+            profile.rightPrompt?.mimeType ?? null,
+          right_prompt_size_bytes:
+            profile.rightPrompt?.sizeBytes ?? null,
           is_public:
             profile.isPublic,
         },

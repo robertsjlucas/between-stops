@@ -16,10 +16,19 @@ import type {
   StoryType,
 } from "@/lib/types";
 
+import {
+  loadRatingSummaries,
+} from "@/lib/passenger-reviews";
+
 export type PublicCreator = {
   displayName: string;
   bio: string;
   avatarUrl?: string;
+  avatarSizeBytes?: number;
+  leftPromptUrl?: string;
+  leftPromptSizeBytes?: number;
+  rightPromptUrl?: string;
+  rightPromptSizeBytes?: number;
 };
 
 export type PublicExperienceOption = {
@@ -32,7 +41,9 @@ export type PublicExperienceOption = {
   transportLabel: string;
   visualClass: string;
   coverImageUrl?: string;
+  coverImageSizeBytes?: number;
   galleryImageUrls: string[];
+  galleryImageSizeBytes?: number[];
   availableFrom?: string;
   availableTo?: string;
   ageGuidance:
@@ -44,6 +55,11 @@ export type PublicExperienceOption = {
   pricePence?: number;
   currency: string;
   startCoordinates: Coordinates;
+  startStopId?: string;
+  endStopId?: string;
+  downloadSizeBytes?: number;
+  averageRating?: number;
+  reviewCount?: number;
 };
 
 type DatabaseStory = {
@@ -55,7 +71,10 @@ type DatabaseStory = {
   subject_latitude: number;
   route_progress: number;
   audio_path: string | null;
+  audio_duration_seconds: number | null;
+  audio_size_bytes: number | null;
   image_path: string | null;
+  image_size_bytes: number | null;
 };
 
 type DatabaseExperience = {
@@ -69,6 +88,7 @@ type DatabaseExperience = {
   start_stop_id: string;
   end_stop_id: string;
   cover_image_path: string | null;
+  cover_image_size_bytes: number | null;
   available_from: string | null;
   available_to: string | null;
   age_guidance:
@@ -89,6 +109,7 @@ type DatabaseExperience = {
   experience_gallery_images: {
     path: string;
     position: number;
+    size_bytes: number;
   }[];
 };
 
@@ -97,6 +118,11 @@ type DatabaseProfile = {
   display_name: string;
   bio: string;
   avatar_path: string | null;
+  avatar_size_bytes: number | null;
+  left_prompt_path: string | null;
+  left_prompt_size_bytes: number | null;
+  right_prompt_path: string | null;
+  right_prompt_size_bytes: number | null;
 };
 
 async function createSignedUrlMap(
@@ -245,6 +271,7 @@ export async function loadPublishedExperiences(
         start_stop_id,
         end_stop_id,
         cover_image_path,
+        cover_image_size_bytes,
         available_from,
         available_to,
         age_guidance,
@@ -258,7 +285,8 @@ export async function loadPublishedExperiences(
         published_at,
         experience_gallery_images (
           path,
-          position
+          position,
+          size_bytes
         ),
         stories (
           id,
@@ -269,7 +297,10 @@ export async function loadPublishedExperiences(
           subject_latitude,
           route_progress,
           audio_path,
-          image_path
+          audio_duration_seconds,
+          audio_size_bytes,
+          image_path,
+          image_size_bytes
         )
       `)
       .eq("status", "published")
@@ -298,10 +329,23 @@ export async function loadPublishedExperiences(
       (!row.available_to || row.available_to >= today)
   );
 
-  return hydrateExperienceRows(
-    supabase,
-    rows
+  const [options, ratingSummaries] = await Promise.all([
+    hydrateExperienceRows(supabase, rows),
+    loadRatingSummaries(supabase),
+  ]);
+
+  const ratingsByExperience = new Map(
+    ratingSummaries.map((summary) => [summary.experienceId, summary])
   );
+
+  return options.map((option) => {
+    const summary = ratingsByExperience.get(option.experience.id);
+    return {
+      ...option,
+      averageRating: summary?.averageRating,
+      reviewCount: summary?.reviewCount ?? 0,
+    };
+  });
 }
 
 async function hydrateExperienceRows(
@@ -339,7 +383,12 @@ async function hydrateExperienceRows(
         id,
         display_name,
         bio,
-        avatar_path
+        avatar_path,
+        avatar_size_bytes,
+        left_prompt_path,
+        left_prompt_size_bytes,
+        right_prompt_path,
+        right_prompt_size_bytes
       `)
       .in("id", ownerIds);
 
@@ -379,11 +428,14 @@ async function hydrateExperienceRows(
           Boolean(path)
       );
 
-  const avatarPaths =
+  const profileMediaPaths =
     profiles
-      .map(
-        (profile) =>
-          profile.avatar_path
+      .flatMap(
+        (profile) => [
+          profile.avatar_path,
+          profile.left_prompt_path,
+          profile.right_prompt_path,
+        ]
       )
       .filter(
         (path): path is string =>
@@ -393,7 +445,7 @@ async function hydrateExperienceRows(
   const [
     storyUrls,
     coverUrls,
-    avatarUrls,
+    profileMediaUrls,
   ] = await Promise.all([
     createSignedUrlMap(
       supabase,
@@ -408,7 +460,7 @@ async function hydrateExperienceRows(
     createSignedUrlMap(
       supabase,
       "profile-media",
-      avatarPaths
+      profileMediaPaths
     ),
   ]);
 
@@ -547,12 +599,18 @@ async function hydrateExperienceRows(
                           story.audio_path
                         )
                       : undefined,
+                  audioDurationSeconds:
+                    story.audio_duration_seconds ?? undefined,
+                  audioSizeBytes:
+                    story.audio_size_bytes ?? undefined,
                   imageUrl:
                     story.image_path
                       ? storyUrls.get(
                           story.image_path
                         )
                       : undefined,
+                  imageSizeBytes:
+                    story.image_size_bytes ?? undefined,
                 })
               )
               .sort(
@@ -586,6 +644,8 @@ async function hydrateExperienceRows(
                 row.cover_image_path
               )
             : undefined,
+        coverImageSizeBytes:
+          row.cover_image_size_bytes ?? undefined,
         galleryImageUrls:
           (row.experience_gallery_images ?? [])
             .sort(
@@ -594,6 +654,12 @@ async function hydrateExperienceRows(
             )
             .map((image) => coverUrls.get(image.path))
             .filter((url): url is string => Boolean(url)),
+        galleryImageSizeBytes:
+          (row.experience_gallery_images ?? [])
+            .sort(
+              (first, second) => first.position - second.position
+            )
+            .map((image) => image.size_bytes ?? 0),
         availableFrom:
           row.available_from ?? undefined,
         availableTo:
@@ -606,12 +672,21 @@ async function hydrateExperienceRows(
                 displayName:
                   profile.display_name,
                 bio: profile.bio,
-                avatarUrl:
-                  profile.avatar_path
-                    ? avatarUrls.get(
-                        profile.avatar_path
-                      )
-                    : undefined,
+              avatarUrl: profile.avatar_path
+                ? profileMediaUrls.get(profile.avatar_path)
+                : undefined,
+              avatarSizeBytes:
+                profile.avatar_size_bytes ?? undefined,
+              leftPromptUrl: profile.left_prompt_path
+                ? profileMediaUrls.get(profile.left_prompt_path)
+                : undefined,
+              leftPromptSizeBytes:
+                profile.left_prompt_size_bytes ?? undefined,
+              rightPromptUrl: profile.right_prompt_path
+                ? profileMediaUrls.get(profile.right_prompt_path)
+                : undefined,
+              rightPromptSizeBytes:
+                profile.right_prompt_size_bytes ?? undefined,
               }
             : undefined,
         featuredRank:
@@ -625,6 +700,24 @@ async function hydrateExperienceRows(
         currency:
           row.currency,
         startCoordinates,
+        startStopId: selectedStart?.id,
+        endStopId: selectedEnd?.id,
+        downloadSizeBytes:
+          (row.cover_image_size_bytes ?? 0) +
+          (row.experience_gallery_images ?? []).reduce(
+            (total, image) => total + (image.size_bytes ?? 0),
+            0
+          ) +
+          (row.stories ?? []).reduce(
+            (total, story) =>
+              total +
+              (story.audio_size_bytes ?? 0) +
+              (story.image_size_bytes ?? 0),
+            0
+          ) +
+          (profile?.avatar_size_bytes ?? 0) +
+          (profile?.left_prompt_size_bytes ?? 0) +
+          (profile?.right_prompt_size_bytes ?? 0),
       };
     }
   );
@@ -647,6 +740,7 @@ export async function loadPublishedExperienceBySlug(
       start_stop_id,
       end_stop_id,
       cover_image_path,
+      cover_image_size_bytes,
       available_from,
       available_to,
       age_guidance,
@@ -660,7 +754,8 @@ export async function loadPublishedExperienceBySlug(
       published_at,
       experience_gallery_images (
         path,
-        position
+        position,
+        size_bytes
       ),
       stories (
         id,
@@ -671,7 +766,10 @@ export async function loadPublishedExperienceBySlug(
         subject_latitude,
         route_progress,
         audio_path,
-        image_path
+        audio_duration_seconds,
+        audio_size_bytes,
+        image_path,
+        image_size_bytes
       )
     `)
     .eq("slug", slug)
@@ -687,12 +785,25 @@ export async function loadPublishedExperienceBySlug(
     return null;
   }
 
-  const options = await hydrateExperienceRows(
-    supabase,
-    [data as DatabaseExperience]
+  const [options, ratingSummaries] = await Promise.all([
+    hydrateExperienceRows(
+      supabase,
+      [data as DatabaseExperience]
+    ),
+    loadRatingSummaries(supabase),
+  ]);
+
+  const summary = ratingSummaries.find(
+    (item) => item.experienceId === data.id
   );
 
-  return options[0] ?? null;
+  return options[0]
+    ? {
+        ...options[0],
+        averageRating: summary?.averageRating,
+        reviewCount: summary?.reviewCount ?? 0,
+      }
+    : null;
 }
 
 export async function loadExperiencePreview(
@@ -719,6 +830,7 @@ export async function loadExperiencePreview(
       start_stop_id,
       end_stop_id,
       cover_image_path,
+      cover_image_size_bytes,
       available_from,
       available_to,
       age_guidance,
@@ -732,7 +844,8 @@ export async function loadExperiencePreview(
       published_at,
       experience_gallery_images (
         path,
-        position
+        position,
+        size_bytes
       ),
       stories (
         id,
@@ -743,7 +856,10 @@ export async function loadExperiencePreview(
         subject_latitude,
         route_progress,
         audio_path,
-        image_path
+        audio_duration_seconds,
+        audio_size_bytes,
+        image_path,
+        image_size_bytes
       )
     `)
     .eq("id", experienceId)
@@ -770,10 +886,23 @@ export async function loadExperiencePreview(
     }
   }
 
-  const options = await hydrateExperienceRows(
-    supabase,
-    [data as DatabaseExperience]
+  const [options, ratingSummaries] = await Promise.all([
+    hydrateExperienceRows(
+      supabase,
+      [data as DatabaseExperience]
+    ),
+    loadRatingSummaries(supabase),
+  ]);
+
+  const summary = ratingSummaries.find(
+    (item) => item.experienceId === data.id
   );
 
-  return options[0] ?? null;
+  return options[0]
+    ? {
+        ...options[0],
+        averageRating: summary?.averageRating,
+        reviewCount: summary?.reviewCount ?? 0,
+      }
+    : null;
 }

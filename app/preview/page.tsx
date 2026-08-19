@@ -165,14 +165,36 @@ export default function PreviewPage() {
         <p className="lead">{option.fullDescription || option.summary}</p>
 
         {option.creator && (
-          <div className="overviewCreator">
-            {option.creator.avatarUrl && <img src={option.creator.avatarUrl} alt="" />}
-            <div>
-              <small>Created by</small>
-              <strong>{option.creator.displayName}</strong>
-              {option.creator.bio && <p className="creatorBio expanded">{option.creator.bio}</p>}
+          <>
+            <div className="overviewCreator">
+              {option.creator.avatarUrl && <img src={option.creator.avatarUrl} alt="" />}
+              <div>
+                <small>Created by</small>
+                <strong>{option.creator.displayName}</strong>
+                {option.creator.bio && <p className="creatorBio expanded">{option.creator.bio}</p>}
+              </div>
             </div>
-          </div>
+
+            {(option.creator.leftPromptUrl || option.creator.rightPromptUrl) && (
+              <div className="previewDirectionPrompts">
+                <p className="kicker">GUIDE VOICE PROMPTS</p>
+                <div>
+                  {option.creator.leftPromptUrl && (
+                    <label>
+                      Look left
+                      <audio controls preload="metadata" src={option.creator.leftPromptUrl} />
+                    </label>
+                  )}
+                  {option.creator.rightPromptUrl && (
+                    <label>
+                      Look right
+                      <audio controls preload="metadata" src={option.creator.rightPromptUrl} />
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {option.galleryImageUrls.length > 0 && (

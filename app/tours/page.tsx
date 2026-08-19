@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { lineString, point } from "@turf/helpers";
 import nearestPointOnLine from "@turf/nearest-point-on-line";
 import length from "@turf/length";
@@ -25,8 +25,41 @@ import type {
 } from "@/lib/public-experiences";
 
 import {
+  downloadTourForOfflineUse,
+  formatDownloadSize,
+  getOfflineTourRecords,
+  getOfflineTourOptions,
+  mergeWithOfflineTours,
+  removeOfflineTour,
+} from "@/lib/offline-tours";
+
+import type {
+  OfflineTourRecord,
+} from "@/lib/offline-tours";
+
+import {
+  loadDestinationRecommendations,
+  getRecommendationCategoryLabel,
+} from "@/lib/destination-recommendations";
+
+import type {
+  DestinationRecommendation,
+} from "@/lib/destination-recommendations";
+
+import {
+  loadPublicPassengerReviews,
+  submitPassengerReview,
+} from "@/lib/passenger-reviews";
+
+import type {
+  PublicPassengerReview,
+} from "@/lib/passenger-reviews";
+
+import {
+  getDirectionalSide,
   getJourneyProgress,
   getStoriesForJourney,
+  getTranscriptAvailability,
   isInsideExperienceSection,
 } from "@/lib/experience";
 
@@ -37,10 +70,83 @@ import type {
 import {
   TransportIcon,
 } from "@/components/transport-icon";
+import {
+  RecommendationArt,
+} from "@/components/recommendation-art";
 
-type Screen = "home" | "overview" | "journey";
+type Screen = "home" | "overview" | "preflight" | "journey";
 
 type DirectionMode = "automatic" | "manual";
+
+type RouteMatchStatus = "GOOD" | "POSSIBLE" | "OFF ROUTE";
+
+type SimulatorCondition = "good" | "poor" | "off-route";
+
+type LocationCheckStatus =
+  | "idle"
+  | "requesting"
+  | "granted"
+  | "denied";
+
+type AudioPlaybackStatus =
+  | "idle"
+  | "playing"
+  | "paused"
+  | "blocked"
+  | "error";
+
+type DiagnosticEventType =
+  | "journey_started"
+  | "direction_changed"
+  | "direction_detected"
+  | "route_status_changed"
+  | "story_triggered"
+  | "story_changed"
+  | "audio_queued"
+  | "audio_started"
+  | "direction_prompt_started"
+  | "direction_prompt_missing"
+  | "audio_paused"
+  | "audio_finished"
+  | "audio_blocked"
+  | "media_error"
+  | "journey_completed"
+  | "journey_interrupted"
+  | "journey_resumed"
+  | "journey_restored"
+  | "simulator_changed"
+  | "progress_reset";
+
+type DiagnosticEvent = {
+  at: string;
+  type: DiagnosticEventType;
+  detail: string;
+  source: "gps" | "simulator";
+  journeyProgress?: number;
+  routeProgress?: number;
+  distanceFromRouteMetres?: number;
+};
+
+type RouteMatch = {
+  status: RouteMatchStatus;
+  routeProgress: number;
+  distanceAlongRouteKm: number;
+  distanceFromRouteMetres: number;
+};
+
+type PersistedJourneyState = {
+  version: 1;
+  experienceId: string;
+  direction: JourneyDirection;
+  directionMode: DirectionMode;
+  journeyProgress: number;
+  journeyCompleted: boolean;
+  events: DiagnosticEvent[];
+  triggeredStoryIds?: string[];
+  audioQueueIds?: string[];
+  activeAudioStoryId?: string | null;
+  savedAt: string;
+};
 
 type CompletedJourney = {
   id: string;
@@ -222,6 +328,23 @@ function formatAvailability(
     : `Available until ${formatDate(option.availableTo!)}`;
 }
 
+const passengerReviewDeviceKey =
+  "between-stops-review-device";
+const submittedReviewsKey =
+  "between-stops-submitted-reviews";
+
+function getPassengerReviewDeviceToken() {
+  const existing = localStorage.getItem(
+    passengerReviewDeviceKey
+  );
+
+  if (existing) return existing;
+
+  const token = crypto.randomUUID();
+  localStorage.setItem(passengerReviewDeviceKey, token);
+  return token;
+}
+
 export default function Home() {
   const [screen, setScreen] = useState<Screen>("home");
 
@@ -231,6 +354,26 @@ export default function Home() {
   ] = useState<
     PublicExperienceOption[]
   >([]);
+
+  const [
+    onlineExperienceOptions,
+    setOnlineExperienceOptions,
+  ] = useState<PublicExperienceOption[]>([]);
+
+  const [
+    offlineTourRecords,
+    setOfflineTourRecords,
+  ] = useState<OfflineTourRecord[]>([]);
+
+  const [
+    downloadProgress,
+    setDownloadProgress,
+  ] = useState<{
+    completed: number;
+    total: number;
+  } | null>(null);
+
+  const [downloadError, setDownloadError] = useState("");
 
   const [
     catalogueLoading,
@@ -264,6 +407,9 @@ export default function Home() {
     setCreatorBioExpanded,
   ] = useState(false);
 
+  const [showTranscripts, setShowTranscripts] =
+    useState(false);
+
   const [selectedExperienceId, setSelectedExperienceId] =
     useState("");
 
@@ -287,8 +433,28 @@ export default function Home() {
   const [journeyCompleted, setJourneyCompleted] =
     useState(false);
 
+  const [destinationRecommendations, setDestinationRecommendations] =
+    useState<DestinationRecommendation[]>([]);
+
+  const [destinationRecommendationsLoading, setDestinationRecommendationsLoading] =
+    useState(false);
+
   const [completedJourneys, setCompletedJourneys] =
     useState<CompletedJourney[]>([]);
+
+  const [publicPassengerReviews, setPublicPassengerReviews] =
+    useState<PublicPassengerReview[]>([]);
+
+  const [publicReviewsLoading, setPublicReviewsLoading] =
+    useState(false);
+
+  const [submittedReviewExperienceIds, setSubmittedReviewExperienceIds] =
+    useState<Set<string>>(new Set());
+
+  const [reviewRating, setReviewRating] = useState(0);
+  const [reviewText, setReviewText] = useState("");
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [reviewMessage, setReviewMessage] = useState("");
 
   const detectionStartProgress = useRef<number | null>(null);
   const journeyStartedNearOrigin = useRef(false);
@@ -301,8 +467,69 @@ export default function Home() {
 
   const [testerOpen, setTesterOpen] = useState(false);
 
+  const [simulatorEnabled, setSimulatorEnabled] =
+    useState(false);
+
+  const [simulatorProgress, setSimulatorProgress] =
+    useState(0);
+
+  const [simulatorCondition, setSimulatorCondition] =
+    useState<SimulatorCondition>("good");
+
+  const [diagnosticEvents, setDiagnosticEvents] =
+    useState<DiagnosticEvent[]>([]);
+
+  const [journeyStateReady, setJourneyStateReady] =
+    useState(false);
+
+  const [locationCheckStatus, setLocationCheckStatus] =
+    useState<LocationCheckStatus>("idle");
+
+  const [audioTestStatus, setAudioTestStatus] =
+    useState<"idle" | "testing" | "ready" | "error">(
+      "idle"
+    );
+
+  const [triggeredStoryIds, setTriggeredStoryIds] =
+    useState<string[]>([]);
+
+  const [audioQueueIds, setAudioQueueIds] =
+    useState<string[]>([]);
+
+  const [activeAudioStoryId, setActiveAudioStoryId] =
+    useState<string | null>(null);
+
+  const [audioPlaybackStatus, setAudioPlaybackStatus] =
+    useState<AudioPlaybackStatus>("idle");
+
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
+  const audioTestTimerRef = useRef<number | null>(null);
+
+  const previousRouteStatus = useRef<RouteMatchStatus | null>(null);
+  const previousStoryId = useRef<string | null>(null);
+
   const [markedSpots, setMarkedSpots] =
     useState<MarkedSpot[]>([]);
+
+  const recordDiagnostic = useCallback(
+    (
+      type: DiagnosticEventType,
+      detail: string,
+      readings?: Partial<DiagnosticEvent>
+    ) => {
+      setDiagnosticEvents((current) => [
+        ...current,
+        {
+          at: new Date().toISOString(),
+          type,
+          detail,
+          source: simulatorEnabled ? "simulator" : "gps",
+          ...readings,
+        },
+      ]);
+    },
+    [simulatorEnabled]
+  );
 
   const selectedOption =
     experienceOptions.find(
@@ -311,6 +538,18 @@ export default function Home() {
     ) ??
     experienceOptions[0] ??
     fallbackExperienceOptions[0];
+
+  const selectedOfflineRecord =
+    offlineTourRecords.find(
+      (record) =>
+        record.experienceId === selectedOption.experience.id
+    );
+
+  const selectedOnlineOption =
+    onlineExperienceOptions.find(
+      (option) =>
+        option.experience.id === selectedOption.experience.id
+    );
 
   const experience = selectedOption.experience;
   const route = selectedOption.route;
@@ -337,11 +576,17 @@ export default function Home() {
   const journeyStories = useMemo(
     () =>
       getStoriesForJourney(
+        route,
         experience,
         direction
       ),
-    [experience, direction]
+    [route, experience, direction]
   );
+
+  const activeAudioStory =
+    journeyStories.find(
+      (story) => story.id === activeAudioStoryId
+    ) ?? null;
 
   const directionStart =
     direction === "forward"
@@ -355,10 +600,157 @@ export default function Home() {
 
   const directionLabel = `${directionStart} → ${directionEnd}`;
 
+  const destinationStopId = useMemo(() => {
+    const savedStopId =
+      direction === "forward"
+        ? selectedOption.endStopId
+        : selectedOption.startStopId;
+
+    if (savedStopId) return savedStopId;
+
+    const targetProgress =
+      direction === "forward"
+        ? experience.endProgress
+        : experience.startProgress;
+
+    return route.stops?.reduce<
+      { id: string; difference: number } | undefined
+    >((closest, stop) => {
+      const difference = Math.abs(
+        stop.routeProgress - targetProgress
+      );
+
+      return !closest || difference < closest.difference
+        ? { id: stop.id, difference }
+        : closest;
+    }, undefined)?.id;
+  }, [
+    direction,
+    experience.endProgress,
+    experience.startProgress,
+    route.stops,
+    selectedOption.endStopId,
+    selectedOption.startStopId,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!journeyCompleted || !destinationStopId) {
+      Promise.resolve().then(() => {
+        if (active) {
+          setDestinationRecommendations([]);
+          setDestinationRecommendationsLoading(false);
+        }
+      });
+
+      return () => {
+        active = false;
+      };
+    }
+
+    setDestinationRecommendationsLoading(true);
+
+    void loadDestinationRecommendations(
+      createClient(),
+      route.id,
+      destinationStopId
+    )
+      .then((recommendations) => {
+        if (active) {
+          setDestinationRecommendations(recommendations);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setDestinationRecommendations([]);
+        }
+      })
+      .finally(() => {
+        if (active) {
+          setDestinationRecommendationsLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    destinationStopId,
+    journeyCompleted,
+    route.id,
+  ]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (screen !== "overview") {
+      return () => {
+        active = false;
+      };
+    }
+
+    setPublicReviewsLoading(true);
+
+    void loadPublicPassengerReviews(
+      createClient(),
+      experience.id
+    )
+      .then((reviews) => {
+        if (active) setPublicPassengerReviews(reviews);
+      })
+      .catch(() => {
+        if (active) setPublicPassengerReviews([]);
+      })
+      .finally(() => {
+        if (active) setPublicReviewsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [experience.id, screen]);
+
+  useEffect(() => {
+    const audio = new Audio();
+    audio.preload = "auto";
+    audioElementRef.current = audio;
+
+    return () => {
+      if (audioTestTimerRef.current !== null) {
+        window.clearTimeout(audioTestTimerRef.current);
+      }
+      audio.pause();
+      audio.removeAttribute("src");
+      audio.load();
+      audioElementRef.current = null;
+    };
+  }, []);
+
   useEffect(() => {
     let isActive = true;
 
     async function loadCatalogue() {
+      const savedRecords = getOfflineTourRecords();
+      const savedOptions = getOfflineTourOptions();
+
+      setOfflineTourRecords(savedRecords);
+
+      if (savedOptions.length > 0) {
+        setExperienceOptions(savedOptions);
+      }
+
+      if ("serviceWorker" in navigator) {
+        void navigator.serviceWorker
+          .register(
+            "/between-stops-sw.js",
+            { scope: "/", updateViaCache: "none" }
+          )
+          .catch(() => {
+            // Streaming remains available if this browser blocks offline mode.
+          });
+      }
+
       try {
         const options =
           await loadPublishedExperiences(
@@ -369,9 +761,9 @@ export default function Home() {
           return;
         }
 
-        setExperienceOptions(
-          options
-        );
+        const mergedOptions = mergeWithOfflineTours(options);
+        setOnlineExperienceOptions(options);
+        setExperienceOptions(mergedOptions);
 
         const requestedTourId =
           new URLSearchParams(
@@ -380,7 +772,7 @@ export default function Home() {
 
         const requestedTourExists =
           requestedTourId &&
-          options.some(
+          mergedOptions.some(
             (option) =>
               option.experience.id ===
               requestedTourId
@@ -395,13 +787,13 @@ export default function Home() {
             requestedTourExists
               ? requestedTourId
               :
-            options.some(
+            mergedOptions.some(
               (option) =>
                 option.experience.id ===
                 current
             )
               ? current
-              : options[0]
+              : mergedOptions[0]
                   ?.experience.id ?? ""
         );
 
@@ -416,9 +808,15 @@ export default function Home() {
             ? loadError.message
             : "Unknown error";
 
-        setCatalogueError(
-          `Tours could not be loaded: ${detail}`
-        );
+        if (savedOptions.length > 0) {
+          setCatalogueError(
+            "You are offline. Showing tours saved on this device."
+          );
+        } else {
+          setCatalogueError(
+            `Tours could not be loaded: ${detail}`
+          );
+        }
       } finally {
         if (isActive) {
           setCatalogueLoading(false);
@@ -470,6 +868,113 @@ export default function Home() {
       }
     }
 
+    const savedReviewIds = localStorage.getItem(
+      submittedReviewsKey
+    );
+
+    if (savedReviewIds) {
+      try {
+        setSubmittedReviewExperienceIds(
+          new Set(JSON.parse(savedReviewIds) as string[])
+        );
+      } catch {
+        // Ignore malformed local review history.
+      }
+    }
+
+    setShowTranscripts(
+      localStorage.getItem(
+        "between-stops-show-transcripts"
+      ) === "true"
+    );
+
+    const savedJourney = localStorage.getItem(
+      "between-stops-active-journey"
+    );
+
+    if (savedJourney) {
+      try {
+        const restored = JSON.parse(
+          savedJourney
+        ) as PersistedJourneyState;
+
+        if (
+          restored.version === 1 &&
+          restored.experienceId &&
+          (restored.direction === "forward" ||
+            restored.direction === "reverse")
+        ) {
+          const restoredAt = new Date().toISOString();
+          const restoredEvents = Array.isArray(restored.events)
+            ? restored.events.slice(-199)
+            : [];
+
+          setActiveJourneyExperienceId(
+            restored.experienceId
+          );
+          setSelectedExperienceId(
+            restored.experienceId
+          );
+          setDirection(restored.direction);
+          setActiveJourneyDirection(
+            restored.direction
+          );
+          setDirectionMode(
+            restored.directionMode === "automatic"
+              ? "automatic"
+              : "manual"
+          );
+          setJourneyProgress(
+            Math.max(
+              0,
+              Math.min(100, restored.journeyProgress || 0)
+            )
+          );
+          setJourneyCompleted(
+            Boolean(restored.journeyCompleted)
+          );
+          setDiagnosticEvents([
+            ...restoredEvents,
+            {
+              at: restoredAt,
+              type: "journey_restored",
+              detail: "Saved journey recovered after the app reopened.",
+              source: "gps",
+              journeyProgress: Math.max(
+                0,
+                Math.min(100, restored.journeyProgress || 0)
+              ),
+            },
+          ]);
+          setTriggeredStoryIds(
+            Array.isArray(restored.triggeredStoryIds)
+              ? restored.triggeredStoryIds
+              : []
+          );
+
+          const interruptedAudioIds = [
+            restored.activeAudioStoryId,
+            ...(Array.isArray(restored.audioQueueIds)
+              ? restored.audioQueueIds
+              : []),
+          ].filter(
+            (storyId): storyId is string =>
+              typeof storyId === "string"
+          );
+
+          setAudioQueueIds(
+            Array.from(new Set(interruptedAudioIds))
+          );
+        }
+      } catch {
+        localStorage.removeItem(
+          "between-stops-active-journey"
+        );
+      }
+    }
+
+    setJourneyStateReady(true);
+
     const saved = localStorage.getItem(
       "between-stops-marked-spots"
     );
@@ -482,6 +987,47 @@ export default function Home() {
       // Ignore malformed prototype data.
     }
   }, []);
+
+  useEffect(() => {
+    if (!journeyStateReady) return;
+
+    if (!activeJourneyExperienceId) {
+      localStorage.removeItem(
+        "between-stops-active-journey"
+      );
+      return;
+    }
+
+    const state: PersistedJourneyState = {
+      version: 1,
+      experienceId: activeJourneyExperienceId,
+      direction: activeJourneyDirection,
+      directionMode,
+      journeyProgress,
+      journeyCompleted,
+      events: diagnosticEvents.slice(-200),
+      triggeredStoryIds,
+      audioQueueIds,
+      activeAudioStoryId,
+      savedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(
+      "between-stops-active-journey",
+      JSON.stringify(state)
+    );
+  }, [
+    activeJourneyDirection,
+    activeJourneyExperienceId,
+    activeAudioStoryId,
+    audioQueueIds,
+    diagnosticEvents,
+    directionMode,
+    journeyCompleted,
+    journeyProgress,
+    journeyStateReady,
+    triggeredStoryIds,
+  ]);
 
   useEffect(() => {
     if (!watching) return;
@@ -518,7 +1064,7 @@ export default function Home() {
       navigator.geolocation.clearWatch(watchId);
   }, [watching]);
 
-  const routeMatch = useMemo(() => {
+  const gpsRouteMatch = useMemo<RouteMatch | null>(() => {
     if (!location) return null;
 
     const userPoint = point([
@@ -554,7 +1100,7 @@ export default function Home() {
     const possibleThreshold =
       route.mode === "bus" ? 200 : 150;
 
-    let status = "OFF ROUTE";
+    let status: RouteMatchStatus = "OFF ROUTE";
 
     if (distanceFromRouteMetres <= goodThreshold) {
       status = "GOOD";
@@ -577,6 +1123,60 @@ export default function Home() {
     route.mode,
   ]);
 
+  const simulatedRouteMatch = useMemo<RouteMatch>(() => {
+    const sectionStart = experience.startProgress;
+    const sectionEnd = experience.endProgress;
+    const sectionShare = simulatorProgress / 100;
+    const routeProgress =
+      direction === "forward"
+        ? sectionStart + (sectionEnd - sectionStart) * sectionShare
+        : sectionEnd - (sectionEnd - sectionStart) * sectionShare;
+
+    const status: RouteMatchStatus =
+      simulatorCondition === "good"
+        ? "GOOD"
+        : simulatorCondition === "poor"
+          ? "POSSIBLE"
+          : "OFF ROUTE";
+
+    const distanceFromRouteMetres =
+      simulatorCondition === "good"
+        ? 8
+        : simulatorCondition === "poor"
+          ? route.mode === "bus"
+            ? 120
+            : 90
+          : 350;
+
+    return {
+      status,
+      routeProgress,
+      distanceAlongRouteKm:
+        (routeProgress / 100) * routeLengthKm,
+      distanceFromRouteMetres,
+    };
+  }, [
+    direction,
+    experience.endProgress,
+    experience.startProgress,
+    route.mode,
+    routeLengthKm,
+    simulatorCondition,
+    simulatorProgress,
+  ]);
+
+  const routeMatch = simulatorEnabled
+    ? simulatedRouteMatch
+    : gpsRouteMatch;
+
+  const diagnosticAccuracy = simulatorEnabled
+    ? simulatorCondition === "good"
+      ? 8
+      : simulatorCondition === "poor"
+        ? 140
+        : 20
+    : location?.accuracy ?? null;
+
   useEffect(() => {
     if (!routeMatch) return;
 
@@ -586,7 +1186,7 @@ export default function Home() {
       return;
     }
 
-    if (routeMatch.status === "OFF ROUTE") {
+    if (routeMatch.status !== "GOOD") {
       return;
     }
 
@@ -618,7 +1218,10 @@ export default function Home() {
 
     let resolvedDirection = direction;
 
-    if (directionMode === "automatic") {
+    if (
+      directionMode === "automatic" &&
+      directionDetecting
+    ) {
       if (
         detectionStartProgress.current === null
       ) {
@@ -644,6 +1247,16 @@ export default function Home() {
               : null;
 
       if (detectedDirection) {
+        if (detectedDirection !== direction) {
+          recordDiagnostic(
+            "direction_detected",
+            `Automatic direction resolved to ${detectedDirection}.`,
+            {
+              routeProgress: routeMatch.routeProgress,
+              journeyProgress,
+            }
+          );
+        }
         resolvedDirection = detectedDirection;
         setDirection(detectedDirection);
         setActiveJourneyDirection(
@@ -694,6 +1307,16 @@ export default function Home() {
 
       setJourneyCompleted(true);
       setJourneyProgress(100);
+      recordDiagnostic(
+        "journey_completed",
+        `Journey completed in the ${resolvedDirection} direction.`,
+        {
+          journeyProgress: 100,
+          routeProgress: routeMatch.routeProgress,
+          distanceFromRouteMetres:
+            routeMatch.distanceFromRouteMetres,
+        }
+      );
       setCompletedJourneys((current) => {
         const updated = [
           completion,
@@ -712,19 +1335,22 @@ export default function Home() {
     routeMatch,
     experience,
     direction,
+    directionDetecting,
     directionMode,
     journeyCompleted,
+    journeyProgress,
     activeJourneyExperienceId,
+    recordDiagnostic,
   ]);
 
   const currentStoryIndex = useMemo(() => {
-    let index = 0;
+    let index = -1;
 
     journeyStories.forEach(
       (story, storyIndex) => {
         if (
           journeyProgress >=
-          story.journeyProgress
+          story.triggerJourneyProgress
         ) {
           index = storyIndex;
         }
@@ -736,6 +1362,309 @@ export default function Home() {
 
   const currentStory =
     journeyStories[currentStoryIndex];
+
+  useEffect(() => {
+    if (
+      activeJourneyExperienceId !== experience.id ||
+      !routeMatch
+    ) {
+      return;
+    }
+
+    if (
+      previousRouteStatus.current !== routeMatch.status
+    ) {
+      recordDiagnostic(
+        "route_status_changed",
+        `Route match changed to ${routeMatch.status}.`,
+        {
+          journeyProgress,
+          routeProgress: routeMatch.routeProgress,
+          distanceFromRouteMetres:
+            routeMatch.distanceFromRouteMetres,
+        }
+      );
+      previousRouteStatus.current = routeMatch.status;
+    }
+  }, [
+    activeJourneyExperienceId,
+    experience.id,
+    journeyProgress,
+    recordDiagnostic,
+    routeMatch,
+  ]);
+
+  const playStoryAudio = useCallback(
+    async (
+      storyId: string,
+      userInitiated = false
+    ) => {
+      const story = journeyStories.find(
+        (item) => item.id === storyId
+      );
+      const audio = audioElementRef.current;
+
+      if (!story?.audioUrl || !audio) {
+        setAudioPlaybackStatus("error");
+        setActiveAudioStoryId(null);
+        recordDiagnostic(
+          "media_error",
+          `No playable uploaded audio was available for: ${story?.title ?? storyId}.`,
+          { journeyProgress }
+        );
+        return;
+      }
+
+      setActiveAudioStoryId(story.id);
+
+      type SequenceItem = {
+        kind: "prompt" | "story";
+        url: string;
+        label: string;
+      };
+
+      const sequence: SequenceItem[] = [];
+      const side =
+        story.directionalPrompt && story.subjectLocation
+          ? getDirectionalSide(
+              route,
+              story.subjectLocation,
+              direction
+            )
+          : null;
+      const promptUrl =
+        side === "left"
+          ? selectedOption.creator?.leftPromptUrl
+          : side === "right"
+            ? selectedOption.creator?.rightPromptUrl
+            : undefined;
+
+      if (side && promptUrl) {
+        sequence.push({
+          kind: "prompt",
+          url: promptUrl,
+          label: side,
+        });
+      } else if (story.directionalPrompt) {
+        recordDiagnostic(
+          "direction_prompt_missing",
+          side
+            ? `The ${side} voice prompt was unavailable for: ${story.title}.`
+            : `A clear left or right side could not be calculated for: ${story.title}.`,
+          { journeyProgress }
+        );
+      }
+
+      sequence.push({
+        kind: "story",
+        url: story.audioUrl,
+        label: story.title,
+      });
+
+      const playNext = async (): Promise<void> => {
+        const item = sequence.shift();
+
+        if (!item) {
+          setAudioPlaybackStatus("idle");
+          setActiveAudioStoryId(null);
+          recordDiagnostic(
+            "audio_finished",
+            `Audio finished: ${story.title}.`,
+            { journeyProgress }
+          );
+          return;
+        }
+
+        audio.onended = () => {
+          void playNext();
+        };
+
+        audio.onerror = () => {
+          recordDiagnostic(
+            "media_error",
+            `${item.kind === "prompt" ? "Direction prompt" : "Audio"} failed while loading or playing: ${item.label}.`,
+            { journeyProgress }
+          );
+
+          if (sequence.length > 0) {
+            void playNext();
+          } else {
+            setAudioPlaybackStatus("error");
+            setActiveAudioStoryId(null);
+          }
+        };
+
+        if (audio.getAttribute("src") !== item.url) {
+          audio.src = item.url;
+          audio.load();
+        }
+
+        try {
+          await audio.play();
+          setAudioPlaybackStatus("playing");
+          recordDiagnostic(
+            item.kind === "prompt"
+              ? "direction_prompt_started"
+              : "audio_started",
+            item.kind === "prompt"
+              ? `Played the creator's Look ${item.label} prompt before: ${story.title}.`
+              : `${userInitiated ? "Passenger started" : "Automatically started"} audio: ${story.title}.`,
+            { journeyProgress }
+          );
+        } catch (playError) {
+          const blocked =
+            playError instanceof DOMException &&
+            playError.name === "NotAllowedError";
+
+          setAudioPlaybackStatus(
+            blocked ? "blocked" : "error"
+          );
+          if (!blocked) {
+            setActiveAudioStoryId(null);
+          }
+          recordDiagnostic(
+            blocked ? "audio_blocked" : "media_error",
+            blocked
+              ? `The browser requires a tap before playing: ${story.title}.`
+              : `Audio could not start: ${story.title}.`,
+            { journeyProgress }
+          );
+        }
+      };
+
+      await playNext();
+    },
+    [
+      direction,
+      journeyProgress,
+      journeyStories,
+      recordDiagnostic,
+      route,
+      selectedOption.creator,
+    ]
+  );
+
+  useEffect(() => {
+    if (
+      screen !== "journey" ||
+      activeAudioStoryId ||
+      audioQueueIds.length === 0
+    ) {
+      return;
+    }
+
+    const [nextStoryId, ...remainingIds] =
+      audioQueueIds;
+    setAudioQueueIds(remainingIds);
+    void playStoryAudio(nextStoryId);
+  }, [
+    activeAudioStoryId,
+    audioQueueIds,
+    playStoryAudio,
+    screen,
+  ]);
+
+  useEffect(() => {
+    if (
+      screen !== "journey" ||
+      activeJourneyExperienceId !== experience.id ||
+      routeMatch?.status !== "GOOD"
+    ) {
+      return;
+    }
+
+    const newlyTriggered = journeyStories.filter(
+      (story) =>
+        journeyProgress >= story.triggerJourneyProgress &&
+        !triggeredStoryIds.includes(story.id)
+    );
+
+    if (newlyTriggered.length === 0) return;
+
+    const newIds = newlyTriggered.map(
+      (story) => story.id
+    );
+
+    setTriggeredStoryIds((current) => [
+      ...current,
+      ...newIds.filter(
+        (storyId) => !current.includes(storyId)
+      ),
+    ]);
+
+    setAudioQueueIds((current) => [
+      ...current,
+      ...newIds.filter(
+        (storyId) =>
+          storyId !== activeAudioStoryId &&
+          !current.includes(storyId)
+      ),
+    ]);
+
+    newlyTriggered.forEach((story, index) => {
+      recordDiagnostic(
+        "story_triggered",
+        `Approach trigger reached ${Math.round(story.leadDistanceMetres)}m before the subject: ${story.title}.`,
+        {
+          journeyProgress,
+          routeProgress: routeMatch.routeProgress,
+        }
+      );
+
+      if (
+        activeAudioStoryId ||
+        audioQueueIds.length > 0 ||
+        index > 0
+      ) {
+        recordDiagnostic(
+          "audio_queued",
+          `Audio queued without overlap: ${story.title}.`,
+          { journeyProgress }
+        );
+      }
+    });
+  }, [
+    activeAudioStoryId,
+    activeJourneyExperienceId,
+    audioQueueIds.length,
+    experience.id,
+    journeyProgress,
+    journeyStories,
+    recordDiagnostic,
+    routeMatch,
+    screen,
+    triggeredStoryIds,
+  ]);
+
+  useEffect(() => {
+    if (
+      activeJourneyExperienceId !== experience.id ||
+      !currentStory ||
+      previousStoryId.current === currentStory.id
+    ) {
+      return;
+    }
+
+    recordDiagnostic(
+      "story_changed",
+      `Story ${currentStoryIndex + 1} opened: ${currentStory.title}.`,
+      {
+        journeyProgress,
+        routeProgress: routeMatch?.routeProgress,
+        distanceFromRouteMetres:
+          routeMatch?.distanceFromRouteMetres,
+      }
+    );
+    previousStoryId.current = currentStory.id;
+  }, [
+    activeJourneyExperienceId,
+    currentStory,
+    currentStoryIndex,
+    experience.id,
+    journeyProgress,
+    recordDiagnostic,
+    routeMatch,
+  ]);
 
   const previousStory =
     currentStoryIndex > 0
@@ -894,6 +1823,10 @@ export default function Home() {
     setDirection(newDirection);
     setDirectionMode("manual");
     setDirectionDetecting(false);
+    recordDiagnostic(
+      "direction_changed",
+      `Direction manually changed to ${newDirection}.`
+    );
   }
 
   function chooseAutomaticDirection() {
@@ -902,11 +1835,210 @@ export default function Home() {
     detectionStartProgress.current = null;
   }
 
-  function startExperience() {
+  function prepareExperience() {
+    setLocationCheckStatus(
+      location ? "granted" : "idle"
+    );
+    setAudioTestStatus("idle");
+    setScreen("preflight");
+  }
+
+  async function downloadSelectedTour() {
+    const sourceOption = selectedOnlineOption ?? selectedOption;
+
+    setDownloadError("");
+    setDownloadProgress({ completed: 0, total: 0 });
+
+    try {
+      await downloadTourForOfflineUse(
+        sourceOption,
+        (completed, total) => {
+          setDownloadProgress({ completed, total });
+        }
+      );
+
+      const records = getOfflineTourRecords();
+      setOfflineTourRecords(records);
+      setExperienceOptions(
+        mergeWithOfflineTours(onlineExperienceOptions)
+      );
+    } catch (downloadFailure) {
+      setDownloadError(
+        downloadFailure instanceof Error
+          ? downloadFailure.message
+          : "This tour could not be downloaded."
+      );
+    } finally {
+      setDownloadProgress(null);
+    }
+  }
+
+  async function submitCompletedTourReview() {
+    if (reviewRating < 1 || reviewRating > 5) {
+      setReviewMessage("Choose a star rating first.");
+      return;
+    }
+
+    setReviewSubmitting(true);
+    setReviewMessage("");
+
+    try {
+      await submitPassengerReview(createClient(), {
+        experienceId: experience.id,
+        deviceToken: getPassengerReviewDeviceToken(),
+        rating: reviewRating,
+        reviewText,
+      });
+
+      const updated = new Set(submittedReviewExperienceIds);
+      updated.add(experience.id);
+      setSubmittedReviewExperienceIds(updated);
+      localStorage.setItem(
+        submittedReviewsKey,
+        JSON.stringify(Array.from(updated))
+      );
+      setReviewMessage(
+        reviewText.trim()
+          ? "Thank you. Your rating is saved and your written review is awaiting approval."
+          : "Thank you. Your rating has been saved."
+      );
+    } catch (reviewFailure) {
+      const detail =
+        reviewFailure instanceof Error
+          ? reviewFailure.message
+          : "Your review could not be saved.";
+
+      if (detail.toLowerCase().includes("duplicate")) {
+        const updated = new Set(submittedReviewExperienceIds);
+        updated.add(experience.id);
+        setSubmittedReviewExperienceIds(updated);
+        localStorage.setItem(
+          submittedReviewsKey,
+          JSON.stringify(Array.from(updated))
+        );
+        setReviewMessage("You have already rated this tour.");
+      } else {
+        setReviewMessage(detail);
+      }
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
+
+  async function removeSelectedOfflineTour() {
+    setDownloadError("");
+
+    try {
+      await removeOfflineTour(selectedOption.experience.id);
+      const records = getOfflineTourRecords();
+      setOfflineTourRecords(records);
+      setExperienceOptions(
+        mergeWithOfflineTours(onlineExperienceOptions)
+      );
+    } catch {
+      setDownloadError("The saved tour could not be removed.");
+    }
+  }
+
+  function requestPreflightLocation() {
+    if (!navigator.geolocation) {
+      setLocationCheckStatus("denied");
+      setError(
+        "Location is not supported on this device."
+      );
+      return;
+    }
+
+    setLocationCheckStatus("requesting");
+    setError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocation({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+        });
+        setLocationCheckStatus("granted");
+      },
+      (locationError) => {
+        setLocationCheckStatus("denied");
+        setError(locationError.message);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 30000,
+        timeout: 10000,
+      }
+    );
+  }
+
+  async function testJourneyAudio() {
+    const sampleStory = journeyStories.find(
+      (story) => story.audioUrl
+    );
+    const audio = audioElementRef.current;
+
+    if (audioTestTimerRef.current !== null) {
+      window.clearTimeout(audioTestTimerRef.current);
+      audioTestTimerRef.current = null;
+    }
+
+    if (!sampleStory?.audioUrl || !audio) {
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(
+          new SpeechSynthesisUtterance(
+            "Between Stops audio is ready."
+          )
+        );
+        setAudioTestStatus("ready");
+      } else {
+        setAudioTestStatus("error");
+      }
+      return;
+    }
+
+    audio.pause();
+    audio.onended = () => setAudioTestStatus("ready");
+    audio.onerror = () => setAudioTestStatus("error");
+    audio.src = sampleStory.audioUrl;
+    audio.currentTime = 0;
+    audio.load();
+    setAudioTestStatus("testing");
+
+    try {
+      await audio.play();
+      audioTestTimerRef.current = window.setTimeout(
+        () => {
+          audio.pause();
+          audio.currentTime = 0;
+          setAudioTestStatus("ready");
+          audioTestTimerRef.current = null;
+        },
+        3500
+      );
+    } catch {
+      setAudioTestStatus("error");
+    }
+  }
+
+  function beginExperience() {
+    const audio = audioElementRef.current;
+    audio?.pause();
+    if (audio) {
+      audio.currentTime = 0;
+    }
     setJourneyProgress(0);
     setJourneyCompleted(false);
+    setTriggeredStoryIds([]);
+    setAudioQueueIds([]);
+    setActiveAudioStoryId(null);
+    setAudioPlaybackStatus("idle");
     journeyStartedNearOrigin.current = false;
     detectionStartProgress.current = null;
+    previousRouteStatus.current = null;
+    previousStoryId.current = null;
     setDirectionDetecting(
       directionMode === "automatic"
     );
@@ -917,8 +2049,35 @@ export default function Home() {
 
     setActiveJourneyDirection(direction);
 
-    setWatching(true);
+    setDiagnosticEvents([
+      {
+        at: new Date().toISOString(),
+        type: "journey_started",
+        detail: `Journey started in ${directionMode} direction mode.`,
+        source: simulatorEnabled ? "simulator" : "gps",
+        journeyProgress: 0,
+      },
+    ]);
+    setSimulatorProgress(0);
+    setWatching(!simulatorEnabled);
     setScreen("journey");
+  }
+
+  function pauseJourneyAudioForNavigation() {
+    const audio = audioElementRef.current;
+    audio?.pause();
+
+    if (activeAudioStoryId) {
+      setAudioQueueIds((current) => [
+        activeAudioStoryId,
+        ...current.filter(
+          (storyId) => storyId !== activeAudioStoryId
+        ),
+      ]);
+    }
+
+    setActiveAudioStoryId(null);
+    setAudioPlaybackStatus("idle");
   }
 
   function resumeExperience() {
@@ -943,16 +2102,225 @@ export default function Home() {
     setDirectionMode("manual");
     setDirectionDetecting(false);
 
-    setWatching(true);
+    setWatching(!simulatorEnabled);
     setScreen("journey");
+    recordDiagnostic(
+      "journey_resumed",
+      "Journey resumed from its saved progress.",
+      { journeyProgress }
+    );
   }
 
   function goToExperienceOverview() {
+    pauseJourneyAudioForNavigation();
+    setWatching(false);
     setScreen("overview");
   }
 
   function goHome() {
+    pauseJourneyAudioForNavigation();
+    setWatching(false);
     setScreen("home");
+  }
+
+  function simulateJourneyInterruption() {
+    recordDiagnostic(
+      "journey_interrupted",
+      "Test interruption: journey player closed while progress was retained.",
+      {
+        journeyProgress,
+        routeProgress: routeMatch?.routeProgress,
+        distanceFromRouteMetres:
+          routeMatch?.distanceFromRouteMetres,
+      }
+    );
+    pauseJourneyAudioForNavigation();
+    setWatching(false);
+    setTesterOpen(false);
+    setScreen("home");
+  }
+
+  function setSimulatorActive(enabled: boolean) {
+    setSimulatorEnabled(enabled);
+    setWatching(!enabled);
+    setError("");
+    previousRouteStatus.current = null;
+    if (enabled && directionMode === "automatic") {
+      setDirectionDetecting(false);
+      setActiveJourneyDirection(direction);
+      detectionStartProgress.current = null;
+      recordDiagnostic(
+        "direction_detected",
+        `Simulator confirmed the ${direction} direction.`,
+        { source: "simulator" }
+      );
+    }
+    recordDiagnostic(
+      "simulator_changed",
+      enabled
+        ? "Route simulator enabled. Live GPS paused."
+        : "Route simulator disabled. Live GPS resumed.",
+      { source: enabled ? "simulator" : "gps" }
+    );
+  }
+
+  function changeSimulatorCondition(
+    condition: SimulatorCondition
+  ) {
+    setSimulatorCondition(condition);
+    previousRouteStatus.current = null;
+    recordDiagnostic(
+      "simulator_changed",
+      `Simulated signal changed to ${condition}.`
+    );
+  }
+
+  function resetJourneyTest() {
+    audioElementRef.current?.pause();
+    setJourneyProgress(0);
+    setJourneyCompleted(false);
+    setSimulatorProgress(0);
+    journeyStartedNearOrigin.current = false;
+    detectionStartProgress.current = null;
+    previousRouteStatus.current = null;
+    previousStoryId.current = null;
+    setTriggeredStoryIds([]);
+    setAudioQueueIds([]);
+    setActiveAudioStoryId(null);
+    setAudioPlaybackStatus("idle");
+    recordDiagnostic(
+      "progress_reset",
+      "Journey test returned to the starting point.",
+      { journeyProgress: 0 }
+    );
+  }
+
+  function toggleStoryAudio(storyId: string) {
+    const audio = audioElementRef.current;
+
+    if (activeAudioStoryId === storyId) {
+      if (audioPlaybackStatus === "playing") {
+        audio?.pause();
+        setAudioPlaybackStatus("paused");
+        recordDiagnostic(
+          "audio_paused",
+          `Passenger paused audio: ${activeAudioStory?.title ?? storyId}.`,
+          { journeyProgress }
+        );
+        return;
+      }
+
+      if (audio) {
+        void audio.play()
+          .then(() => {
+            setAudioPlaybackStatus("playing");
+            recordDiagnostic(
+              "audio_started",
+              `Passenger resumed audio: ${activeAudioStory?.title ?? storyId}.`,
+              { journeyProgress }
+            );
+          })
+          .catch(() => {
+            setAudioPlaybackStatus("error");
+            recordDiagnostic(
+              "media_error",
+              `Audio could not resume: ${activeAudioStory?.title ?? storyId}.`,
+              { journeyProgress }
+            );
+          });
+      }
+      return;
+    }
+
+    if (activeAudioStoryId) {
+      if (!audioQueueIds.includes(storyId)) {
+        setAudioQueueIds((current) => [
+          ...current,
+          storyId,
+        ]);
+        recordDiagnostic(
+          "audio_queued",
+          `Passenger queued audio without interrupting the current Story.`,
+          { journeyProgress }
+        );
+      }
+      return;
+    }
+
+    setAudioQueueIds((current) =>
+      current.filter((item) => item !== storyId)
+    );
+    void playStoryAudio(storyId, true);
+  }
+
+  function toggleTranscripts() {
+    setShowTranscripts((current) => {
+      const updated = !current;
+      localStorage.setItem(
+        "between-stops-show-transcripts",
+        String(updated)
+      );
+      return updated;
+    });
+  }
+
+  function downloadDiagnosticReport() {
+    const report = {
+      product: "Between Stops",
+      reportVersion: 1,
+      generatedAt: new Date().toISOString(),
+      tour: {
+        id: experience.id,
+        title: experience.title,
+        transport: route.mode,
+        direction,
+        directionMode,
+      },
+      simulator: {
+        enabled: simulatorEnabled,
+        selectedProgress: simulatorProgress,
+        condition: simulatorCondition,
+      },
+      latestReadings: routeMatch
+        ? {
+            routeStatus: routeMatch.status,
+            routeProgress: routeMatch.routeProgress,
+            journeyProgress,
+            accuracyMetres: diagnosticAccuracy,
+            distanceFromRouteMetres:
+              routeMatch.distanceFromRouteMetres,
+          }
+        : null,
+      audio: {
+        status: audioPlaybackStatus,
+        activeStoryId: activeAudioStoryId,
+        queuedStoryIds: audioQueueIds,
+        triggeredStoryIds,
+      },
+      browser: navigator.userAgent,
+      events: diagnosticEvents,
+    };
+
+    const blob = new Blob(
+      [JSON.stringify(report, null, 2)],
+      { type: "application/json" }
+    );
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    const safeTourName = experience.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    anchor.href = url;
+    anchor.download = `between-stops-test-${safeTourName || "journey"}.json`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(
+      () => URL.revokeObjectURL(url),
+      1000
+    );
   }
 
   function markCurrentSpot() {
@@ -1069,6 +2437,11 @@ export default function Home() {
     const tourDistance =
       getTourDistanceKm(option);
 
+    const transcriptAvailability =
+      getTranscriptAvailability(
+        option.experience.stories
+      );
+
     return (
       <article
         className="experienceCard"
@@ -1149,6 +2522,14 @@ export default function Home() {
             </p>
 
             <div className="metaRow">
+              {(option.reviewCount ?? 0) > 0 && (
+                <span className="ratingMeta">
+                  ★ {option.averageRating?.toFixed(1)} ·{" "}
+                  {option.reviewCount}{" "}
+                  {option.reviewCount === 1 ? "rating" : "ratings"}
+                </span>
+              )}
+
               <span>
                 {option.transportLabel}
               </span>
@@ -1157,6 +2538,14 @@ export default function Home() {
                 {option.experience.stories.length}{" "}
                 Stories
               </span>
+
+              {transcriptAvailability !== "none" && (
+                <span>
+                  {transcriptAvailability === "full"
+                    ? "Full transcript"
+                    : "Some transcripts"}
+                </span>
+              )}
 
               <span>
                 About{" "}
@@ -1632,6 +3021,14 @@ export default function Home() {
           )}
 
           <div className="overviewMeta">
+            {(selectedOption.reviewCount ?? 0) > 0 && (
+              <span className="ratingMeta">
+                ★ {selectedOption.averageRating?.toFixed(1)} ·{" "}
+                {selectedOption.reviewCount}{" "}
+                {selectedOption.reviewCount === 1 ? "rating" : "ratings"}
+              </span>
+            )}
+
             <span>
               About{" "}
               {experience.durationMinutes} mins
@@ -1640,6 +3037,18 @@ export default function Home() {
             <span>
               {experience.stories.length} stories
             </span>
+
+            {getTranscriptAvailability(
+              experience.stories
+            ) !== "none" && (
+              <span>
+                {getTranscriptAvailability(
+                  experience.stories
+                ) === "full"
+                  ? "Full transcript"
+                  : "Some transcripts"}
+              </span>
+            )}
 
             <span>
               Approx. {formatTourDistance(
@@ -1727,7 +3136,111 @@ export default function Home() {
               </button>
             </div>
           </div>
+
+          <div className="offlineDownloadCard">
+            <div className="offlineDownloadHeading">
+              <span aria-hidden="true">↓</span>
+              <div>
+                <strong>
+                  {selectedOfflineRecord
+                    ? "Saved for offline use"
+                    : "Download this tour"}
+                </strong>
+                <p>
+                  {selectedOfflineRecord
+                    ? `Saved ${new Date(selectedOfflineRecord.downloadedAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}. Audio and images are available without mobile data.`
+                    : `Save the audio and images before you travel. ${formatDownloadSize(selectedOption.downloadSizeBytes)}.`}
+                </p>
+              </div>
+            </div>
+
+            {downloadProgress ? (
+              <div className="offlineDownloadProgress" role="status">
+                <span>
+                  {downloadProgress.total > 0
+                    ? `Saving ${downloadProgress.completed} of ${downloadProgress.total} files…`
+                    : "Preparing download…"}
+                </span>
+                <progress
+                  max={Math.max(downloadProgress.total, 1)}
+                  value={downloadProgress.completed}
+                />
+              </div>
+            ) : (
+              <div className="offlineDownloadActions">
+                <button
+                  className="offlineDownloadButton"
+                  onClick={() => void downloadSelectedTour()}
+                >
+                  {selectedOfflineRecord
+                    ? "Download updated copy"
+                    : "Download for offline use"}
+                </button>
+
+                {selectedOfflineRecord && (
+                  <button
+                    className="offlineRemoveButton"
+                    onClick={() => void removeSelectedOfflineTour()}
+                  >
+                    Remove download
+                  </button>
+                )}
+              </div>
+            )}
+
+            {downloadError && (
+              <p className="offlineDownloadError">{downloadError}</p>
+            )}
+          </div>
         </section>
+
+        {((selectedOption.reviewCount ?? 0) > 0 ||
+          publicPassengerReviews.length > 0) && (
+          <section className="publicReviewsSection">
+            <div className="publicReviewsHeading">
+              <div>
+                <p className="kicker">PASSENGER REVIEWS</p>
+                <h2>What passengers thought</h2>
+              </div>
+
+              {(selectedOption.reviewCount ?? 0) > 0 && (
+                <div className="publicRatingSummary">
+                  <strong>{selectedOption.averageRating?.toFixed(1)}</strong>
+                  <span>★★★★★</span>
+                  <small>
+                    {selectedOption.reviewCount}{" "}
+                    {selectedOption.reviewCount === 1 ? "rating" : "ratings"}
+                  </small>
+                </div>
+              )}
+            </div>
+
+            {publicPassengerReviews.length > 0 ? (
+              <div className="publicReviewCards">
+                {publicPassengerReviews.map((review) => (
+                  <article key={review.id} className="publicReviewCard">
+                    <span aria-label={`${review.rating} out of 5 stars`}>
+                      {"★".repeat(review.rating)}
+                      <i>{"★".repeat(5 - review.rating)}</i>
+                    </span>
+                    <p>“{review.reviewText}”</p>
+                    <small>
+                      Passenger ·{" "}
+                      {new Date(review.createdAt).toLocaleDateString(
+                        "en-GB",
+                        { month: "short", year: "numeric" }
+                      )}
+                    </small>
+                  </article>
+                ))}
+              </div>
+            ) : !publicReviewsLoading ? (
+              <p className="ratingsOnlyNotice">
+                Written passenger reviews will appear here after approval.
+              </p>
+            ) : null}
+          </section>
+        )}
 
         <section className="journeyOutline">
           <p className="kicker">
@@ -1797,14 +3310,135 @@ export default function Home() {
           ) : (
             <button
               className="primaryButton"
-              onClick={startExperience}
+              onClick={prepareExperience}
             >
               Start experience
             </button>
           )}
 
           <p>
-            Location access keeps the experience in sync. Audio and images are streamed and may use mobile data.
+            Location access keeps the experience in sync. Download the tour before travelling to avoid using mobile data for audio and images.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (screen === "preflight") {
+    return (
+      <main className="shell preflightShell">
+        <header className="topBar">
+          <span className="miniBrand">
+            <img
+              src="/branding/between-stops-icon.png"
+              alt=""
+            />
+            <span>Between Stops</span>
+          </span>
+
+          <button
+            className="textButton"
+            onClick={() => setScreen("overview")}
+          >
+            Back
+          </button>
+        </header>
+
+        <section className="preflightIntro">
+          <p className="kicker">BEFORE YOU SET OFF</p>
+          <h1>Ready for the journey?</h1>
+          <p>
+            A couple of quick checks help each Story arrive at the right moment.
+          </p>
+        </section>
+
+        <section className="preflightChecks">
+          <article className="preflightCard">
+            <span className="preflightIcon">🎧</span>
+            <div>
+              <h2>Use headphones</h2>
+              <p>
+                You will hear the experience clearly without disturbing other passengers. Keep announcements audible and stay aware of your surroundings.
+              </p>
+              <button
+                className="preflightAction"
+                onClick={() => void testJourneyAudio()}
+                disabled={audioTestStatus === "testing"}
+              >
+                {audioTestStatus === "testing"
+                  ? "Playing test…"
+                  : audioTestStatus === "ready"
+                    ? "✓ Audio working"
+                    : audioTestStatus === "error"
+                      ? "Try audio again"
+                      : "Test audio"}
+              </button>
+            </div>
+          </article>
+
+          <article className="preflightCard">
+            <span className="preflightIcon">⌖</span>
+            <div>
+              <h2>Allow location</h2>
+              <p>
+                Between Stops uses your position to match the route and trigger Stories. Your journey progress stays on this device.
+              </p>
+              <button
+                className="preflightAction"
+                onClick={requestPreflightLocation}
+                disabled={locationCheckStatus === "requesting"}
+              >
+                {locationCheckStatus === "requesting"
+                  ? "Checking location…"
+                  : locationCheckStatus === "granted"
+                    ? "✓ Location ready"
+                    : locationCheckStatus === "denied"
+                      ? "Try location again"
+                      : "Allow location"}
+              </button>
+            </div>
+          </article>
+
+          <article className="preflightCard fareCard">
+            <span className="preflightIcon">£</span>
+            <div>
+              <h2>Your fare is separate</h2>
+              <p>
+                The {selectedOption.transportLabel.toLowerCase()} fare is not included in the price of this experience. You need a valid ticket or must pay the transport provider separately.
+              </p>
+            </div>
+          </article>
+
+          <article className="preflightCard dataCard">
+            <span className="preflightIcon">↓</span>
+            <div>
+              <h2>
+                {selectedOfflineRecord
+                  ? "Saved for offline use"
+                  : "Mobile data"}
+              </h2>
+              <p>
+                {selectedOfflineRecord
+                  ? "This tour's audio and images are saved on this device. Keep this page open and allow location during the journey."
+                  : "Audio and images will be streamed and may use mobile data. Go back to the tour screen to download them before setting off."}
+              </p>
+            </div>
+          </article>
+        </section>
+
+        {error && (
+          <div className="errorNotice">{error}</div>
+        )}
+
+        <div className="stickyAction preflightStart">
+          <button
+            className="primaryButton"
+            onClick={beginExperience}
+          >
+            I&apos;m ready — start experience
+          </button>
+          <p>
+            If automatic playback is blocked, a clear tap-to-play button will appear.
           </p>
         </div>
       </main>
@@ -1921,19 +3555,179 @@ export default function Home() {
       )}
 
       {journeyCompleted && (
-        <section className="journeyCompleteCard">
-          <span>✓</span>
-          <p className="kicker">JOURNEY COMPLETE</p>
-          <h2>You made it to {directionEnd}.</h2>
-          <p>
-            This completion has been saved on this device. It will later unlock your rating and review.
-          </p>
-          <button onClick={goToExperienceOverview}>
-            View tour details
+        <>
+          <section className="journeyCompleteCard">
+            <span>✓</span>
+            <p className="kicker">JOURNEY COMPLETE</p>
+            <h2>You made it to {directionEnd}.</h2>
+            <p>
+              This completion has been saved on this device.
+            </p>
+            <button onClick={goToExperienceOverview}>
+              Tour details
+            </button>
+          </section>
+
+          <section className="completionReviewCard">
+            {submittedReviewExperienceIds.has(experience.id) ? (
+              <div className="reviewThankYou">
+                <span>★</span>
+                <div>
+                  <p className="kicker">THANK YOU</p>
+                  <h2>You&apos;ve rated this tour.</h2>
+                  <p>
+                    {reviewMessage ||
+                      "Your feedback helps other passengers choose their journey."}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <p className="kicker">RATE THIS TOUR</p>
+                <h2>How was the experience?</h2>
+
+                <div
+                  className="completionStars"
+                  role="radiogroup"
+                  aria-label="Tour rating"
+                >
+                  {[1, 2, 3, 4, 5].map((rating) => (
+                    <button
+                      key={rating}
+                      type="button"
+                      role="radio"
+                      aria-checked={reviewRating === rating}
+                      aria-label={`${rating} out of 5 stars`}
+                      className={rating <= reviewRating ? "selected" : ""}
+                      onClick={() => {
+                        setReviewRating(rating);
+                        setReviewMessage("");
+                      }}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+
+                <label htmlFor="completed-tour-review">
+                  Add a short review <span>Optional</span>
+                </label>
+                <textarea
+                  id="completed-tour-review"
+                  value={reviewText}
+                  onChange={(event) =>
+                    setReviewText(event.target.value.slice(0, 500))
+                  }
+                  rows={4}
+                  maxLength={500}
+                  placeholder="What did you enjoy or find useful?"
+                />
+                <small>{reviewText.length}/500</small>
+
+                <button
+                  className="submitTourReviewButton"
+                  disabled={reviewSubmitting || reviewRating === 0}
+                  onClick={() => void submitCompletedTourReview()}
+                >
+                  {reviewSubmitting ? "Saving…" : "Submit rating"}
+                </button>
+
+                {reviewMessage && (
+                  <p className="completionReviewMessage">{reviewMessage}</p>
+                )}
+              </>
+            )}
+          </section>
+
+          {destinationRecommendationsLoading && (
+            <p className="destinationRecommendationsLoading">
+              Finding things to do here…
+            </p>
+          )}
+
+          {!destinationRecommendationsLoading &&
+            destinationRecommendations.length > 0 && (
+            <section className="destinationRecommendations">
+              <div className="destinationRecommendationsHeading">
+                <p className="kicker">THINGS TO DO HERE</p>
+                <h2>Make more of {directionEnd}</h2>
+                <p>
+                  A few places and ideas selected for this destination.
+                </p>
+              </div>
+
+              <div className="destinationRecommendationCards">
+                {destinationRecommendations.map((recommendation) => (
+                  <a
+                    href={recommendation.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="destinationRecommendationCard"
+                    key={recommendation.id}
+                  >
+                    <RecommendationArt
+                      category={recommendation.category}
+                      imageUrl={recommendation.imageUrl}
+                      title={recommendation.title}
+                    />
+                    <div>
+                      <span>
+                        {getRecommendationCategoryLabel(
+                          recommendation.category
+                        )}
+                      </span>
+                      {recommendation.placementType === "sponsored" && (
+                        <small>Sponsored</small>
+                      )}
+                    </div>
+                    <h3>{recommendation.title}</h3>
+                    <p>{recommendation.summary}</p>
+                    <strong>View details ↗</strong>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+        </>
+      )}
+
+      {!journeyCompleted && activeAudioStory && (
+        <section
+          className={
+            audioPlaybackStatus === "blocked"
+              ? "journeyAudioBanner blocked"
+              : "journeyAudioBanner"
+          }
+        >
+          <div>
+            <small>
+              {audioPlaybackStatus === "blocked"
+                ? "TAP REQUIRED"
+                : audioPlaybackStatus === "paused"
+                  ? "AUDIO PAUSED"
+                  : "NOW PLAYING"}
+            </small>
+            <strong>{activeAudioStory.title}</strong>
+            {audioQueueIds.length > 0 && (
+              <span>
+                {audioQueueIds.length} next {audioQueueIds.length === 1 ? "Story" : "Stories"} queued
+              </span>
+            )}
+          </div>
+
+          <button
+            onClick={() =>
+              toggleStoryAudio(activeAudioStory.id)
+            }
+          >
+            {audioPlaybackStatus === "playing"
+              ? "Pause"
+              : "Play"}
           </button>
         </section>
       )}
 
+      {!journeyCompleted && (
       <section className="cueStack">
         {previousStory && (
           <article className="cueCard previousCue">
@@ -1998,19 +3792,63 @@ export default function Home() {
               {currentStory.title}
             </h1>
 
-            <p className="cueCopy">
-              {currentStory.text}
-            </p>
+            {currentStory.text && (
+              <div className="storyTranscript">
+                <button
+                  onClick={toggleTranscripts}
+                  aria-expanded={showTranscripts}
+                >
+                  {showTranscripts
+                    ? "Hide transcript"
+                    : "Read transcript"}
+                </button>
+
+                {showTranscripts && (
+                  <p className="cueCopy">
+                    {currentStory.text}
+                  </p>
+                )}
+              </div>
+            )}
 
             {(currentStory.type === "audio" ||
               currentStory.type === "look") && (
               currentStory.audioUrl ? (
-                <audio
-                  className="storyAudioPlayer"
-                  controls
-                  preload="metadata"
-                  src={currentStory.audioUrl}
-                />
+                <button
+                  className="audioButton"
+                  onClick={() =>
+                    toggleStoryAudio(currentStory.id)
+                  }
+                >
+                  <span className="playIcon">
+                    {activeAudioStoryId === currentStory.id &&
+                    audioPlaybackStatus === "playing"
+                      ? "Ⅱ"
+                      : audioQueueIds.includes(currentStory.id)
+                        ? "…"
+                        : "▶"}
+                  </span>
+
+                  <span>
+                    <strong>
+                      {activeAudioStoryId === currentStory.id &&
+                      audioPlaybackStatus === "playing"
+                        ? "Pause narration"
+                        : activeAudioStoryId === currentStory.id &&
+                            audioPlaybackStatus === "blocked"
+                          ? "Tap to play narration"
+                          : audioQueueIds.includes(currentStory.id)
+                            ? "Narration queued"
+                            : "Play narration"}
+                    </strong>
+
+                    <small>
+                      {audioQueueIds.includes(currentStory.id)
+                        ? "It will play after the current Story"
+                        : "Guide audio"}
+                    </small>
+                  </span>
+                </button>
               ) : (
                 <button
                   className="audioButton"
@@ -2068,6 +3906,7 @@ export default function Home() {
           </article>
         )}
       </section>
+      )}
 
       {testerOpen && (
         <section className="testerPanel">
@@ -2078,7 +3917,7 @@ export default function Home() {
               </p>
 
               <h2>
-                Mark what you notice
+                Test this journey
               </h2>
             </div>
 
@@ -2090,6 +3929,119 @@ export default function Home() {
             >
               Close
             </button>
+          </div>
+
+          <div className="simulatorCard">
+            <div className="simulatorSwitchRow">
+              <div>
+                <strong>Route simulator</strong>
+                <span>
+                  Test indoors without travelling the route.
+                </span>
+              </div>
+
+              <button
+                className={simulatorEnabled ? "simulatorToggle active" : "simulatorToggle"}
+                aria-pressed={simulatorEnabled}
+                onClick={() =>
+                  setSimulatorActive(!simulatorEnabled)
+                }
+              >
+                {simulatorEnabled ? "On" : "Off"}
+              </button>
+            </div>
+
+            {simulatorEnabled && (
+              <>
+                <label className="simulatorProgressLabel" htmlFor="route-simulator-progress">
+                  <span>Move along journey</span>
+                  <strong>{simulatorProgress}%</strong>
+                </label>
+
+                <input
+                  id="route-simulator-progress"
+                  className="simulatorRange"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={simulatorProgress}
+                  onChange={(event) =>
+                    setSimulatorProgress(Number(event.target.value))
+                  }
+                />
+
+                <div className="simulatorEndpoints">
+                  <span>{directionStart}</span>
+                  <span>{directionEnd}</span>
+                </div>
+
+                {journeyStories.length > 0 && (
+                  <div className="simulatorTimingList">
+                    <div className="simulatorTimingHeading">
+                      <span>Story timing</span>
+                      <small>Start → subject</small>
+                    </div>
+                    {journeyStories.map((story) => (
+                      <div
+                        className="simulatorTimingRow"
+                        key={story.id}
+                      >
+                        <span>{story.title}</span>
+                        <strong>
+                          {story.triggerJourneyProgress.toFixed(1)}% →{" "}
+                          {story.journeyProgress.toFixed(1)}%
+                        </strong>
+                        <div
+                          className="simulatorTimingTrack"
+                          aria-label={`Starts at ${story.triggerJourneyProgress.toFixed(1)} per cent; subject at ${story.journeyProgress.toFixed(1)} per cent`}
+                        >
+                          <i
+                            className="triggerPoint"
+                            style={{
+                              left: `${story.triggerJourneyProgress}%`,
+                            }}
+                          />
+                          <i
+                            className="subjectPoint"
+                            style={{
+                              left: `${story.journeyProgress}%`,
+                            }}
+                          />
+                        </div>
+                        <small>
+                          {Math.round(story.leadDistanceMetres)}m approach
+                          {story.durationIsEstimated
+                            ? " · estimated until audio is re-uploaded"
+                            : ` · ${Math.round(story.playbackSeconds)} sec`}
+                        </small>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <p className="simulatorLabel">Simulated signal</p>
+                <div className="simulatorConditions">
+                  {([
+                    ["good", "Good GPS"],
+                    ["poor", "Poor GPS"],
+                    ["off-route", "Off route"],
+                  ] as const).map(([condition, label]) => (
+                    <button
+                      key={condition}
+                      className={simulatorCondition === condition ? "active" : ""}
+                      onClick={() => changeSimulatorCondition(condition)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                <p className="testerHelp">
+                  Poor GPS and Off route deliberately pause journey progress. Return to Good GPS to continue.
+                </p>
+              </>
+            )}
           </div>
 
           <p
@@ -2111,7 +4063,8 @@ export default function Home() {
             onClick={markCurrentSpot}
             disabled={
               !location ||
-              !routeMatch
+              !routeMatch ||
+              simulatorEnabled
             }
           >
             📍 Mark this spot
@@ -2210,9 +4163,9 @@ export default function Home() {
                 </small>
 
                 <strong>
-                  {location
+                  {diagnosticAccuracy !== null
                     ? `±${Math.round(
-                        location.accuracy
+                        diagnosticAccuracy
                       )}m`
                     : "—"}
                 </strong>
@@ -2274,12 +4227,46 @@ export default function Home() {
 
           <button
             className="resetButton"
-            onClick={() =>
-              setJourneyProgress(0)
-            }
+            onClick={simulateJourneyInterruption}
           >
-            Reset journey progress
+            Simulate interruption
           </button>
+
+          <p className="testerHelp">
+            This returns to Tours without losing progress. Use Resume journey to confirm recovery works.
+          </p>
+
+          <button
+            className="resetButton secondaryResetButton"
+            onClick={resetJourneyTest}
+          >
+            Return test to start
+          </button>
+
+          <button
+            className="reportButton"
+            onClick={downloadDiagnosticReport}
+            disabled={diagnosticEvents.length === 0}
+          >
+            Download test report
+          </button>
+
+          <p className="testerHelp">
+            If something goes wrong, send the downloaded report with a short note about what you expected.
+          </p>
+
+          {diagnosticEvents.length > 0 && (
+            <div className="diagnosticEvents">
+              <p className="kicker">LATEST EVENTS</p>
+              {diagnosticEvents.slice(-5).reverse().map((event, index) => (
+                <div key={`${event.at}-${index}`}>
+                  <strong>{event.type.replaceAll("_", " ")}</strong>
+                  <span>{event.detail}</span>
+                  <small>{new Date(event.at).toLocaleTimeString("en-GB")}</small>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       )}
 

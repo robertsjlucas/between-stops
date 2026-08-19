@@ -499,6 +499,90 @@ button:focus-visible {
   font-size: 12px;
 }
 
+.metaRow .ratingMeta,
+.overviewMeta .ratingMeta {
+  color: #6f4d00;
+  font-weight: 800;
+}
+
+.publicReviewsSection {
+  margin: 0 14px 24px;
+  padding: 22px;
+  border: 1px solid #dedbd3;
+  border-radius: 24px;
+  background: white;
+}
+
+.publicReviewsHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.publicReviewsHeading .kicker {
+  margin: 0 0 7px;
+  color: #77736c;
+}
+
+.publicReviewsHeading h2 {
+  margin: 0;
+  font-size: 27px;
+  letter-spacing: -0.045em;
+}
+
+.publicRatingSummary {
+  display: grid;
+  flex: 0 0 auto;
+  justify-items: end;
+}
+
+.publicRatingSummary strong {
+  font-size: 29px;
+  letter-spacing: -0.04em;
+}
+
+.publicRatingSummary span,
+.publicReviewCard > span {
+  color: #d99a20;
+  letter-spacing: 0.04em;
+}
+
+.publicRatingSummary small,
+.publicReviewCard small,
+.ratingsOnlyNotice {
+  color: #77736c;
+  font-size: 9px;
+}
+
+.publicReviewCards {
+  display: grid;
+  margin-top: 18px;
+  gap: 9px;
+}
+
+.publicReviewCard {
+  padding: 16px;
+  border-radius: 15px;
+  background: #f3f0e8;
+}
+
+.publicReviewCard > span i {
+  color: #d2cec5;
+  font-style: normal;
+}
+
+.publicReviewCard p {
+  margin: 9px 0;
+  color: #3f3d38;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.ratingsOnlyNotice {
+  margin: 17px 0 0;
+}
+
 .overviewCreator {
   display: flex;
   margin: 26px 22px 0;
@@ -680,6 +764,101 @@ button:focus-visible {
   text-align: center;
 }
 
+.preflightShell {
+  position: relative;
+  padding-bottom: 145px;
+}
+
+.preflightIntro {
+  padding: 42px 22px 25px;
+}
+
+.preflightIntro h1 {
+  max-width: 430px;
+  margin: 0;
+  font-size: clamp(42px, 12vw, 64px);
+  line-height: 0.96;
+  letter-spacing: -0.06em;
+}
+
+.preflightIntro > p:last-child {
+  max-width: 410px;
+  margin: 20px 0 0;
+  color: #625f58;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.preflightChecks {
+  display: grid;
+  gap: 10px;
+  padding: 0 14px 30px;
+}
+
+.preflightCard {
+  display: grid;
+  grid-template-columns: 45px 1fr;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid #dfdcd3;
+  border-radius: 18px;
+  background: white;
+}
+
+.preflightCard.fareCard {
+  background: #eee9dc;
+}
+
+.preflightCard.dataCard {
+  background: #e8e7f4;
+}
+
+.preflightIcon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 13px;
+  background: #171717;
+  color: white;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.preflightCard h2 {
+  margin: 2px 0 6px;
+  font-size: 17px;
+  letter-spacing: -0.025em;
+}
+
+.preflightCard p {
+  margin: 0;
+  color: #69665f;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.preflightAction {
+  margin-top: 13px;
+  padding: 9px 12px;
+  border: 1px solid #c9c5bc;
+  border-radius: 999px;
+  background: #f8f7f3;
+  color: #171717;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.preflightAction:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.preflightStart {
+  z-index: 10;
+}
+
 .journeyShell {
   position: relative;
   overflow-x: hidden;
@@ -716,6 +895,59 @@ button:focus-visible {
 
 .routeNotice span {
   color: #6a6760;
+}
+
+.journeyAudioBanner {
+  display: flex;
+  margin: 14px 14px 0;
+  padding: 13px 14px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-radius: 15px;
+  background: #171717;
+  color: white;
+}
+
+.journeyAudioBanner.blocked {
+  background: #6b382e;
+}
+
+.journeyAudioBanner > div {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.journeyAudioBanner small {
+  color: #aaa7a0;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.journeyAudioBanner strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journeyAudioBanner span {
+  color: #bbb8b1;
+  font-size: 10px;
+}
+
+.journeyAudioBanner button {
+  flex: 0 0 auto;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 999px;
+  background: white;
+  color: #171717;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
 }
 
 .cueStack {
@@ -786,6 +1018,28 @@ button:focus-visible {
   color: #5f5c56;
   font-size: 17px;
   line-height: 1.55;
+}
+
+.storyTranscript {
+  margin-top: 20px;
+}
+
+.storyTranscript > button {
+  padding: 9px 12px;
+  border: 1px solid #cbc7bd;
+  border-radius: 999px;
+  background: #f8f7f3;
+  color: #171717;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.storyTranscript .cueCopy {
+  padding: 16px;
+  border-radius: 14px;
+  background: #f1efe9;
+  white-space: pre-wrap;
 }
 
 .mediaPlaceholder {
@@ -920,6 +1174,104 @@ button:focus-visible {
   color: #aaa7a0;
 }
 
+.simulatorCard {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid #484848;
+  border-radius: 16px;
+  background: #2e2e2e;
+}
+
+.simulatorSwitchRow,
+.simulatorProgressLabel,
+.simulatorEndpoints {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.simulatorSwitchRow div {
+  display: grid;
+  gap: 4px;
+}
+
+.simulatorSwitchRow span,
+.simulatorEndpoints,
+.simulatorLabel {
+  color: #aaa7a0;
+  font-size: 10px;
+}
+
+.simulatorToggle {
+  min-width: 52px;
+  padding: 9px 12px;
+  border: 1px solid #5c5c5c;
+  border-radius: 999px;
+  background: transparent;
+  color: #d4d1ca;
+  cursor: pointer;
+}
+
+.simulatorToggle.active {
+  border-color: #b9c1ff;
+  background: #b9c1ff;
+  color: #20233e;
+  font-weight: 800;
+}
+
+.simulatorProgressLabel {
+  margin-top: 20px;
+  font-size: 12px;
+}
+
+.simulatorRange {
+  width: 100%;
+  margin: 14px 0 8px;
+  accent-color: #b9c1ff;
+}
+
+.simulatorEndpoints {
+  align-items: flex-start;
+}
+
+.simulatorEndpoints span {
+  width: 46%;
+}
+
+.simulatorEndpoints span:last-child {
+  text-align: right;
+}
+
+.simulatorLabel {
+  margin: 20px 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.simulatorConditions {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.simulatorConditions button {
+  padding: 9px 5px;
+  border: 1px solid #515151;
+  border-radius: 10px;
+  background: #242424;
+  color: #bbb8b1;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.simulatorConditions button.active {
+  border-color: white;
+  background: white;
+  color: #171717;
+  font-weight: 800;
+}
+
 .diagnosticGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -972,6 +1324,27 @@ button:focus-visible {
   color: #c8c5be;
 }
 
+.secondaryResetButton {
+  margin-top: 10px;
+}
+
+.reportButton {
+  width: 100%;
+  margin-top: 10px;
+  padding: 14px;
+  border: 0;
+  border-radius: 14px;
+  background: #b9c1ff;
+  color: #20233e;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.reportButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+}
+
 .testerHelp {
   margin: 9px 4px 0;
   color: #918e87;
@@ -997,6 +1370,36 @@ button:focus-visible {
 
 .markedSpot small {
   color: #8f8c86;
+}
+
+.diagnosticEvents {
+  margin-top: 22px;
+}
+
+.diagnosticEvents > div {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 3px 10px;
+  padding: 10px 0;
+  border-top: 1px solid #414141;
+}
+
+.diagnosticEvents strong {
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.diagnosticEvents span {
+  grid-column: 1 / -1;
+  color: #bbb8b1;
+  font-size: 11px;
+}
+
+.diagnosticEvents small {
+  grid-column: 2;
+  grid-row: 1;
+  color: #817e78;
+  font-size: 9px;
 }
 
 .errorNotice {
@@ -1142,6 +1545,98 @@ button:focus-visible {
   margin-top: 14px;
 }
 
+.offlineDownloadCard {
+  margin: 14px 22px 0;
+  padding: 16px;
+  border-radius: 18px;
+  background: #171717;
+  color: white;
+}
+
+.offlineDownloadHeading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.offlineDownloadHeading > span {
+  display: grid;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #df7454;
+  color: #171717;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.offlineDownloadHeading strong {
+  display: block;
+  font-size: 13px;
+}
+
+.offlineDownloadHeading p,
+.offlineDownloadError {
+  margin: 4px 0 0;
+  color: #c9c6be;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.offlineDownloadActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.offlineDownloadButton,
+.offlineRemoveButton {
+  border: 0;
+  font-size: 10px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.offlineDownloadButton {
+  padding: 11px 13px;
+  border-radius: 11px;
+  background: white;
+  color: #171717;
+}
+
+.offlineRemoveButton {
+  padding: 5px 0;
+  background: transparent;
+  color: #c9c6be;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.offlineDownloadProgress {
+  display: grid;
+  margin-top: 14px;
+  gap: 7px;
+  color: #f5f3ed;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.offlineDownloadProgress progress {
+  width: 100%;
+  height: 7px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 999px;
+  accent-color: #df7454;
+}
+
+.offlineDownloadError {
+  color: #ffb9aa;
+}
+
 .completedMeta {
   border-color: #b9d4c0 !important;
   background: #e5f1e7 !important;
@@ -1243,6 +1738,268 @@ button:focus-visible {
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
+}
+
+.completionReviewCard {
+  margin: 14px 14px 0;
+  padding: 22px;
+  border: 1px solid #dedbd3;
+  border-radius: 24px;
+  background: white;
+}
+
+.completionReviewCard .kicker {
+  margin: 0 0 7px;
+  color: #77736c;
+}
+
+.completionReviewCard h2 {
+  margin: 0;
+  font-size: 27px;
+  letter-spacing: -0.04em;
+}
+
+.completionStars {
+  display: flex;
+  margin: 16px 0 18px;
+  gap: 5px;
+}
+
+.completionStars button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #d4d0c7;
+  font-size: 34px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.completionStars button.selected {
+  color: #d99a20;
+}
+
+.completionReviewCard > label {
+  display: block;
+  color: #55514a;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.completionReviewCard > label span {
+  color: #928e85;
+  font-size: 8px;
+}
+
+.completionReviewCard textarea {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 7px;
+  padding: 12px;
+  resize: vertical;
+  border: 1px solid #d8d4ca;
+  border-radius: 12px;
+  background: #faf9f6;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.completionReviewCard > small {
+  display: block;
+  margin-top: 4px;
+  color: #8a867e;
+  font-size: 8px;
+  text-align: right;
+}
+
+.submitTourReviewButton {
+  width: 100%;
+  margin-top: 13px;
+  padding: 13px;
+  border: 0;
+  border-radius: 12px;
+  background: #171717;
+  color: white;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.submitTourReviewButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.completionReviewMessage {
+  margin: 10px 0 0;
+  color: #7b2d20;
+  font-size: 10px;
+}
+
+.reviewThankYou {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.reviewThankYou > span {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff0c7;
+  color: #b77700;
+  font-size: 18px;
+}
+
+.reviewThankYou p:last-child {
+  margin: 8px 0 0;
+  color: #666159;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.destinationRecommendationsLoading {
+  margin: 16px 18px 0;
+  color: #77736c;
+  font-size: 11px;
+  text-align: center;
+}
+
+.destinationRecommendations {
+  margin: 20px 14px 8px;
+  padding: 22px;
+  border: 1px solid #dedbd3;
+  border-radius: 24px;
+  background: #f5f2ea;
+}
+
+.destinationRecommendationsHeading .kicker {
+  margin-bottom: 7px;
+  color: #77736c;
+}
+
+.destinationRecommendationsHeading h2 {
+  margin: 0;
+  font-size: 28px;
+  letter-spacing: -0.045em;
+}
+
+.destinationRecommendationsHeading > p:last-child {
+  margin: 8px 0 0;
+  color: #68645d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.destinationRecommendationCards {
+  display: grid;
+  margin-top: 17px;
+  gap: 10px;
+}
+
+.destinationRecommendationCard {
+  display: block;
+  padding: 17px;
+  border: 1px solid #dedbd3;
+  border-radius: 16px;
+  background: white;
+  color: #171717;
+  text-decoration: none;
+}
+
+.recommendationArtwork {
+  display: grid;
+  height: 130px;
+  margin: -17px -17px 15px;
+  overflow: hidden;
+  place-items: center;
+  border-radius: 15px 15px 9px 9px;
+  background: #e6e4f1;
+  color: #171717;
+}
+
+.recommendationArtwork svg {
+  width: 72%;
+  height: 72%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.recommendationArtwork.photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.recommendationArtwork.category-food_drink,
+.recommendationArtwork.category-events {
+  background: #df7454;
+  color: #171717;
+}
+
+.recommendationArtwork.category-museum,
+.recommendationArtwork.category-great_view {
+  background: #7379bd;
+  color: white;
+}
+
+.recommendationArtwork.category-peace_quiet,
+.recommendationArtwork.category-walk {
+  background: #d9dfc9;
+}
+
+.recommendationArtwork.category-shopping,
+.recommendationArtwork.category-family,
+.recommendationArtwork.category-attraction {
+  background: #e7dfc8;
+}
+
+.destinationRecommendationCard > div {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.destinationRecommendationCard span,
+.destinationRecommendationCard small {
+  color: #77736c;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.destinationRecommendationCard small {
+  padding: 5px 7px;
+  border-radius: 999px;
+  background: #fff0c7;
+  color: #74560b;
+}
+
+.destinationRecommendationCard h3 {
+  margin: 11px 0 6px;
+  font-size: 20px;
+  letter-spacing: -0.035em;
+}
+
+.destinationRecommendationCard p {
+  margin: 0;
+  color: #68645d;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.destinationRecommendationCard strong {
+  display: inline-block;
+  margin-top: 13px;
+  font-size: 10px;
 }
 
 @media (max-width: 420px) {
@@ -1468,4 +2225,74 @@ button:focus-visible {
       #bca27e 55%,
       #7b8d89
     );
+}
+.simulatorTimingList {
+  display: grid;
+  margin: 18px 0;
+  overflow: hidden;
+  border: 1px solid #474747;
+  border-radius: 14px;
+}
+
+.simulatorTimingHeading,
+.simulatorTimingRow {
+  display: grid;
+  padding: 11px 13px;
+  gap: 3px;
+  border-bottom: 1px solid #414141;
+}
+
+.simulatorTimingHeading {
+  grid-template-columns: 1fr auto;
+  background: #292929;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.simulatorTimingHeading small,
+.simulatorTimingRow small {
+  color: #99958e;
+  font-size: 9px;
+}
+
+.simulatorTimingRow:last-child {
+  border-bottom: 0;
+}
+
+.simulatorTimingRow span {
+  color: #f5f3ed;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.simulatorTimingRow strong {
+  color: #d8d4cb;
+  font-size: 10px;
+}
+
+.simulatorTimingTrack {
+  position: relative;
+  height: 8px;
+  margin: 5px 4px 3px;
+  border-radius: 999px;
+  background: #4a4946;
+}
+
+.simulatorTimingTrack i {
+  position: absolute;
+  top: 50%;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.simulatorTimingTrack .triggerPoint {
+  background: #df9b68;
+  box-shadow: 0 0 0 2px #2a2a2a;
+}
+
+.simulatorTimingTrack .subjectPoint {
+  background: #f5f3ed;
+  box-shadow: 0 0 0 2px #2a2a2a;
 }

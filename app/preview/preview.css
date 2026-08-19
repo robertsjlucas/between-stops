@@ -138,3 +138,34 @@
   color: #171717;
   font-weight: 700;
 }
+.previewDirectionPrompts {
+  margin-top: 20px;
+  padding: 18px;
+  border: 1px solid #dedad1;
+  border-radius: 16px;
+  background: #fbfaf7;
+}
+
+.previewDirectionPrompts > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.previewDirectionPrompts label {
+  display: grid;
+  gap: 7px;
+  color: #4e4b46;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.previewDirectionPrompts audio {
+  width: 100%;
+}
+
+@media (max-width: 620px) {
+  .previewDirectionPrompts > div {
+    grid-template-columns: 1fr;
+  }
+}

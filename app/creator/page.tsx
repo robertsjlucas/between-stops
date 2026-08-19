@@ -35,6 +35,10 @@ import {
 } from "@/lib/supabase/client";
 
 import {
+  getStoryTimingWarnings,
+} from "@/lib/experience";
+
+import {
   deleteCreatorProject,
   loadBrowserProjects,
   loadCreatorProfile,
@@ -45,6 +49,7 @@ import {
   saveCreatorProject,
   submitCreatorProjectForReview,
   uploadProfileAvatar,
+  uploadProfileDirectionPrompt,
   uploadStoryMedia,
   uploadTourCover,
   uploadTourGalleryImage,
@@ -66,6 +71,7 @@ import type {
   RouteDefinition,
   RouteStop,
   TransportMode,
+  ExperienceDefinition,
 } from "@/lib/types";
 
 import {
@@ -98,6 +104,22 @@ function getProjectStatusLabel(
   };
 
   return labels[status];
+}
+
+function formatAudioDuration(
+  seconds?: number
+) {
+  if (!seconds || seconds <= 0) {
+    return "timing estimated";
+  }
+
+  const rounded = Math.round(seconds);
+  const minutes = Math.floor(rounded / 60);
+  const remainder = rounded % 60;
+
+  return minutes > 0
+    ? `${minutes}:${String(remainder).padStart(2, "0")}`
+    : `${remainder} sec`;
 }
 
 function estimateJourneyMinutes(
@@ -426,6 +448,18 @@ export default function CreatorPage() {
     null
   );
 
+  const [profileLeftPrompt, setProfileLeftPrompt] =
+    useState<MediaAttachment | undefined>(undefined);
+
+  const [profileRightPrompt, setProfileRightPrompt] =
+    useState<MediaAttachment | undefined>(undefined);
+
+  const [pendingLeftPromptFile, setPendingLeftPromptFile] =
+    useState<File | null>(null);
+
+  const [pendingRightPromptFile, setPendingRightPromptFile] =
+    useState<File | null>(null);
+
   const [
     detailsSaving,
     setDetailsSaving,
@@ -652,6 +686,14 @@ export default function CreatorPage() {
 
           setProfileAvatar(
             profile?.avatar
+          );
+
+          setProfileLeftPrompt(
+            profile?.leftPrompt
+          );
+
+          setProfileRightPrompt(
+            profile?.rightPrompt
           );
 
           setIsAdmin(
@@ -939,6 +981,63 @@ export default function CreatorPage() {
         stop.routeProgress <=
           sectionHighProgress
     );
+
+  const storyTimingExperience = useMemo(
+    () =>
+      ({
+        id: projectId ?? "creator-timing-preview",
+        title: experienceName || "Draft experience",
+        description: experienceSummary,
+        routeId: route.id,
+        startProgress: sectionLowProgress,
+        endProgress: sectionHighProgress,
+        startLabel,
+        endLabel,
+        durationMinutes: estimatedJourneyMinutes,
+        stories: stories.map((story) => ({
+          id: story.id,
+          title: story.title,
+          eyebrow:
+            story.type === "look"
+              ? "Something to spot"
+              : "Listen",
+          text: story.text,
+          type: story.type,
+          routeProgress: story.routeProgress,
+          direction: "both" as const,
+          subjectLocation: {
+            longitude: story.subjectCoordinates[0],
+            latitude: story.subjectCoordinates[1],
+          },
+          directionalPrompt: story.type === "look",
+          audioDurationSeconds:
+            story.audio?.durationSeconds,
+          audioUrl: story.audio?.url,
+          imageUrl: story.image?.url,
+        })),
+      }) satisfies ExperienceDefinition,
+    [
+      endLabel,
+      estimatedJourneyMinutes,
+      experienceName,
+      experienceSummary,
+      projectId,
+      route.id,
+      sectionHighProgress,
+      sectionLowProgress,
+      startLabel,
+      stories,
+    ]
+  );
+
+  const storyTimingWarnings = useMemo(
+    () =>
+      getStoryTimingWarnings(
+        route,
+        storyTimingExperience
+      ),
+    [route, storyTimingExperience]
+  );
 
   /*
     MAP
@@ -1848,10 +1947,14 @@ export default function CreatorPage() {
 
       let avatar =
         profileAvatar;
+      let leftPrompt = profileLeftPrompt;
+      let rightPrompt = profileRightPrompt;
 
       let previousAvatarPath:
         | string
         | undefined;
+      let previousLeftPromptPath: string | undefined;
+      let previousRightPromptPath: string | undefined;
 
       if (pendingAvatarFile) {
         previousAvatarPath =
@@ -1864,6 +1967,24 @@ export default function CreatorPage() {
           );
       }
 
+      if (pendingLeftPromptFile) {
+        previousLeftPromptPath = profileLeftPrompt?.path;
+        leftPrompt = await uploadProfileDirectionPrompt(
+          supabase,
+          "left",
+          pendingLeftPromptFile
+        );
+      }
+
+      if (pendingRightPromptFile) {
+        previousRightPromptPath = profileRightPrompt?.path;
+        rightPrompt = await uploadProfileDirectionPrompt(
+          supabase,
+          "right",
+          pendingRightPromptFile
+        );
+      }
+
       await saveCreatorProfile(
         supabase,
         {
@@ -1872,6 +1993,8 @@ export default function CreatorPage() {
           bio:
             profileBio.trim(),
           avatar,
+          leftPrompt,
+          rightPrompt,
           isPublic: true,
         }
       );
@@ -1889,6 +2012,30 @@ export default function CreatorPage() {
         );
       }
 
+      if (
+        previousLeftPromptPath &&
+        leftPrompt &&
+        previousLeftPromptPath !== leftPrompt.path
+      ) {
+        await removeMediaFile(
+          supabase,
+          "profile-media",
+          previousLeftPromptPath
+        );
+      }
+
+      if (
+        previousRightPromptPath &&
+        rightPrompt &&
+        previousRightPromptPath !== rightPrompt.path
+      ) {
+        await removeMediaFile(
+          supabase,
+          "profile-media",
+          previousRightPromptPath
+        );
+      }
+
       const refreshedProfile =
         await loadCreatorProfile(
           supabase
@@ -1900,7 +2047,15 @@ export default function CreatorPage() {
       setProfileAvatar(
         refreshedProfile?.avatar
       );
+      setProfileLeftPrompt(
+        refreshedProfile?.leftPrompt
+      );
+      setProfileRightPrompt(
+        refreshedProfile?.rightPrompt
+      );
       setPendingAvatarFile(null);
+      setPendingLeftPromptFile(null);
+      setPendingRightPromptFile(null);
       setSaveMessage("Profile saved");
       setStage("projects");
 
@@ -1965,6 +2120,18 @@ export default function CreatorPage() {
     ) {
       missing.push(
         "audio for every Story"
+      );
+    }
+
+    if (
+      stories.some(
+        (story) => story.type === "look"
+      ) &&
+      (!creatorProfile?.leftPrompt ||
+        !creatorProfile?.rightPrompt)
+    ) {
+      missing.push(
+        "both Look left and Look right voice prompts in your creator profile"
       );
     }
 
@@ -2304,16 +2471,6 @@ export default function CreatorPage() {
       !storyTitle.trim() ||
       storySaving
     ) {
-      return;
-    }
-
-    if (
-      !storyAudio &&
-      !pendingAudioFile
-    ) {
-      window.alert(
-        "Every Story needs an audio file. You can also add an optional image."
-      );
       return;
     }
 
@@ -2837,6 +2994,93 @@ export default function CreatorPage() {
               5 MB. A square image works
               best.
             </p>
+
+            <div className="voicePromptSection">
+              <div>
+                <h2>Guide voice prompts</h2>
+                <p>
+                  Record these two short clips once. For a
+                  Something to spot Story, Between Stops will
+                  automatically play the correct clip before
+                  the Story audio, including on the return
+                  journey.
+                </p>
+              </div>
+
+              <div className="voicePromptGrid">
+                <div className="voicePromptCard">
+                  <label htmlFor="profile-left-prompt">
+                    Look left
+                    <span>MP3, M4A or WAV</span>
+                  </label>
+                  <p>Suggested words: “Look to your left.”</p>
+                  {profileLeftPrompt?.url && (
+                    <audio
+                      controls
+                      preload="metadata"
+                      src={profileLeftPrompt.url}
+                    />
+                  )}
+                  <input
+                    id="profile-left-prompt"
+                    className="marketplaceFileInput"
+                    type="file"
+                    accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav"
+                    onChange={(event) =>
+                      setPendingLeftPromptFile(
+                        event.target.files?.[0] ?? null
+                      )
+                    }
+                  />
+                  <small className="selectedFileName">
+                    {pendingLeftPromptFile
+                      ? `Selected: ${pendingLeftPromptFile.name}`
+                      : profileLeftPrompt
+                        ? `Saved: ${profileLeftPrompt.filename}`
+                        : "No clip saved yet"}
+                  </small>
+                </div>
+
+                <div className="voicePromptCard">
+                  <label htmlFor="profile-right-prompt">
+                    Look right
+                    <span>MP3, M4A or WAV</span>
+                  </label>
+                  <p>Suggested words: “Look to your right.”</p>
+                  {profileRightPrompt?.url && (
+                    <audio
+                      controls
+                      preload="metadata"
+                      src={profileRightPrompt.url}
+                    />
+                  )}
+                  <input
+                    id="profile-right-prompt"
+                    className="marketplaceFileInput"
+                    type="file"
+                    accept="audio/mpeg,audio/mp4,audio/x-m4a,audio/wav,audio/x-wav"
+                    onChange={(event) =>
+                      setPendingRightPromptFile(
+                        event.target.files?.[0] ?? null
+                      )
+                    }
+                  />
+                  <small className="selectedFileName">
+                    {pendingRightPromptFile
+                      ? `Selected: ${pendingRightPromptFile.name}`
+                      : profileRightPrompt
+                        ? `Saved: ${profileRightPrompt.filename}`
+                        : "No clip saved yet"}
+                  </small>
+                </div>
+              </div>
+
+              <p className="marketplaceFormHint">
+                Each clip can be up to 25 MB. They are only
+                required when you submit a tour containing a
+                Something to spot Story.
+              </p>
+            </div>
 
             <div className="marketplaceFormActions">
               <button
@@ -3598,6 +3842,46 @@ export default function CreatorPage() {
                     </button>
                   )}
 
+                  {storyTimingWarnings.length > 0 && (
+                    <aside className="timingWarningPanel">
+                      <strong>
+                        {storyTimingWarnings.length === 1
+                          ? "1 possible timing overlap"
+                          : `${storyTimingWarnings.length} possible timing overlaps`}
+                      </strong>
+                      <p>
+                        These Stories are close enough that the
+                        second may have to wait in the audio queue.
+                        Shorten the recordings or move the subject
+                        pins farther apart if the order feels wrong.
+                      </p>
+                      <ul>
+                        {storyTimingWarnings.slice(0, 4).map((warning) => {
+                          const first = stories.find(
+                            (story) => story.id === warning.firstStoryId
+                          );
+                          const second = stories.find(
+                            (story) => story.id === warning.secondStoryId
+                          );
+
+                          return (
+                            <li
+                              key={`${warning.direction}-${warning.firstStoryId}-${warning.secondStoryId}`}
+                            >
+                              {first?.title ?? "Story"} →{" "}
+                              {second?.title ?? "Story"}
+                              <span>
+                                {warning.direction === "forward"
+                                  ? "outbound"
+                                  : "return"}
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </aside>
+                  )}
+
                   <div className="storyList">
                     <div className="storyListHeading">
                       <span>
@@ -3662,12 +3946,13 @@ export default function CreatorPage() {
                               </strong>
 
                               <small>
-                                {story.type ===
-                                "look"
-                                  ? "Audio · Something to spot"
-                                  : story.image
-                                    ? "Audio + image"
-                                    : "Audio"}
+                                {!story.audio
+                                  ? "Draft · Audio needed before submission"
+                                  : story.type === "look"
+                                    ? `${formatAudioDuration(story.audio.durationSeconds)} · Something to spot`
+                                    : story.image
+                                      ? `${formatAudioDuration(story.audio.durationSeconds)} · Audio + image`
+                                      : `${formatAudioDuration(story.audio.durationSeconds)} · Audio`}
                               </small>
                             </span>
                           </button>
@@ -3750,7 +4035,7 @@ export default function CreatorPage() {
 
                 <div className="storyField">
                   <label>
-                    Description / notes
+                    Transcript (optional)
                   </label>
 
                   <textarea
@@ -3765,7 +4050,7 @@ export default function CreatorPage() {
                           .value
                       )
                     }
-                    placeholder="Working notes or Story text…"
+                    placeholder="Paste the spoken words from the audio…"
                   />
                 </div>
 
@@ -3947,7 +4232,7 @@ export default function CreatorPage() {
                   )}
 
                 <small className="mediaHelpNote">
-                  Every Story needs audio. An image is optional and appears alongside it. Draft media is private. Maximum file size: 25 MB.
+                  You can save this Story without audio while planning the route. Every Story must have audio before the tour can be submitted. A transcript and image are optional. Draft media is private. Maximum file size: 25 MB.
                 </small>
 
                 <div className="editorActions">
@@ -3956,9 +4241,7 @@ export default function CreatorPage() {
                     disabled={
                       !storyTitle.trim() ||
                       storySaving ||
-                      !canEditActiveProject ||
-                      (!storyAudio &&
-                        !pendingAudioFile)
+                      !canEditActiveProject
                     }
                     onClick={
                       saveStory

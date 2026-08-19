@@ -60,7 +60,10 @@ export type StoryDefinition = {
   directionalPrompt?: boolean;
 
   audioUrl?: string;
+  audioDurationSeconds?: number;
+  audioSizeBytes?: number;
   imageUrl?: string;
+  imageSizeBytes?: number;
 };
 
 export type ExperienceDefinition = {

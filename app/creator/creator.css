@@ -850,6 +850,67 @@
   font: inherit;
 }
 
+.voicePromptSection {
+  margin-top: 28px;
+  padding-top: 26px;
+  border-top: 1px solid #e0ddd5;
+}
+
+.voicePromptSection h2 {
+  margin: 0 0 7px;
+  font-size: 17px;
+}
+
+.voicePromptSection > div > p,
+.voicePromptCard > p {
+  margin: 0;
+  color: #77736b;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.voicePromptGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 16px;
+  gap: 12px;
+}
+
+.voicePromptCard {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid #d8d4cb;
+  border-radius: 14px;
+  background: #fbfaf7;
+}
+
+.marketplaceFormCard .voicePromptCard label {
+  margin-top: 0;
+}
+
+.voicePromptCard audio {
+  width: 100%;
+  height: 36px;
+  margin: 12px 0 5px;
+}
+
+.voicePromptCard .marketplaceFileInput {
+  width: 100%;
+  margin-top: 12px;
+  font-size: 10px;
+}
+
+.voicePromptCard .selectedFileName {
+  display: block;
+  margin-top: 7px;
+}
+
+@media (max-width: 620px) {
+  .voicePromptGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .marketplaceFormCard select {
   min-height: 46px;
   padding: 0 12px;
@@ -1571,4 +1632,48 @@
   .creatorFooter nav {
     justify-content: flex-start;
   }
+}
+.timingWarningPanel {
+  margin: 14px 0;
+  padding: 13px;
+  border: 1px solid #e4b66b;
+  border-radius: 13px;
+  background: #fff5df;
+  color: #694613;
+}
+
+.timingWarningPanel strong,
+.timingWarningPanel p {
+  margin: 0;
+}
+
+.timingWarningPanel strong {
+  font-size: 11px;
+}
+
+.timingWarningPanel p {
+  margin-top: 6px;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.timingWarningPanel ul {
+  display: grid;
+  margin: 9px 0 0;
+  padding: 0;
+  gap: 5px;
+  list-style: none;
+}
+
+.timingWarningPanel li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 9px;
+  font-weight: 750;
+}
+
+.timingWarningPanel li span {
+  color: #99713a;
+  font-weight: 650;
 }
