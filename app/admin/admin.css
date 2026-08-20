@@ -4,7 +4,7 @@
   margin: 16px auto;
   overflow: hidden;
   border-radius: 24px;
-  background: #f8f7f3;
+  background: #f6f7f4;
   color: #171717;
   box-shadow: 0 20px 70px rgba(0, 0, 0, 0.09);
   font-family: Arial, Helvetica, sans-serif;
@@ -17,7 +17,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  border-bottom: 1px solid #dedbd2;
+  border-bottom: 1px solid #2d2d2d;
+  background: #0e0e0e;
+  color: white;
 }
 
 .adminBrand,
@@ -43,7 +45,7 @@
 }
 
 .adminHeader nav a {
-  color: #5d5952;
+  color: #d7d7d2;
   font-size: 12px;
   font-weight: 700;
   text-decoration: none;

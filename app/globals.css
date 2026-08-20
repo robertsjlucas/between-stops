@@ -3,12 +3,12 @@
 }
 
 html {
-  background: #f3f1eb;
+  background: #eef0ec;
 }
 
 body {
   margin: 0;
-  background: #f3f1eb;
+  background: #eef0ec;
   color: #171717;
   font-family:
     Arial,
@@ -31,7 +31,7 @@ button:focus-visible {
   max-width: 520px;
   min-height: 100vh;
   margin: 0 auto;
-  background: #f8f7f3;
+  background: #f6f7f4;
 }
 
 .brandHeader,
@@ -50,6 +50,34 @@ button:focus-visible {
   color: white;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.passengerHeaderLink {
+  margin-left: auto;
+  color: #d7d7d2;
+  font-size: 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.topBar,
+.journeyHeader {
+  background: #0e0e0e;
+  color: white;
+}
+
+.topBar .textButton,
+.journeyHeader .textButton,
+.topBar .miniBrand,
+.journeyHeader .miniBrand,
+.journeyHeader p {
+  color: white;
+}
+
+.topBar .homeBubbleButton,
+.journeyHeader .homeBubbleButton {
+  background: white;
+  color: #171717;
 }
 
 .brandMark {
@@ -273,6 +301,22 @@ button:focus-visible {
     radial-gradient(circle at 15% 80%, #d3a35b 0 8%, transparent 9%),
     radial-gradient(circle at 70% 35%, #9bb6a3 0 9%, transparent 10%),
     linear-gradient(145deg, #8fa69a, #d9c39b 52%, #8c9a95);
+  clip-path: polygon(7% 0, 100% 0, 100% 100%, 0 100%, 0 10%);
+}
+
+.experienceImage::before,
+.overviewArt::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 74px;
+  height: 74px;
+  border: 4px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  background: white url("/branding/between-stops-icon.png") center / cover no-repeat;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
+  transform: translate(-50%, -50%);
 }
 
 .experienceCoverImage {

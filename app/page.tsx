@@ -51,7 +51,7 @@ export default async function LandingPage() {
         <Link className="landingBrand" href="/" aria-label="Between Stops home">
           <img src="/branding/between-stops-icon.png" alt="" /><span>Between Stops</span>
         </Link>
-        <nav aria-label="Main navigation"><Link href="/tours">Tours</Link><Link href="/guides">For guides</Link></nav>
+        <nav aria-label="Main navigation"><Link href="/tours">Tours</Link><Link href="/guides">For guides</Link><Link href="/login?next=/creator">Guide sign in</Link></nav>
       </header>
 
       <section className="landingHero">

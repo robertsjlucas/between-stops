@@ -21,6 +21,7 @@ export type ProjectStatus =
   | "changes_requested"
   | "approved"
   | "published"
+  | "paused"
   | "archived";
 
 export type TourVisibility =
@@ -654,6 +655,48 @@ export async function retractCreatorProjectReview(
     {
       p_experience_id: experienceId,
     }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function pauseCreatorProject(
+  supabase: SupabaseClient,
+  experienceId: string
+) {
+  const { error } = await supabase.rpc(
+    "creator_pause_experience",
+    { p_experience_id: experienceId }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function restorePausedCreatorProject(
+  supabase: SupabaseClient,
+  experienceId: string
+) {
+  const { error } = await supabase.rpc(
+    "creator_restore_paused_experience",
+    { p_experience_id: experienceId }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+export async function editPausedCreatorProject(
+  supabase: SupabaseClient,
+  experienceId: string
+) {
+  const { error } = await supabase.rpc(
+    "creator_edit_paused_experience",
+    { p_experience_id: experienceId }
   );
 
   if (error) {

@@ -40,11 +40,14 @@ import {
 
 import {
   deleteCreatorProject,
+  editPausedCreatorProject,
   loadBrowserProjects,
   loadCreatorProfile,
   loadCreatorProjects,
   removeMediaFile,
+  pauseCreatorProject,
   retractCreatorProjectReview,
+  restorePausedCreatorProject,
   saveCreatorProfile,
   saveCreatorProject,
   submitCreatorProjectForReview,
@@ -90,6 +93,15 @@ type CreatorStage =
   | "profile"
   | "studio";
 
+type ProjectStatusFilter =
+  | "all"
+  | "draft"
+  | "review"
+  | "changes_requested"
+  | "published"
+  | "paused"
+  | "archived";
+
 function getProjectStatusLabel(
   status: ProjectStatus
 ) {
@@ -100,6 +112,7 @@ function getProjectStatusLabel(
     changes_requested: "Changes requested",
     approved: "Approved",
     published: "Published",
+    paused: "Paused",
     archived: "Archived",
   };
 
@@ -494,6 +507,9 @@ export default function CreatorPage() {
     []
   );
 
+  const [projectStatusFilter, setProjectStatusFilter] =
+    useState<ProjectStatusFilter>("all");
+
   const [
     stories,
     setStories,
@@ -784,6 +800,36 @@ export default function CreatorPage() {
     activeProject.status === "draft" ||
     activeProject.status ===
       "changes_requested";
+
+  const projectFilters: Array<{
+    id: ProjectStatusFilter;
+    label: string;
+  }> = [
+    { id: "all", label: "All" },
+    { id: "draft", label: "Drafts" },
+    { id: "review", label: "In review" },
+    { id: "changes_requested", label: "Changes requested" },
+    { id: "published", label: "Published" },
+    { id: "paused", label: "Paused" },
+    { id: "archived", label: "Archived" },
+  ];
+
+  const projectMatchesFilter = (
+    project: SavedProject,
+    filter: ProjectStatusFilter
+  ) => {
+    if (filter === "all") return true;
+    if (filter === "review") {
+      return ["ready_for_review", "submitted", "approved"].includes(
+        project.status
+      );
+    }
+    return project.status === filter;
+  };
+
+  const visibleProjects = projects.filter((project) =>
+    projectMatchesFilter(project, projectStatusFilter)
+  );
 
   const stops =
     route.stops ?? [];
@@ -2289,6 +2335,95 @@ export default function CreatorPage() {
     }
   }
 
+  async function pausePublishedProject(project: SavedProject) {
+    if (
+      !window.confirm(
+        "Pause this tour? It will disappear from the public catalogue immediately. You can restore the unchanged version later."
+      )
+    ) {
+      return;
+    }
+
+    setProjectError("");
+    try {
+      await pauseCreatorProject(createClient(), project.id);
+      setProjects((current) =>
+        current.map((item) =>
+          item.id === project.id
+            ? { ...item, status: "paused", visibility: "private" }
+            : item
+        )
+      );
+    } catch (error) {
+      setProjectError(
+        `The tour could not be paused: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
+  async function restorePausedProject(project: SavedProject) {
+    if (
+      !window.confirm(
+        "Put the unchanged approved tour live again?"
+      )
+    ) {
+      return;
+    }
+
+    setProjectError("");
+    try {
+      await restorePausedCreatorProject(createClient(), project.id);
+      setProjects((current) =>
+        current.map((item) =>
+          item.id === project.id
+            ? { ...item, status: "published", visibility: "public" }
+            : item
+        )
+      );
+    } catch (error) {
+      setProjectError(
+        `The tour could not be restored: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
+  async function editPausedProject(project: SavedProject) {
+    if (
+      !window.confirm(
+        "Return this tour to draft for editing? Your changes will need administrator approval before it can go live again."
+      )
+    ) {
+      return;
+    }
+
+    setProjectError("");
+    try {
+      await editPausedCreatorProject(createClient(), project.id);
+      const draftProject: SavedProject = {
+        ...project,
+        status: "draft",
+        visibility: "private",
+        publishedAt: undefined,
+      };
+      setProjects((current) =>
+        current.map((item) =>
+          item.id === project.id ? draftProject : item
+        )
+      );
+      openProject(draftProject);
+    } catch (error) {
+      setProjectError(
+        `The tour could not be returned to draft: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`
+      );
+    }
+  }
+
   async function deleteProject(
     id: string
   ) {
@@ -2734,6 +2869,24 @@ export default function CreatorPage() {
           </div>
 
           <div className="projectsGrid">
+            <div className="projectStatusFilters" aria-label="Filter experiences by status">
+              {projectFilters.map((filter) => {
+                const count = projects.filter((project) =>
+                  projectMatchesFilter(project, filter.id)
+                ).length;
+
+                return (
+                  <button
+                    key={filter.id}
+                    className={projectStatusFilter === filter.id ? "active" : ""}
+                    onClick={() => setProjectStatusFilter(filter.id)}
+                  >
+                    {filter.label} <span>{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+
             {projectsLoading && (
               <div className="emptyProjects">
                 <strong>
@@ -2757,11 +2910,13 @@ export default function CreatorPage() {
 
             {!projectsLoading &&
               !projectError &&
-              projects.length ===
+              visibleProjects.length ===
                 0 && (
               <div className="emptyProjects">
                 <strong>
-                  No saved drafts yet
+                  {projects.length === 0
+                    ? "No saved drafts yet"
+                    : "No tours match this filter"}
                 </strong>
 
                 <p>
@@ -2773,7 +2928,7 @@ export default function CreatorPage() {
             )}
 
             {!projectsLoading &&
-              projects.map(
+              visibleProjects.map(
               (project) => {
                 const choice =
                   routeChoices.find(
@@ -2799,6 +2954,16 @@ export default function CreatorPage() {
                         }
                         alt=""
                       />
+                    )}
+
+                    {!project.coverImage?.url && (
+                      <div className="projectCardPlaceholder" aria-label="Tour image placeholder">
+                        <img src="/branding/between-stops-icon.png" alt="" />
+                        <div>
+                          <small>BETWEEN STOPS</small>
+                          <strong>{choice?.label ?? "A new journey"}</strong>
+                        </div>
+                      </div>
                     )}
 
                     <div className="projectCardTop">
@@ -2853,11 +3018,35 @@ export default function CreatorPage() {
                           )
                         }
                       >
-                        {project.status ===
-                        "published"
+                        {project.status === "published"
                           ? "Open tour →"
-                          : "Open draft →"}
+                          : project.status === "paused"
+                            ? "View details →"
+                            : "Open draft →"}
                       </button>
+
+                      {project.status === "published" && (
+                        <button
+                          className="projectPause"
+                          onClick={() => pausePublishedProject(project)}
+                        >
+                          Pause tour
+                        </button>
+                      )}
+
+                      {project.status === "paused" && (
+                        <>
+                          <button onClick={() => restorePausedProject(project)}>
+                            Restore unchanged
+                          </button>
+                          <button
+                            className="projectEdit"
+                            onClick={() => editPausedProject(project)}
+                          >
+                            Edit &amp; resubmit
+                          </button>
+                        </>
+                      )}
 
                       {(project.status ===
                         "draft" ||

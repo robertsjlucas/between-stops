@@ -1,4 +1,4 @@
-.landingPage{min-height:100vh;background:#f4f1e9;color:#171717}
+.landingPage{min-height:100vh;background:#f6f7f4;color:#171717}
 .landingHeader{display:flex;margin:0;padding:18px max(34px,calc((100vw - 1172px)/2));align-items:center;justify-content:space-between;gap:20px;background:#0e0e0e;color:#fff}
 .landingBrand{display:inline-flex;align-items:center;gap:12px;color:inherit;font-size:21px;font-weight:800;letter-spacing:-.04em;text-decoration:none}
 .landingBrand img{width:48px;height:48px;border-radius:12px;box-shadow:0 5px 16px #0005}
@@ -12,7 +12,7 @@
 .primaryLandingButton,.secondaryLandingButton{display:inline-flex;min-height:52px;padding:0 20px;align-items:center;justify-content:center;border-radius:999px;font-size:13px;font-weight:800;text-decoration:none}
 .primaryLandingButton{background:#171717;color:#fff}
 .secondaryLandingButton{border:1px solid #cfc9bd;color:#171717}
-.landingHeroVisual{position:relative;min-height:570px;overflow:hidden;border-radius:150px 150px 28px 28px;background:#242735;box-shadow:0 28px 60px #1616162e}
+.landingHeroVisual{position:relative;min-height:570px;overflow:hidden;border-radius:150px 150px 28px 28px;background:#242735;box-shadow:0 28px 60px #1616162e;clip-path:polygon(9% 0,100% 0,100% 100%,0 100%,0 8%)}
 .landingHeroVisual>img{width:100%;height:570px;object-fit:cover}
 .landingWindowArtwork{display:grid;width:100%;height:570px;place-items:center;background:linear-gradient(145deg,#20222a,#373e71)}
 .landingWindowArtwork img{width:44%;border-radius:22%;box-shadow:0 20px 55px #0004}
@@ -34,9 +34,9 @@
 .landingTourGrid{display:grid;margin-top:40px;grid-template-columns:repeat(3,1fr);gap:18px}
 .landingTourCard{overflow:hidden;border-radius:24px;background:#fff;color:inherit;text-decoration:none;transition:transform .2s ease,box-shadow .2s ease}
 .landingTourCard:hover{transform:translateY(-4px);box-shadow:0 16px 34px #1616161a}
-.landingTourImage{position:relative;aspect-ratio:4/3;overflow:hidden;background:#d8d6d0}
+.landingTourImage{position:relative;aspect-ratio:4/3;overflow:hidden;background:#d8d6d0;clip-path:polygon(8% 0,100% 0,100% 100%,0 100%,0 12%)}
 .landingTourImage>img,.landingTourPlaceholder{width:100%;height:100%;object-fit:cover}
-.landingTourPlaceholder{background:linear-gradient(145deg,#8790d2,#273157)}
+.landingTourPlaceholder{background:#273157 url('/branding/between-stops-icon.png') center/84px 84px no-repeat}
 .landingRouteBadge{position:absolute;top:14px;left:14px;display:inline-flex;padding:8px 10px;align-items:center;gap:7px;border-radius:999px;background:#faf9f5ed;font-size:10px;font-weight:800}
 .landingRouteBadge svg{width:15px;height:15px}
 .landingTourBody{padding:22px}

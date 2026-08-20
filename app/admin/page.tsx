@@ -86,6 +86,7 @@ const statusLabels: Record<
   changes_requested: "Changes requested",
   approved: "Approved",
   published: "Published",
+  paused: "Paused by creator",
   archived: "Archived",
 };
 

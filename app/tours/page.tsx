@@ -2915,6 +2915,10 @@ export default function Home() {
           </div>
 
           <span>Between Stops</span>
+
+          <a className="passengerHeaderLink" href="/login?next=/creator">
+            Guide sign in
+          </a>
         </header>
 
         <section className="hero">
