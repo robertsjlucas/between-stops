@@ -1836,6 +1836,9 @@ export default function Home() {
   }
 
   function prepareExperience() {
+    setDirectionMode("automatic");
+    setDirectionDetecting(false);
+    detectionStartProgress.current = null;
     setLocationCheckStatus(
       location ? "granted" : "idle"
     );
@@ -2449,11 +2452,7 @@ export default function Home() {
       >
         <Link
           className="experienceCardMain"
-          href={
-            option.slug
-              ? `/tours/${option.slug}`
-              : `/tours?tour=${option.experience.id}`
-          }
+          href={`/tours?tour=${option.experience.id}`}
         >
           <div
             className={`experienceImage ${option.visualClass}`}
@@ -2536,7 +2535,9 @@ export default function Home() {
 
               <span>
                 {option.experience.stories.length}{" "}
-                Stories
+                {option.experience.stories.length === 1
+                  ? "Story"
+                  : "Stories"}
               </span>
 
               {transcriptAvailability !== "none" && (
@@ -2645,14 +2646,9 @@ export default function Home() {
         </header>
 
         <section className="hero">
-          <p className="kicker">
-            DISCOVER WHAT&apos;S BETWEEN
-          </p>
-
           <h1>
-            Turn ordinary journeys
-            <br />
-            into experiences.
+            Turn ordinary journeys into
+            extraordinary experiences.
           </h1>
 
           <p className="heroCopy">
@@ -3088,53 +3084,21 @@ export default function Home() {
               <div>
                 <strong>Journey direction</strong>
                 <span>
-                  We can detect this when you start moving.
+                  Automatic
                 </span>
               </div>
-
-              <button
-                className={
-                  directionMode === "automatic"
-                    ? "automaticDirectionButton active"
-                    : "automaticDirectionButton"
-                }
-                onClick={chooseAutomaticDirection}
-              >
-                Automatic
-              </button>
+              <span className="automaticDirectionStatus" aria-hidden="true">
+                ↔
+              </span>
             </div>
-
-            <div className="directionSwitch">
-              <button
-                className={
-                  directionMode === "manual" &&
-                  direction === "forward"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  chooseDirection("forward")
-                }
-              >
-                {experience.startLabel} →{" "}
-                {experience.endLabel}
-              </button>
-
-              <button
-                className={
-                  directionMode === "manual" &&
-                  direction === "reverse"
-                    ? "active"
-                    : ""
-                }
-                onClick={() =>
-                  chooseDirection("reverse")
-                }
-              >
-                {experience.endLabel} →{" "}
-                {experience.startLabel}
-              </button>
-            </div>
+            <p className="automaticDirectionRoute">
+              <span>{experience.startLabel}</span>
+              <strong aria-label="both directions">⇄</strong>
+              <span>{experience.endLabel}</span>
+            </p>
+            <p className="automaticDirectionNote">
+              We&apos;ll detect which way you&apos;re travelling when the journey starts.
+            </p>
           </div>
 
           <div className="offlineDownloadCard">

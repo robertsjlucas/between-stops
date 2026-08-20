@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 function tourHref(option: PublicExperienceOption) {
-  return option.slug ? `/tours/${option.slug}` : `/tours?tour=${option.experience.id}`;
+  return `/tours?tour=${option.experience.id}`;
 }
 
 function TourCard({ option }: { option: PublicExperienceOption }) {
@@ -56,9 +56,8 @@ export default async function LandingPage() {
 
       <section className="landingHero">
         <div className="landingHeroCopy">
-          <p className="landingKicker">PUBLIC TRANSPORT, DIFFERENTLY</p>
-          <h1>The city doesn&apos;t stop at the window.</h1>
-          <p>Between Stops turns ordinary bus and tram journeys into audio tours, revealing the stories, people and places along the route.</p>
+          <h1>Turn ordinary journeys into extraordinary experiences.</h1>
+          <p>Stories, sights and sounds that unfold as you travel through the city.</p>
           <div className="landingActions">
             <Link className="primaryLandingButton" href="/tours">Take me to the tours</Link>
             <a className="secondaryLandingButton" href="#how-it-works">How it works</a>
