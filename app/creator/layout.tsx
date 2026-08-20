@@ -28,7 +28,7 @@ export default async function CreatorLayout({
       .getClaims();
 
   if (!data?.claims?.sub) {
-    redirect("/login");
+    redirect("/login?next=/creator&mode=creator");
   }
 
   return children;

@@ -83,6 +83,7 @@ export const config = {
   matcher: [
     "/creator/:path*",
     "/login",
+    "/reset-password",
     "/auth/:path*",
   ],
 };

@@ -34,6 +34,18 @@
   text-decoration: none;
 }
 
+.loginHeaderBrand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.loginHeaderBrand img {
+  width: 48px;
+  height: 48px;
+  clip-path: inset(2.5% round 22%);
+}
+
 .loginLogo {
   font-size: 22px;
   font-weight: 800;
@@ -147,6 +159,25 @@
   border: 0;
   background: transparent;
   color: #171717;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.loginOptions {
+  display: flex;
+  margin-top: 24px;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.loginOptions button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #444843;
+  font-size: 12px;
   font-weight: 700;
   text-decoration: underline;
   cursor: pointer;

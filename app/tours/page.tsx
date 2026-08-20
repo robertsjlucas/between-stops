@@ -56,6 +56,11 @@ import type {
 } from "@/lib/passenger-reviews";
 
 import {
+  loadAndSyncPassengerFavourites,
+  savePassengerFavourite,
+} from "@/lib/passenger-favourites";
+
+import {
   getDirectionalSide,
   getJourneyProgress,
   getStoriesForJourney,
@@ -395,6 +400,8 @@ export default function Home() {
   ] = useState<Set<string>>(
     new Set()
   );
+
+  const [passengerSignedIn, setPassengerSignedIn] = useState(false);
 
   const [
     locatingNearby,
@@ -766,6 +773,45 @@ export default function Home() {
       audio.removeAttribute("src");
       audio.load();
       audioElementRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const supabase = createClient();
+
+    async function syncAccountFavourites() {
+      const { data } = await supabase.auth.getUser();
+      if (!active || !data.user) return;
+
+      setPassengerSignedIn(true);
+      const saved = localStorage.getItem("between-stops-favourites");
+      let localIds: string[] = [];
+      try {
+        localIds = saved ? JSON.parse(saved) as string[] : [];
+      } catch {
+        localIds = [];
+      }
+
+      try {
+        const syncedIds = await loadAndSyncPassengerFavourites(supabase, localIds);
+        if (!active) return;
+        const syncedSet = new Set(syncedIds);
+        setFavouriteIds(syncedSet);
+        localStorage.setItem("between-stops-favourites", JSON.stringify(syncedIds));
+      } catch {
+        // Local favourites remain available if account syncing is interrupted.
+      }
+    }
+
+    void syncAccountFavourites();
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (active) setPassengerSignedIn(Boolean(session?.user));
+    });
+
+    return () => {
+      active = false;
+      authListener.subscription.unsubscribe();
     };
   }, []);
 
@@ -1940,35 +1986,24 @@ export default function Home() {
   function toggleFavourite(
     experienceId: string
   ) {
-    setFavouriteIds(
-      (current) => {
-        const updated =
-          new Set(current);
+    const updated = new Set(favouriteIds);
+    const willBeFavourite = !updated.has(experienceId);
+    if (willBeFavourite) updated.add(experienceId);
+    else updated.delete(experienceId);
 
-        if (
-          updated.has(
-            experienceId
-          )
-        ) {
-          updated.delete(
-            experienceId
-          );
-        } else {
-          updated.add(
-            experienceId
-          );
-        }
+    setFavouriteIds(updated);
+    localStorage.setItem("between-stops-favourites", JSON.stringify(Array.from(updated)));
 
-        localStorage.setItem(
-          "between-stops-favourites",
-          JSON.stringify(
-            Array.from(updated)
-          )
-        );
+    if (passengerSignedIn) {
+      void savePassengerFavourite(createClient(), experienceId, willBeFavourite).catch(() => {
+        // Keep the immediate local action; account sync will retry next visit.
+      });
+    }
+  }
 
-        return updated;
-      }
-    );
+  async function signOutPassenger() {
+    await createClient().auth.signOut();
+    setPassengerSignedIn(false);
   }
 
   function findNearbyTours() {
@@ -2916,9 +2951,14 @@ export default function Home() {
 
           <span>Between Stops</span>
 
-          <a className="passengerHeaderLink" href="/login?next=/creator">
-            Guide sign in
-          </a>
+          <div className="passengerHeaderActions">
+            {passengerSignedIn ? (
+              <button onClick={signOutPassenger}>Sign out</button>
+            ) : (
+              <a href="/login?next=/tours&mode=passenger">Sign in</a>
+            )}
+            <a href="/login?next=/creator&mode=creator">For guides</a>
+          </div>
         </header>
 
         <section className="hero">
