@@ -95,12 +95,43 @@ type ReviewFilter =
   | "submitted"
   | "approved"
   | "published"
+  | "paused"
   | "changes_requested";
 
 type AdminSection =
   | "approvals"
   | "passenger_reviews"
-  | "destinations";
+  | "destinations"
+  | "operations";
+
+type OperationsMetrics = {
+  creators: number;
+  tours: number;
+  published_tours: number;
+  stories: number;
+  pending_approvals: number;
+  pending_reviews: number;
+  open_reports: number;
+  storage_bytes: number;
+  storage_by_bucket: Record<string, number>;
+};
+
+type PlatformReport = {
+  id: string;
+  report_type: "issue" | "idea" | "error";
+  message: string;
+  page_url: string | null;
+  reporter_email: string | null;
+  status: "new" | "in_progress" | "resolved";
+  created_at: string;
+};
+
+function formatBytes(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 ** 2) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 ** 3) return `${(bytes / 1024 ** 2).toFixed(1)} MB`;
+  return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
+}
 
 type PassengerReviewFilter =
   | "all"
@@ -193,6 +224,10 @@ export default function AdminPage() {
     useState<RecommendationVisibilityFilter>("all");
   const [recommendationSearch, setRecommendationSearch] =
     useState("");
+  const [operationsMetrics, setOperationsMetrics] =
+    useState<OperationsMetrics | null>(null);
+  const [platformReports, setPlatformReports] =
+    useState<PlatformReport[]>([]);
 
   const busRouteStops = useMemo(() => {
     return routeChoices
@@ -241,6 +276,19 @@ export default function AdminPage() {
     const passengerReviewRows =
       await loadAdminPassengerReviews(supabase);
 
+    const [{ data: metricsData, error: metricsError }, { data: reportData, error: reportError }] =
+      await Promise.all([
+        supabase.rpc("get_admin_operations_metrics"),
+        supabase
+          .from("platform_reports")
+          .select("id, report_type, message, page_url, reporter_email, status, created_at")
+          .order("created_at", { ascending: false })
+          .limit(100),
+      ]);
+
+    if (metricsError) throw metricsError;
+    if (reportError) throw reportError;
+
     const {
       data: experienceData,
       error: experienceError,
@@ -275,8 +323,11 @@ export default function AdminPage() {
       throw experienceError;
     }
 
-    const rows =
-      (experienceData ?? []) as ReviewExperience[];
+    const rows = ((experienceData ?? []) as ReviewExperience[]).map((row) =>
+      row.status === "published" && row.visibility === "private"
+        ? { ...row, status: "paused" as ProjectStatus }
+        : row
+    );
     const ownerIds = Array.from(
       new Set(rows.map((row) => row.owner_id))
     );
@@ -332,6 +383,8 @@ export default function AdminPage() {
     setCoverUrls(nextCoverUrls);
     setRecommendations(recommendationRows);
     setPassengerReviews(passengerReviewRows);
+    setOperationsMetrics(metricsData as OperationsMetrics);
+    setPlatformReports((reportData ?? []) as PlatformReport[]);
     setRanks(
       Object.fromEntries(
         rows.map((row) => [
@@ -463,6 +516,24 @@ export default function AdminPage() {
     } finally {
       setBusyId(null);
     }
+  }
+
+  async function setPlatformReportStatus(
+    reportId: string,
+    status: PlatformReport["status"]
+  ) {
+    setBusyId(reportId);
+    const { error: updateError } = await createClient()
+      .from("platform_reports")
+      .update({
+        status,
+        resolved_at: status === "resolved" ? new Date().toISOString() : null,
+      })
+      .eq("id", reportId);
+
+    if (updateError) setError(updateError.message);
+    else await loadQueue();
+    setBusyId(null);
   }
 
   async function removePassengerReview(
@@ -788,14 +859,18 @@ export default function AdminPage() {
             ? "Tour approvals"
             : adminSection === "passenger_reviews"
               ? "Passenger reviews"
-              : "Things to do here"}
+              : adminSection === "destinations"
+                ? "Things to do here"
+                : "Platform operations"}
         </h1>
         <span>
           {adminSection === "approvals"
             ? "Approve the content first, then publish it when it is ready for passengers."
             : adminSection === "passenger_reviews"
               ? "Approve written comments before they appear publicly, or remove abusive submissions entirely."
-              : "Manage the recommendations passengers see when they finish at a destination."}
+              : adminSection === "destinations"
+                ? "Manage the recommendations passengers see when they finish at a destination."
+                : "See platform activity, stored uploads, errors and reports in one place."}
         </span>
       </section>
 
@@ -818,6 +893,12 @@ export default function AdminPage() {
         >
           Destination recommendations
         </button>
+        <button
+          className={adminSection === "operations" ? "active" : ""}
+          onClick={() => setAdminSection("operations")}
+        >
+          Operations
+        </button>
       </div>
 
       {error && <div className="adminError">{error}</div>}
@@ -830,6 +911,7 @@ export default function AdminPage() {
           ["submitted", "Awaiting approval"],
           ["approved", "Approved"],
           ["published", "Published"],
+          ["paused", "Paused by creators"],
           ["changes_requested", "Changes requested"],
           ["all", "All"],
         ] as [ReviewFilter, string][]).map(([value, label]) => (
@@ -1371,6 +1453,55 @@ export default function AdminPage() {
                 );
               })
             )}
+          </div>
+        </section>
+      )}
+
+      {adminSection === "operations" && (
+        <section className="operationsSection">
+          <div className="operationsMetrics">
+            {operationsMetrics && [
+              ["Stored uploads", formatBytes(operationsMetrics.storage_bytes)],
+              ["Creators", operationsMetrics.creators],
+              ["All tours", operationsMetrics.tours],
+              ["Live tours", operationsMetrics.published_tours],
+              ["Stories", operationsMetrics.stories],
+              ["Awaiting approval", operationsMetrics.pending_approvals],
+              ["Reviews awaiting moderation", operationsMetrics.pending_reviews],
+              ["Open reports", operationsMetrics.open_reports],
+            ].map(([label, value]) => (
+              <article key={label}><span>{label}</span><strong>{value}</strong></article>
+            ))}
+          </div>
+
+          {operationsMetrics && Object.keys(operationsMetrics.storage_by_bucket).length > 0 && (
+            <div className="storageBreakdown">
+              <h2>Upload storage by area</h2>
+              {Object.entries(operationsMetrics.storage_by_bucket)
+                .sort((first, second) => second[1] - first[1])
+                .map(([bucket, bytes]) => (
+                  <div key={bucket}><span>{bucket}</span><strong>{formatBytes(bytes)}</strong></div>
+                ))}
+              <p>Allowance varies by Supabase plan. This shows actual files stored, without hard-coding a potentially outdated limit.</p>
+            </div>
+          )}
+
+          <div className="platformReportList">
+            <div className="destinationListHeading"><h2>Issues, ideas and errors</h2><span>{platformReports.length}</span></div>
+            {platformReports.length === 0 ? (
+              <div className="adminEmpty">No reports yet.</div>
+            ) : platformReports.map((report) => (
+              <article className={`platformReportCard report-${report.report_type}`} key={report.id}>
+                <div><span>{report.report_type}</span><b>{report.status.replace("_", " ")}</b></div>
+                <p>{report.message}</p>
+                <small>{new Date(report.created_at).toLocaleString("en-GB")}{report.reporter_email ? ` · ${report.reporter_email}` : ""}</small>
+                {report.page_url && <a href={report.page_url} target="_blank" rel="noreferrer">Open reported page ↗</a>}
+                <div className="platformReportActions">
+                  <button disabled={busyId === report.id} onClick={() => setPlatformReportStatus(report.id, "in_progress")}>In progress</button>
+                  <button disabled={busyId === report.id} onClick={() => setPlatformReportStatus(report.id, "resolved")}>Resolve</button>
+                </div>
+              </article>
+            ))}
           </div>
         </section>
       )}

@@ -106,47 +106,6 @@ export default function PreviewPage() {
         </span>
       </header>
 
-      <section className="previewCardSection">
-        <p className="kicker">CATALOGUE CARD</p>
-        <article className="experienceCard">
-          <div className="experienceCardMain">
-            <div className={`experienceImage ${option.visualClass}`}>
-              {option.coverImageUrl && (
-                <img className="experienceCoverImage" src={option.coverImageUrl} alt="" />
-              )}
-              <div className="imageBadge">
-                <TransportIcon mode={route.mode} />
-                {option.badge}
-              </div>
-            </div>
-            <div className="experienceBody">
-              <p className="routeLabel">
-                {experience.startLabel} <span>⇄</span> {experience.endLabel}
-              </p>
-              <h3>{experience.title}</h3>
-              {option.creator && (
-                <div className="cardCreator">
-                  {option.creator.avatarUrl && <img src={option.creator.avatarUrl} alt="" />}
-                  <span>By {option.creator.displayName}</span>
-                </div>
-              )}
-              <p className="tourCardSummary">{option.summary}</p>
-              <div className="metaRow">
-                <span>{option.transportLabel}</span>
-                <span>{experience.stories.length} Stories</span>
-                <span>About {experience.durationMinutes} mins</span>
-                <span>Approx. {routeDistanceMiles < 10 ? routeDistanceMiles.toFixed(1) : Math.round(routeDistanceMiles)} miles</span>
-                <span>{option.accessType === "free" ? "Free" : "Paid"}</span>
-              </div>
-              <div className="cardFooter">
-                <span>Approx. {experience.durationMinutes} mins</span>
-                <strong>Explore →</strong>
-              </div>
-            </div>
-          </div>
-        </article>
-      </section>
-
       <section className="overviewHero">
         <div className={`overviewArt ${option.visualClass}`}>
           {option.coverImageUrl && (

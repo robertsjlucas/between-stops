@@ -698,23 +698,54 @@
 }
 
 .projectCardActions button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: #171717;
+  padding: 10px 13px;
+  border: 1px solid #cfd3cd;
+  border-radius: 999px;
+  background: #eef0ec;
+  color: #2e322e;
+  font-size: 10px;
   font-weight: 700;
   cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease, transform 160ms ease;
 }
 
-.projectCardActions .projectDelete {
-  color: #a66b64;
-  font-size: 10px;
+.projectCardActions .projectOpen,
+.projectCardActions .projectRestore {
+  border-color: #171717;
+  background: #171717;
+  color: white;
 }
 
 .projectCardActions .projectPause,
-.projectCardActions .projectEdit {
-  color: #8c3f31;
-  font-size: 10px;
+.projectCardActions .projectEdit,
+.projectCardActions .projectDelete {
+  border-color: #e3bdb5;
+  background: #fff1ed;
+  color: #84392c;
+}
+
+@media (hover: hover) {
+  .projectCardActions button:hover,
+  .creatorContinueButton:hover,
+  .newProjectButton:hover,
+  .addStoryButton:hover,
+  .reviewButton:hover,
+  .saveDraftButton:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.18);
+  }
+
+  .projectCardActions .projectOpen:hover,
+  .projectCardActions .projectRestore:hover {
+    background: #3b3b3b;
+  }
+
+  .projectCardActions .projectPause:hover,
+  .projectCardActions .projectEdit:hover,
+  .projectCardActions .projectDelete:hover {
+    border-color: #d39486;
+    background: #f8dcd5;
+  }
 }
 
 .draftStatus.status-paused {

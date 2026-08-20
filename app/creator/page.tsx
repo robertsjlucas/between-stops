@@ -119,6 +119,14 @@ function getProjectStatusLabel(
   return labels[status];
 }
 
+function getActionErrorMessage(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error) {
+    return String(error.message);
+  }
+  return "Unknown error";
+}
+
 function formatAudioDuration(
   seconds?: number
 ) {
@@ -2356,9 +2364,7 @@ export default function CreatorPage() {
       );
     } catch (error) {
       setProjectError(
-        `The tour could not be paused: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `The tour could not be paused: ${getActionErrorMessage(error)}`
       );
     }
   }
@@ -2384,9 +2390,7 @@ export default function CreatorPage() {
       );
     } catch (error) {
       setProjectError(
-        `The tour could not be restored: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `The tour could not be restored: ${getActionErrorMessage(error)}`
       );
     }
   }
@@ -2417,9 +2421,7 @@ export default function CreatorPage() {
       openProject(draftProject);
     } catch (error) {
       setProjectError(
-        `The tour could not be returned to draft: ${
-          error instanceof Error ? error.message : "Unknown error"
-        }`
+        `The tour could not be returned to draft: ${getActionErrorMessage(error)}`
       );
     }
   }
@@ -2813,7 +2815,7 @@ export default function CreatorPage() {
           <div>
             {isAdmin && (
               <a href="/admin">
-                Admin review →
+                Admin →
               </a>
             )}
 
@@ -3012,6 +3014,7 @@ export default function CreatorPage() {
 
                     <div className="projectCardActions">
                       <button
+                        className="projectOpen"
                         onClick={() =>
                           openProject(
                             project
@@ -3036,7 +3039,7 @@ export default function CreatorPage() {
 
                       {project.status === "paused" && (
                         <>
-                          <button onClick={() => restorePausedProject(project)}>
+                          <button className="projectRestore" onClick={() => restorePausedProject(project)}>
                             Restore unchanged
                           </button>
                           <button

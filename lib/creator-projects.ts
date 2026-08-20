@@ -553,7 +553,11 @@ export async function loadCreatorProjects(
               Date.parse(second.created_at) -
               Date.parse(first.created_at)
           )[0]?.note ?? undefined,
-      status: experience.status,
+      status:
+        experience.status === "published" &&
+        experience.visibility === "private"
+          ? "paused"
+          : experience.status,
       updatedAt:
         experience.updated_at,
       stories: (
