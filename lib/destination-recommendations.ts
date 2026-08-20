@@ -36,7 +36,7 @@ export type DestinationRecommendation = {
   title: string;
   category: RecommendationCategory;
   summary: string;
-  url: string;
+  url?: string;
   placementType: RecommendationPlacement;
   displayOrder: number;
   isActive: boolean;
@@ -54,7 +54,7 @@ type DatabaseRecommendation = {
   title: string;
   category: RecommendationCategory;
   summary: string;
-  url: string;
+  url: string | null;
   placement_type: RecommendationPlacement;
   display_order: number;
   is_active: boolean;
@@ -92,7 +92,7 @@ function mapRecommendation(
     title: row.title,
     category: row.category,
     summary: row.summary,
-    url: row.url,
+    url: row.url ?? undefined,
     placementType: row.placement_type,
     displayOrder: row.display_order,
     isActive: row.is_active,

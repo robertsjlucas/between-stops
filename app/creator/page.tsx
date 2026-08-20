@@ -316,6 +316,9 @@ export default function CreatorPage() {
   const draftMarkerRef =
     useRef<Marker | null>(null);
 
+  const placementModeRef =
+    useRef(false);
+
   const [stage, setStage] =
     useState<CreatorStage>("projects");
 
@@ -495,6 +498,9 @@ export default function CreatorPage() {
     placementMode,
     setPlacementMode,
   ] = useState(false);
+
+  const [mapReadyVersion, setMapReadyVersion] =
+    useState(0);
 
   const [
     draftCoordinates,
@@ -1044,6 +1050,10 @@ export default function CreatorPage() {
   */
 
   useEffect(() => {
+    placementModeRef.current = placementMode;
+  }, [placementMode]);
+
+  useEffect(() => {
     const shouldShowMap =
       stage === "route" ||
       stage === "studio";
@@ -1096,6 +1106,13 @@ export default function CreatorPage() {
           },
 
           layers: [
+            {
+              id: "map-background",
+              type: "background",
+              paint: {
+                "background-color": "#e7e4dc",
+              },
+            },
             {
               id: "osm",
               type: "raster",
@@ -1237,78 +1254,6 @@ export default function CreatorPage() {
         );
       }
 
-      if (
-        stage === "studio"
-      ) {
-        stories.forEach(
-          (story) => {
-            const wrapper =
-              document.createElement(
-                "button"
-              );
-
-            wrapper.type =
-              "button";
-
-            wrapper.className =
-              "storyMapPinLabel";
-
-            const dot =
-              document.createElement(
-                "span"
-              );
-
-            dot.className =
-              "storyMapDot";
-
-            dot.innerText = "●";
-
-            const label =
-              document.createElement(
-                "span"
-              );
-
-            label.className =
-              "storyMapLabel";
-
-            label.innerText =
-              story.title;
-
-            wrapper.append(
-              dot,
-              label
-            );
-
-            wrapper.addEventListener(
-              "click",
-              (event) => {
-                event.stopPropagation();
-
-                openStoryForEditing(
-                  story
-                );
-              }
-            );
-
-            const marker =
-              new Marker({
-                element:
-                  wrapper,
-                anchor:
-                  "left",
-              })
-                .setLngLat(
-                  story.subjectCoordinates
-                )
-                .addTo(map);
-
-            storyMarkerRefs.current.push(
-              marker
-            );
-          }
-        );
-      }
-
       if (!bounds.isEmpty()) {
         map.fitBounds(
           bounds,
@@ -1331,6 +1276,8 @@ export default function CreatorPage() {
         },
         150
       );
+
+      setMapReadyVersion((current) => current + 1);
     }
 
     map.once(
@@ -1345,7 +1292,7 @@ export default function CreatorPage() {
         "click",
         (event) => {
           if (
-            !placementMode
+            !placementModeRef.current
           ) {
             return;
           }
@@ -1416,9 +1363,58 @@ export default function CreatorPage() {
     sectionMode,
     selectedStartStop,
     selectedEndStop,
-    stories,
-    placementMode,
   ]);
+
+  useEffect(() => {
+    if (
+      stage !== "studio" ||
+      !mapRef.current ||
+      mapReadyVersion === 0
+    ) {
+      return;
+    }
+
+    const map = mapRef.current;
+    storyMarkerRefs.current.forEach((marker) => marker.remove());
+    storyMarkerRefs.current = [];
+
+    stories.forEach((story) => {
+      const wrapper = document.createElement("button");
+      wrapper.type = "button";
+      wrapper.className = "storyMapPinLabel";
+
+      const dot = document.createElement("span");
+      dot.className = "storyMapDot";
+      dot.innerText = "●";
+
+      const label = document.createElement("span");
+      label.className = "storyMapLabel";
+      label.innerText = story.title;
+      wrapper.append(dot, label);
+
+      wrapper.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openStoryForEditing(story);
+      });
+
+      const marker = new Marker({
+        element: wrapper,
+        anchor: "left",
+      })
+        .setLngLat(story.subjectCoordinates)
+        .addTo(map);
+
+      storyMarkerRefs.current.push(marker);
+    });
+
+    map.resize();
+    map.triggerRepaint();
+
+    return () => {
+      storyMarkerRefs.current.forEach((marker) => marker.remove());
+      storyMarkerRefs.current = [];
+    };
+  }, [stage, stories, mapReadyVersion]);
 
   useEffect(() => {
     if (

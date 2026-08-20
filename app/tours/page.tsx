@@ -2453,6 +2453,29 @@ export default function Home() {
         <Link
           className="experienceCardMain"
           href={`/tours?tour=${option.experience.id}`}
+          onClick={(event) => {
+            if (
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            ) {
+              return;
+            }
+
+            event.preventDefault();
+            setSelectedExperienceId(option.experience.id);
+            setDescriptionExpanded(false);
+            setCreatorBioExpanded(false);
+            setScreen("overview");
+            window.history.pushState(
+              {},
+              "",
+              `/tours?tour=${option.experience.id}`
+            );
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
         >
           <div
             className={`experienceImage ${option.visualClass}`}
@@ -3621,14 +3644,9 @@ export default function Home() {
               </div>
 
               <div className="destinationRecommendationCards">
-                {destinationRecommendations.map((recommendation) => (
-                  <a
-                    href={recommendation.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="destinationRecommendationCard"
-                    key={recommendation.id}
-                  >
+                {destinationRecommendations.map((recommendation) => {
+                  const recommendationContent = (
+                    <>
                     <RecommendationArt
                       category={recommendation.category}
                       imageUrl={recommendation.imageUrl}
@@ -3646,9 +3664,29 @@ export default function Home() {
                     </div>
                     <h3>{recommendation.title}</h3>
                     <p>{recommendation.summary}</p>
-                    <strong>View details ↗</strong>
-                  </a>
-                ))}
+                    {recommendation.url && <strong>View details ↗</strong>}
+                    </>
+                  );
+
+                  return recommendation.url ? (
+                    <a
+                      href={recommendation.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="destinationRecommendationCard"
+                      key={recommendation.id}
+                    >
+                      {recommendationContent}
+                    </a>
+                  ) : (
+                    <article
+                      className="destinationRecommendationCard"
+                      key={recommendation.id}
+                    >
+                      {recommendationContent}
+                    </article>
+                  );
+                })}
               </div>
             </section>
           )}

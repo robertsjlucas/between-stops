@@ -2,6 +2,7 @@
 
 import {
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
@@ -10,6 +11,9 @@ import "./admin.css";
 import {
   TransportIcon,
 } from "@/components/transport-icon";
+import {
+  RecommendationArt,
+} from "@/components/recommendation-art";
 import {
   routeChoices,
   routesById,
@@ -101,6 +105,15 @@ type PassengerReviewFilter =
   | "all"
   | PassengerReviewStatus;
 
+type RecommendationVisibilityFilter =
+  | "all"
+  | "visible"
+  | "hidden";
+
+function normaliseDestinationName(value: string) {
+  return value.trim().toLocaleLowerCase("en-GB");
+}
+
 export default function AdminPage() {
   const [experiences, setExperiences] =
     useState<ReviewExperience[]>([]);
@@ -152,6 +165,37 @@ export default function AdminPage() {
     useState(true);
   const [pendingRecommendationPhoto, setPendingRecommendationPhoto] =
     useState<File | null>(null);
+  const [recommendationDestinationFilter, setRecommendationDestinationFilter] =
+    useState("all");
+  const [recommendationCategoryFilter, setRecommendationCategoryFilter] =
+    useState<"all" | RecommendationCategory>("all");
+  const [recommendationVisibilityFilter, setRecommendationVisibilityFilter] =
+    useState<RecommendationVisibilityFilter>("all");
+  const [recommendationSearch, setRecommendationSearch] =
+    useState("");
+
+  const busRoutesByDestination = useMemo(() => {
+    const result = new Map<string, string[]>();
+
+    routeChoices
+      .filter((choice) => choice.route.mode === "bus")
+      .forEach((choice) => {
+        const routeLabel = choice.route.number ?? choice.label;
+        const seenOnRoute = new Set<string>();
+
+        (choice.route.stops ?? []).forEach((stop) => {
+          const key = normaliseDestinationName(stop.name);
+          if (!key || seenOnRoute.has(key)) return;
+          seenOnRoute.add(key);
+          const current = result.get(key) ?? [];
+          if (!current.includes(routeLabel)) {
+            result.set(key, [...current, routeLabel]);
+          }
+        });
+      });
+
+    return result;
+  }, []);
 
   async function loadQueue() {
     const supabase = createClient();
@@ -458,7 +502,7 @@ export default function AdminPage() {
     setRecommendationTitle(recommendation.title);
     setRecommendationCategory(recommendation.category);
     setRecommendationSummary(recommendation.summary);
-    setRecommendationUrl(recommendation.url);
+    setRecommendationUrl(recommendation.url ?? "");
     setRecommendationPlacement(recommendation.placementType);
     setRecommendationOrder(String(recommendation.displayOrder));
     setRecommendationActive(recommendation.isActive);
@@ -481,19 +525,21 @@ export default function AdminPage() {
       return;
     }
 
-    if (!title || !summary || !url) {
-      window.alert("Add a name, category, description and link.");
+    if (!title || !summary) {
+      window.alert("Add a name, category and description.");
       return;
     }
 
-    try {
-      const parsedUrl = new URL(url);
-      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
-        throw new Error("Unsupported link");
+    if (url) {
+      try {
+        const parsedUrl = new URL(url);
+        if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+          throw new Error("Unsupported link");
+        }
+      } catch {
+        window.alert("Add a complete web link beginning with https://, or leave it blank.");
+        return;
       }
-    } catch {
-      window.alert("Add a complete web link beginning with https://");
-      return;
     }
 
     if (!Number.isFinite(displayOrder) || displayOrder < 1) {
@@ -534,7 +580,7 @@ export default function AdminPage() {
           title,
           category,
           summary,
-          url,
+          url: url || null,
           placement_type: recommendationPlacement,
           display_order: displayOrder,
           is_active: recommendationActive,
@@ -674,6 +720,43 @@ export default function AdminPage() {
     routesById[recommendationRouteId];
   const recommendationStops =
     recommendationRoute?.stops ?? [];
+  const recommendationDestinationOptions = Array.from(
+    new Set(
+      recommendations
+        .map((recommendation) => {
+          const itemRoute = routesById[recommendation.routeId];
+          return itemRoute?.stops?.find(
+            (stop) => stop.id === recommendation.stopId
+          )?.name;
+        })
+        .filter((name): name is string => Boolean(name))
+    )
+  ).sort((first, second) => first.localeCompare(second, "en-GB"));
+  const visibleRecommendations = recommendations.filter((recommendation) => {
+    const itemRoute = routesById[recommendation.routeId];
+    const itemStop = itemRoute?.stops?.find(
+      (stop) => stop.id === recommendation.stopId
+    );
+    const destinationMatches =
+      recommendationDestinationFilter === "all" ||
+      itemStop?.name === recommendationDestinationFilter;
+    const categoryMatches =
+      recommendationCategoryFilter === "all" ||
+      recommendation.category === recommendationCategoryFilter;
+    const visibilityMatches =
+      recommendationVisibilityFilter === "all" ||
+      (recommendationVisibilityFilter === "visible"
+        ? recommendation.isActive
+        : !recommendation.isActive);
+    const search = recommendationSearch.trim().toLocaleLowerCase("en-GB");
+    const searchMatches =
+      !search ||
+      recommendation.title.toLocaleLowerCase("en-GB").includes(search) ||
+      recommendation.summary.toLocaleLowerCase("en-GB").includes(search) ||
+      Boolean(itemStop?.name.toLocaleLowerCase("en-GB").includes(search));
+
+    return destinationMatches && categoryMatches && visibilityMatches && searchMatches;
+  });
 
   return (
     <main className="adminShell">
@@ -1029,7 +1112,9 @@ export default function AdminPage() {
               maxLength={300}
             />
 
-            <label htmlFor="recommendation-url">Web link</label>
+            <label htmlFor="recommendation-url">
+              Web link <span>Optional</span>
+            </label>
             <input
               id="recommendation-url"
               type="url"
@@ -1128,19 +1213,64 @@ export default function AdminPage() {
           <div className="destinationRecommendationList">
             <div className="destinationListHeading">
               <h2>Current recommendations</h2>
-              <span>{recommendations.length}</span>
+              <span>{visibleRecommendations.length}</span>
+            </div>
+
+            <div className="destinationFilters">
+              <input
+                value={recommendationSearch}
+                onChange={(event) => setRecommendationSearch(event.target.value)}
+                placeholder="Search recommendations"
+                aria-label="Search recommendations"
+              />
+              <select
+                value={recommendationDestinationFilter}
+                onChange={(event) => setRecommendationDestinationFilter(event.target.value)}
+                aria-label="Filter by destination"
+              >
+                <option value="all">All destinations</option>
+                {recommendationDestinationOptions.map((destination) => (
+                  <option key={destination} value={destination}>{destination}</option>
+                ))}
+              </select>
+              <select
+                value={recommendationCategoryFilter}
+                onChange={(event) => setRecommendationCategoryFilter(event.target.value as "all" | RecommendationCategory)}
+                aria-label="Filter by category"
+              >
+                <option value="all">All categories</option>
+                {recommendationCategories.map(([value, label]) => (
+                  <option key={value} value={value}>{label}</option>
+                ))}
+              </select>
+              <select
+                value={recommendationVisibilityFilter}
+                onChange={(event) => setRecommendationVisibilityFilter(event.target.value as RecommendationVisibilityFilter)}
+                aria-label="Filter by visibility"
+              >
+                <option value="all">All visibility</option>
+                <option value="visible">Visible</option>
+                <option value="hidden">Hidden</option>
+              </select>
             </div>
 
             {loading ? (
               <div className="adminEmpty">Loading recommendations…</div>
             ) : recommendations.length === 0 ? (
               <div className="adminEmpty">No destination recommendations yet.</div>
+            ) : visibleRecommendations.length === 0 ? (
+              <div className="adminEmpty">No recommendations match these filters.</div>
             ) : (
-              recommendations.map((recommendation) => {
+              visibleRecommendations.map((recommendation) => {
                 const itemRoute = routesById[recommendation.routeId];
                 const itemStop = itemRoute?.stops?.find(
                   (stop) => stop.id === recommendation.stopId
                 );
+                const servingBusRoutes = itemStop
+                  ? busRoutesByDestination.get(
+                      normaliseDestinationName(itemStop.name)
+                    ) ?? []
+                  : [];
                 const busy = busyId === recommendation.id;
 
                 return (
@@ -1152,39 +1282,64 @@ export default function AdminPage() {
                     }
                     key={recommendation.id}
                   >
-                    <div className="destinationAdminMeta">
-                      <span>
-                        {recommendationCategories.find(
-                          ([value]) => value === recommendation.category
-                        )?.[1] ?? "Attraction"}
-                      </span>
-                      {recommendation.placementType === "sponsored" && (
-                        <b>Sponsored</b>
-                      )}
-                      {!recommendation.isActive && <b>Hidden</b>}
-                    </div>
-                    <h3>{recommendation.title}</h3>
-                    <p>{recommendation.summary}</p>
-                    <small>
-                      {itemRoute?.number ?? itemRoute?.name ?? recommendation.routeId}
-                      {" · "}
-                      {itemStop?.name ?? recommendation.stopId}
-                      {" · order "}
-                      {recommendation.displayOrder}
-                    </small>
-                    <a href={recommendation.url} target="_blank" rel="noreferrer">
-                      Open link ↗
-                    </a>
-                    <div className="destinationCardActions">
-                      <button disabled={busy} onClick={() => editRecommendation(recommendation)}>
-                        Edit
-                      </button>
-                      <button disabled={busy} onClick={() => setRecommendationVisibility(recommendation)}>
-                        {recommendation.isActive ? "Hide" : "Show"}
-                      </button>
-                      <button className="danger" disabled={busy} onClick={() => deleteRecommendation(recommendation)}>
-                        Delete
-                      </button>
+                    <div className="destinationAdminCardLayout">
+                      <div className="destinationAdminArtwork">
+                        <RecommendationArt
+                          category={recommendation.category}
+                          imageUrl={recommendation.imageUrl}
+                          title={recommendation.title}
+                        />
+                      </div>
+                      <div className="destinationAdminCardContent">
+                        <div className="destinationAdminMeta">
+                          <span>
+                            {recommendationCategories.find(
+                              ([value]) => value === recommendation.category
+                            )?.[1] ?? "Attraction"}
+                          </span>
+                          {recommendation.placementType === "sponsored" && (
+                            <b>Sponsored</b>
+                          )}
+                          {!recommendation.isActive && <b>Hidden</b>}
+                        </div>
+                        <h3>{recommendation.title}</h3>
+                        <p>{recommendation.summary}</p>
+                        <small>
+                          {itemRoute?.number ?? itemRoute?.name ?? recommendation.routeId}
+                          {" · "}
+                          {itemStop?.name ?? recommendation.stopId}
+                          {" · order "}
+                          {recommendation.displayOrder}
+                        </small>
+                        {servingBusRoutes.length > 0 && (
+                          <div className="destinationRouteCoverage">
+                            <strong>
+                              {servingBusRoutes.length} bus {servingBusRoutes.length === 1 ? "route" : "routes"} serve this destination
+                            </strong>
+                            <div>
+                              {servingBusRoutes.map((routeLabel) => (
+                                <span key={routeLabel}>{routeLabel}</span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {recommendation.url && (
+                          <a href={recommendation.url} target="_blank" rel="noreferrer">
+                            Open link ↗
+                          </a>
+                        )}
+                        <div className="destinationCardActions">
+                          <button disabled={busy} onClick={() => editRecommendation(recommendation)}>
+                            Edit
+                          </button>
+                          <button disabled={busy} onClick={() => setRecommendationVisibility(recommendation)}>
+                            {recommendation.isActive ? "Hide" : "Show"}
+                          </button>
+                          <button className="danger" disabled={busy} onClick={() => deleteRecommendation(recommendation)}>
+                            Delete
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </article>
                 );
