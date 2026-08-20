@@ -430,10 +430,15 @@
 }
 
 .routeLegend,
-.storyLegend {
+.storyLegend,
+.stopLegend {
   display: flex;
   align-items: center;
   gap: 7px;
+}
+
+.stopLegend b {
+  color: #7379bd;
 }
 
 .routeLegend i {
@@ -1428,6 +1433,24 @@
 }
 
 /* MAP LABELS */
+
+.creatorStopMapMarker {
+  width: 12px;
+  height: 12px;
+  padding: 0;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #7379bd;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.3);
+  cursor: help;
+}
+
+.creatorStopMapMarker.endpoint {
+  width: 18px;
+  height: 18px;
+  border: 3px solid white;
+  background: #171717;
+}
 
 .storyMapPinLabel {
   display: flex;

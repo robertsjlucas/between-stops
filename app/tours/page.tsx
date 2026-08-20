@@ -110,6 +110,8 @@ type DiagnosticEventType =
   | "audio_finished"
   | "audio_blocked"
   | "media_error"
+  | "story_skipped"
+  | "brand_announcement"
   | "journey_completed"
   | "journey_interrupted"
   | "journey_resumed"
@@ -159,6 +161,8 @@ type LocationData = {
   latitude: number;
   longitude: number;
   accuracy: number;
+  speed: number | null;
+  capturedAt: number;
 };
 
 type MarkedSpot = {
@@ -504,9 +508,22 @@ export default function Home() {
 
   const audioElementRef = useRef<HTMLAudioElement | null>(null);
   const audioTestTimerRef = useRef<number | null>(null);
+  const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
+  const resumeAfterTimestampRef = useRef<number | null>(null);
+  const finalAnnouncementPlayedRef = useRef(false);
+  const previousMotionReadingRef = useRef<{
+    routeProgress: number;
+    capturedAt: number;
+  } | null>(null);
 
   const previousRouteStatus = useRef<RouteMatchStatus | null>(null);
   const previousStoryId = useRef<string | null>(null);
+  const [pageHidden, setPageHidden] = useState(false);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
+  const [vehicleMoving, setVehicleMoving] =
+    useState(false);
+  const [brandAnnouncement, setBrandAnnouncement] =
+    useState<"welcome" | "final" | null>(null);
 
   const [markedSpots, setMarkedSpots] =
     useState<MarkedSpot[]>([]);
@@ -633,6 +650,31 @@ export default function Home() {
     selectedOption.startStopId,
   ]);
 
+  const finalAnnouncementJourneyProgress = useMemo(() => {
+    const sectionStops = (route.stops ?? [])
+      .filter((stop) =>
+        isInsideExperienceSection(stop.routeProgress, experience)
+      )
+      .map((stop) => ({
+        ...stop,
+        journeyProgress: getJourneyProgress(
+          stop.routeProgress,
+          experience,
+          direction
+        ),
+      }))
+      .sort(
+        (first, second) =>
+          first.journeyProgress - second.journeyProgress
+      );
+
+    if (sectionStops.length < 2) return 90;
+    return Math.min(
+      96,
+      sectionStops[sectionStops.length - 2].journeyProgress + 0.6
+    );
+  }, [direction, experience, route.stops]);
+
   useEffect(() => {
     let active = true;
 
@@ -726,6 +768,50 @@ export default function Home() {
       audioElementRef.current = null;
     };
   }, []);
+
+  useEffect(() => {
+    if (screen !== "journey") {
+      void wakeLockRef.current?.release().catch(() => undefined);
+      wakeLockRef.current = null;
+      setWakeLockActive(false);
+      return;
+    }
+
+    void requestJourneyWakeLock();
+
+    const handleVisibilityChange = () => {
+      const hidden = document.visibilityState !== "visible";
+      setPageHidden(hidden);
+
+      if (hidden) {
+        const audio = audioElementRef.current;
+        audio?.pause();
+        if (audio) {
+          audio.currentTime = 0;
+        }
+        window.speechSynthesis?.cancel();
+        setBrandAnnouncement(null);
+        setAudioQueueIds([]);
+        setActiveAudioStoryId(null);
+        setAudioPlaybackStatus("idle");
+        resumeAfterTimestampRef.current = Date.now();
+        void wakeLockRef.current?.release().catch(() => undefined);
+        wakeLockRef.current = null;
+        setWakeLockActive(false);
+      } else {
+        void requestJourneyWakeLock();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      void wakeLockRef.current?.release().catch(() => undefined);
+      wakeLockRef.current = null;
+      setWakeLockActive(false);
+    };
+  }, [screen]);
 
   useEffect(() => {
     let isActive = true;
@@ -1046,6 +1132,8 @@ export default function Home() {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             accuracy: position.coords.accuracy,
+            speed: position.coords.speed,
+            capturedAt: position.timestamp || Date.now(),
           });
 
           setError("");
@@ -1176,6 +1264,45 @@ export default function Home() {
         ? 140
         : 20
     : location?.accuracy ?? null;
+
+  useEffect(() => {
+    if (!routeMatch) {
+      setVehicleMoving(false);
+      return;
+    }
+
+    if (simulatorEnabled) {
+      setVehicleMoving(true);
+      return;
+    }
+
+    if (!location) {
+      setVehicleMoving(false);
+      return;
+    }
+
+    const previous = previousMotionReadingRef.current;
+    const seconds = previous
+      ? Math.max(0.25, (location.capturedAt - previous.capturedAt) / 1000)
+      : 0;
+    const calculatedSpeed = previous
+      ? (Math.abs(routeMatch.routeProgress - previous.routeProgress) /
+          100) *
+        routeLengthKm *
+        1000 /
+        seconds
+      : 0;
+    const measuredSpeed =
+      typeof location.speed === "number" && Number.isFinite(location.speed)
+        ? location.speed
+        : calculatedSpeed;
+
+    setVehicleMoving(measuredSpeed >= 1.1);
+    previousMotionReadingRef.current = {
+      routeProgress: routeMatch.routeProgress,
+      capturedAt: location.capturedAt,
+    };
+  }, [location, routeLengthKm, routeMatch, simulatorEnabled]);
 
   useEffect(() => {
     if (!routeMatch) return;
@@ -1547,6 +1674,8 @@ export default function Home() {
   useEffect(() => {
     if (
       screen !== "journey" ||
+      pageHidden ||
+      brandAnnouncement !== null ||
       activeAudioStoryId ||
       audioQueueIds.length === 0
     ) {
@@ -1560,6 +1689,8 @@ export default function Home() {
   }, [
     activeAudioStoryId,
     audioQueueIds,
+    brandAnnouncement,
+    pageHidden,
     playStoryAudio,
     screen,
   ]);
@@ -1567,9 +1698,44 @@ export default function Home() {
   useEffect(() => {
     if (
       screen !== "journey" ||
+      pageHidden ||
       activeJourneyExperienceId !== experience.id ||
       routeMatch?.status !== "GOOD"
     ) {
+      return;
+    }
+
+    if (resumeAfterTimestampRef.current !== null) {
+      if (
+        !simulatorEnabled &&
+        (!location ||
+          location.capturedAt <= resumeAfterTimestampRef.current)
+      ) {
+        return;
+      }
+
+      const passedStoryIds = journeyStories
+        .filter(
+          (story) =>
+            journeyProgress >= story.triggerJourneyProgress
+        )
+        .map((story) => story.id);
+
+      setTriggeredStoryIds((current) => [
+        ...current,
+        ...passedStoryIds.filter((storyId) => !current.includes(storyId)),
+      ]);
+      setAudioQueueIds([]);
+      resumeAfterTimestampRef.current = null;
+      recordDiagnostic(
+        "story_skipped",
+        "Returned to the tour after using another screen. Passed Stories were skipped to prevent an audio backlog.",
+        { journeyProgress, routeProgress: routeMatch.routeProgress }
+      );
+      return;
+    }
+
+    if (!vehicleMoving) {
       return;
     }
 
@@ -1630,10 +1796,43 @@ export default function Home() {
     experience.id,
     journeyProgress,
     journeyStories,
+    location,
+    pageHidden,
     recordDiagnostic,
     routeMatch,
     screen,
+    simulatorEnabled,
     triggeredStoryIds,
+    vehicleMoving,
+  ]);
+
+  useEffect(() => {
+    if (
+      screen !== "journey" ||
+      journeyCompleted ||
+      pageHidden ||
+      finalAnnouncementPlayedRef.current ||
+      journeyProgress < finalAnnouncementJourneyProgress ||
+      !vehicleMoving ||
+      brandAnnouncement !== null ||
+      activeAudioStoryId ||
+      audioQueueIds.length > 0
+    ) {
+      return;
+    }
+
+    finalAnnouncementPlayedRef.current = true;
+    playBrandAnnouncement("final");
+  }, [
+    activeAudioStoryId,
+    audioQueueIds.length,
+    brandAnnouncement,
+    finalAnnouncementJourneyProgress,
+    journeyCompleted,
+    journeyProgress,
+    pageHidden,
+    screen,
+    vehicleMoving,
   ]);
 
   useEffect(() => {
@@ -1791,6 +1990,8 @@ export default function Home() {
             position.coords.longitude,
           accuracy:
             position.coords.accuracy,
+          speed: position.coords.speed,
+          capturedAt: position.timestamp || Date.now(),
         });
         setCatalogueError("");
         setLocatingNearby(false);
@@ -1943,6 +2144,51 @@ export default function Home() {
     }
   }
 
+  async function requestJourneyWakeLock() {
+    type WakeLockNavigator = Navigator & {
+      wakeLock?: {
+        request: (type: "screen") => Promise<{
+          release: () => Promise<void>;
+        }>;
+      };
+    };
+
+    try {
+      const wakeLock = (navigator as WakeLockNavigator).wakeLock;
+      if (!wakeLock || document.visibilityState !== "visible") return;
+      wakeLockRef.current = await wakeLock.request("screen");
+      setWakeLockActive(true);
+    } catch {
+      wakeLockRef.current = null;
+      setWakeLockActive(false);
+    }
+  }
+
+  function playBrandAnnouncement(kind: "welcome" | "final") {
+    if (!("speechSynthesis" in window)) return;
+
+    const message =
+      kind === "welcome"
+        ? "Welcome to Between Stops. Keep this screen open and your phone unlocked so each story can arrive at the right moment."
+        : "Your stop is next. When you arrive, take a look at the recommendations on screen for things to do nearby.";
+    const utterance = new SpeechSynthesisUtterance(message);
+    utterance.rate = 0.94;
+    utterance.pitch = 1;
+    utterance.onend = () => setBrandAnnouncement(null);
+    utterance.onerror = () => setBrandAnnouncement(null);
+
+    window.speechSynthesis.cancel();
+    setBrandAnnouncement(kind);
+    recordDiagnostic(
+      "brand_announcement",
+      kind === "welcome"
+        ? "Played the Between Stops welcome."
+        : "Played the Between Stops final-stop reminder.",
+      { journeyProgress }
+    );
+    window.speechSynthesis.speak(utterance);
+  }
+
   function requestPreflightLocation() {
     if (!navigator.geolocation) {
       setLocationCheckStatus("denied");
@@ -1961,6 +2207,8 @@ export default function Home() {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
           accuracy: position.coords.accuracy,
+          speed: position.coords.speed,
+          capturedAt: position.timestamp || Date.now(),
         });
         setLocationCheckStatus("granted");
       },
@@ -1977,9 +2225,6 @@ export default function Home() {
   }
 
   async function testJourneyAudio() {
-    const sampleStory = journeyStories.find(
-      (story) => story.audioUrl
-    );
     const audio = audioElementRef.current;
 
     if (audioTestTimerRef.current !== null) {
@@ -1987,39 +2232,38 @@ export default function Home() {
       audioTestTimerRef.current = null;
     }
 
-    if (!sampleStory?.audioUrl || !audio) {
-      if ("speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.speak(
-          new SpeechSynthesisUtterance(
-            "Between Stops audio is ready."
-          )
-        );
-        setAudioTestStatus("ready");
-      } else {
-        setAudioTestStatus("error");
-      }
-      return;
-    }
-
-    audio.pause();
-    audio.onended = () => setAudioTestStatus("ready");
-    audio.onerror = () => setAudioTestStatus("error");
-    audio.src = sampleStory.audioUrl;
-    audio.currentTime = 0;
-    audio.load();
+    audio?.pause();
+    window.speechSynthesis?.cancel();
     setAudioTestStatus("testing");
 
     try {
-      await audio.play();
+      const context = new AudioContext();
+      const gain = context.createGain();
+      gain.gain.setValueAtTime(0.0001, context.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.18, context.currentTime + 0.03);
+      gain.gain.setValueAtTime(0.18, context.currentTime + 0.5);
+      gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.62);
+      gain.connect(context.destination);
+
+      const firstTone = context.createOscillator();
+      firstTone.frequency.value = 523.25;
+      firstTone.connect(gain);
+      firstTone.start(context.currentTime);
+      firstTone.stop(context.currentTime + 0.24);
+
+      const secondTone = context.createOscillator();
+      secondTone.frequency.value = 659.25;
+      secondTone.connect(gain);
+      secondTone.start(context.currentTime + 0.3);
+      secondTone.stop(context.currentTime + 0.62);
+
       audioTestTimerRef.current = window.setTimeout(
         () => {
-          audio.pause();
-          audio.currentTime = 0;
+          void context.close();
           setAudioTestStatus("ready");
           audioTestTimerRef.current = null;
         },
-        3500
+        750
       );
     } catch {
       setAudioTestStatus("error");
@@ -2042,6 +2286,10 @@ export default function Home() {
     detectionStartProgress.current = null;
     previousRouteStatus.current = null;
     previousStoryId.current = null;
+    previousMotionReadingRef.current = null;
+    resumeAfterTimestampRef.current = null;
+    finalAnnouncementPlayedRef.current = false;
+    setPageHidden(false);
     setDirectionDetecting(
       directionMode === "automatic"
     );
@@ -2064,6 +2312,7 @@ export default function Home() {
     setSimulatorProgress(0);
     setWatching(!simulatorEnabled);
     setScreen("journey");
+    playBrandAnnouncement("welcome");
   }
 
   function pauseJourneyAudioForNavigation() {
@@ -3411,6 +3660,16 @@ export default function Home() {
               </p>
             </div>
           </article>
+
+          <article className="preflightCard keepOpenCard">
+            <span className="preflightIcon">▣</span>
+            <div>
+              <h2>Keep Between Stops open</h2>
+              <p>
+                Keep this page on screen and your phone unlocked throughout the journey. Switching apps or locking your phone can pause location and audio. If that happens, passed Stories will be skipped rather than played as a backlog.
+              </p>
+            </div>
+          </article>
         </section>
 
         {error && (
@@ -3538,6 +3797,68 @@ export default function Home() {
             progressing once you&apos;re near
             the expected route.
           </span>
+        </div>
+      )}
+
+      {!journeyCompleted && (
+        <section className="liveJourneyTimeline">
+          <div className="liveJourneyHeading">
+            <div>
+              <p className="kicker">YOUR JOURNEY</p>
+              <strong>{directionStart} ⇄ {directionEnd}</strong>
+            </div>
+            <span>{Math.round(journeyProgress)}%</span>
+          </div>
+
+          <div className="liveJourneyTrack" aria-hidden="true">
+            <i style={{ width: `${Math.min(100, journeyProgress)}%` }} />
+          </div>
+
+          <ol>
+            {journeyStories.map((story, storyIndex) => {
+              const status =
+                storyIndex < currentStoryIndex
+                  ? "passed"
+                  : storyIndex === currentStoryIndex
+                    ? "current"
+                    : "upcoming";
+
+              return (
+                <li className={status} key={story.id}>
+                  <span>{status === "passed" ? "✓" : storyIndex + 1}</span>
+                  <div>
+                    <strong>{story.title}</strong>
+                    <small>
+                      {status === "passed"
+                        ? "Passed"
+                        : status === "current"
+                          ? activeAudioStoryId === story.id
+                            ? "Playing now"
+                            : "Current Story"
+                          : "Coming up"}
+                    </small>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+
+          <small className="journeyScreenStatus">
+            {wakeLockActive
+              ? "Screen kept awake while this page remains visible"
+              : "Keep this page visible and your phone unlocked"}
+          </small>
+        </section>
+      )}
+
+      {brandAnnouncement && (
+        <div className="brandAnnouncementBanner" role="status">
+          <span>Between Stops</span>
+          <strong>
+            {brandAnnouncement === "welcome"
+              ? "Welcome and journey guidance"
+              : "Your stop is next"}
+          </strong>
         </div>
       )}
 

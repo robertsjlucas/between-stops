@@ -319,6 +319,13 @@ export default function CreatorPage() {
   const placementModeRef =
     useRef(false);
 
+  const mapViewRef = useRef<{
+    routeId: string;
+    stage: CreatorStage;
+    center: Coordinates;
+    zoom: number;
+  } | null>(null);
+
   const [stage, setStage] =
     useState<CreatorStage>("projects");
 
@@ -1082,6 +1089,12 @@ export default function CreatorPage() {
     storyMarkerRefs.current = [];
     draftMarkerRef.current = null;
 
+    const preservedView =
+      mapViewRef.current?.routeId === route.id &&
+      mapViewRef.current.stage === stage
+        ? mapViewRef.current
+        : null;
+
     const map =
       new Map({
         container:
@@ -1121,12 +1134,9 @@ export default function CreatorPage() {
           ],
         },
 
-        center: [
-          -3.22,
-          55.95,
-        ],
+        center: preservedView?.center ?? [-3.22, 55.95],
 
-        zoom: 11,
+        zoom: preservedView?.zoom ?? 11,
       });
 
     mapRef.current = map;
@@ -1137,6 +1147,18 @@ export default function CreatorPage() {
       }),
       "top-right"
     );
+
+    map.doubleClickZoom.disable();
+
+    map.on("moveend", () => {
+      const center = map.getCenter();
+      mapViewRef.current = {
+        routeId: route.id,
+        stage,
+        center: [center.lng, center.lat],
+        zoom: map.getZoom(),
+      };
+    });
 
     function drawMap() {
       map.addSource(
@@ -1229,32 +1251,35 @@ export default function CreatorPage() {
         }
       );
 
-      if (
-        selectedStartStop &&
-        selectedEndStop
-      ) {
-        routeMarkerRefs.current.push(
-          new Marker({
-            color: "#171717",
-          })
-            .setLngLat(
-              selectedStartStop
-                .coordinates
-            )
-            .addTo(map),
+      practicalStops
+        .filter(
+          (stop) =>
+            stop.routeProgress >= sectionLowProgress &&
+            stop.routeProgress <= sectionHighProgress
+        )
+        .forEach((stop) => {
+          const element = document.createElement("button");
+          const isEndpoint =
+            stop.id === selectedStartStop?.id ||
+            stop.id === selectedEndStop?.id;
+          element.type = "button";
+          element.className = isEndpoint
+            ? "creatorStopMapMarker endpoint"
+            : "creatorStopMapMarker";
+          element.title = stop.name;
+          element.setAttribute("aria-label", `Stop: ${stop.name}`);
 
-          new Marker({
-            color: "#171717",
+          const marker = new Marker({
+            element,
+            anchor: "center",
           })
-            .setLngLat(
-              selectedEndStop
-                .coordinates
-            )
-            .addTo(map)
-        );
-      }
+            .setLngLat(stop.coordinates)
+            .addTo(map);
 
-      if (!bounds.isEmpty()) {
+          routeMarkerRefs.current.push(marker);
+        });
+
+      if (!bounds.isEmpty() && !preservedView) {
         map.fitBounds(
           bounds,
           {
@@ -4331,6 +4356,11 @@ export default function CreatorPage() {
                 <span className="storyLegend">
                   <b>●</b>
                   Story subject
+                </span>
+
+                <span className="stopLegend">
+                  <b>●</b>
+                  Route stop
                 </span>
               </div>
 

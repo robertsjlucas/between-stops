@@ -114,6 +114,25 @@ function normaliseDestinationName(value: string) {
   return value.trim().toLocaleLowerCase("en-GB");
 }
 
+function distanceBetweenStopsMetres(
+  first: [number, number],
+  second: [number, number]
+) {
+  const earthRadiusMetres = 6371000;
+  const toRadians = (value: number) => (value * Math.PI) / 180;
+  const latitudeDifference = toRadians(second[1] - first[1]);
+  const longitudeDifference = toRadians(second[0] - first[0]);
+  const firstLatitude = toRadians(first[1]);
+  const secondLatitude = toRadians(second[1]);
+  const calculation =
+    Math.sin(latitudeDifference / 2) ** 2 +
+    Math.cos(firstLatitude) *
+      Math.cos(secondLatitude) *
+      Math.sin(longitudeDifference / 2) ** 2;
+
+  return 2 * earthRadiusMetres * Math.asin(Math.sqrt(calculation));
+}
+
 export default function AdminPage() {
   const [experiences, setExperiences] =
     useState<ReviewExperience[]>([]);
@@ -174,27 +193,16 @@ export default function AdminPage() {
   const [recommendationSearch, setRecommendationSearch] =
     useState("");
 
-  const busRoutesByDestination = useMemo(() => {
-    const result = new Map<string, string[]>();
-
-    routeChoices
+  const busRouteStops = useMemo(() => {
+    return routeChoices
       .filter((choice) => choice.route.mode === "bus")
-      .forEach((choice) => {
-        const routeLabel = choice.route.number ?? choice.label;
-        const seenOnRoute = new Set<string>();
-
-        (choice.route.stops ?? []).forEach((stop) => {
-          const key = normaliseDestinationName(stop.name);
-          if (!key || seenOnRoute.has(key)) return;
-          seenOnRoute.add(key);
-          const current = result.get(key) ?? [];
-          if (!current.includes(routeLabel)) {
-            result.set(key, [...current, routeLabel]);
-          }
-        });
-      });
-
-    return result;
+      .flatMap((choice) =>
+        (choice.route.stops ?? []).map((stop) => ({
+          routeLabel: choice.route.number ?? choice.label,
+          stopName: stop.name,
+          coordinates: stop.coordinates,
+        }))
+      );
   }, []);
 
   async function loadQueue() {
@@ -1267,9 +1275,26 @@ export default function AdminPage() {
                   (stop) => stop.id === recommendation.stopId
                 );
                 const servingBusRoutes = itemStop
-                  ? busRoutesByDestination.get(
-                      normaliseDestinationName(itemStop.name)
-                    ) ?? []
+                  ? Array.from(
+                      new Set(
+                        busRouteStops
+                          .filter(
+                            (candidate) =>
+                              normaliseDestinationName(candidate.stopName) ===
+                                normaliseDestinationName(itemStop.name) ||
+                              distanceBetweenStopsMetres(
+                                candidate.coordinates,
+                                itemStop.coordinates
+                              ) <= 180
+                          )
+                          .map((candidate) => candidate.routeLabel)
+                      )
+                    ).sort((first, second) =>
+                      first.localeCompare(second, "en-GB", {
+                        numeric: true,
+                        sensitivity: "base",
+                      })
+                    )
                   : [];
                 const busy = busyId === recommendation.id;
 

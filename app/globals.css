@@ -823,6 +823,10 @@ button:focus-visible {
   background: #e8e7f4;
 }
 
+.preflightCard.keepOpenCard {
+  background: #fff0c7;
+}
+
 .preflightIcon {
   display: grid;
   width: 42px;
@@ -1738,6 +1742,146 @@ button:focus-visible {
   font-size: 10px;
   font-weight: 700;
   text-align: center;
+}
+
+.liveJourneyTimeline {
+  margin: 16px 14px 0;
+  padding: 18px;
+  border: 1px solid #dedbd3;
+  border-radius: 20px;
+  background: white;
+}
+
+.liveJourneyHeading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.liveJourneyHeading .kicker {
+  margin: 0 0 5px;
+}
+
+.liveJourneyHeading strong {
+  font-size: 13px;
+}
+
+.liveJourneyHeading > span {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 42px;
+  place-items: center;
+  border-radius: 50%;
+  background: #171717;
+  color: white;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.liveJourneyTrack {
+  height: 5px;
+  margin: 15px 0 16px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e7e3da;
+}
+
+.liveJourneyTrack i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #7379bd;
+  transition: width 0.8s ease;
+}
+
+.liveJourneyTimeline ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  gap: 7px;
+  list-style: none;
+}
+
+.liveJourneyTimeline li {
+  display: grid;
+  padding: 8px 9px;
+  grid-template-columns: 27px 1fr;
+  align-items: center;
+  gap: 9px;
+  border-radius: 11px;
+}
+
+.liveJourneyTimeline li > span {
+  display: grid;
+  width: 25px;
+  height: 25px;
+  place-items: center;
+  border-radius: 50%;
+  background: #ebe8df;
+  color: #69655e;
+  font-size: 9px;
+  font-weight: 800;
+}
+
+.liveJourneyTimeline li div {
+  display: grid;
+  gap: 2px;
+}
+
+.liveJourneyTimeline li strong {
+  font-size: 11px;
+}
+
+.liveJourneyTimeline li small {
+  color: #8b877f;
+  font-size: 8px;
+}
+
+.liveJourneyTimeline li.passed {
+  opacity: 0.55;
+}
+
+.liveJourneyTimeline li.current {
+  background: #e8e7f4;
+}
+
+.liveJourneyTimeline li.current > span {
+  background: #7379bd;
+  color: white;
+}
+
+.journeyScreenStatus {
+  display: block;
+  margin-top: 14px;
+  padding-top: 11px;
+  border-top: 1px solid #ebe8df;
+  color: #77736c;
+  font-size: 8px;
+  text-align: center;
+}
+
+.brandAnnouncementBanner {
+  display: grid;
+  margin: 10px 14px 0;
+  padding: 13px 15px;
+  gap: 3px;
+  border-radius: 14px;
+  background: #171717;
+  color: white;
+}
+
+.brandAnnouncementBanner span {
+  color: #aaa7a0;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.brandAnnouncementBanner strong {
+  font-size: 12px;
 }
 
 .journeyCompleteCard {
