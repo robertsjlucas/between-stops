@@ -2815,12 +2815,12 @@ export default function CreatorPage() {
           <div>
             {isAdmin && (
               <a href="/admin">
-                Admin →
+                Admin
               </a>
             )}
 
             <a href="/tours">
-              Passenger tours →
+              Passenger tours
             </a>
 
             <button
@@ -3022,10 +3022,10 @@ export default function CreatorPage() {
                         }
                       >
                         {project.status === "published"
-                          ? "Open tour →"
+                          ? "Open tour"
                           : project.status === "paused"
-                            ? "View details →"
-                            : "Open draft →"}
+                            ? "View details"
+                            : "Open draft"}
                       </button>
 
                       {project.status === "published" && (
@@ -3425,7 +3425,7 @@ export default function CreatorPage() {
                 enterStudio
               }
             >
-              Create draft →
+              Create draft
             </button>
           </div>
         </section>
@@ -3491,7 +3491,7 @@ export default function CreatorPage() {
                 target="_blank"
                 rel="noreferrer"
               >
-                Preview passenger view →
+                Preview passenger view
               </a>
             )}
           </div>
@@ -4924,7 +4924,7 @@ export default function CreatorPage() {
               goToNameStage
             }
           >
-            Use this journey →
+            Use this journey
           </button>
         </aside>
 

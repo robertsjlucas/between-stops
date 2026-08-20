@@ -78,6 +78,7 @@ import {
 import {
   RecommendationArt,
 } from "@/components/recommendation-art";
+import { recordTourAnalyticsEvent } from "@/lib/platform-analytics";
 
 type Screen = "home" | "overview" | "preflight" | "journey";
 
@@ -469,6 +470,7 @@ export default function Home() {
 
   const detectionStartProgress = useRef<number | null>(null);
   const journeyStartedNearOrigin = useRef(false);
+  const analyticsJourneyIdRef = useRef<string | null>(null);
 
   const [activeJourneyExperienceId, setActiveJourneyExperienceId] =
     useState<string | null>(null);
@@ -1503,6 +1505,14 @@ export default function Home() {
 
         return updated;
       });
+
+      if (!simulatorEnabled && analyticsJourneyIdRef.current) {
+        void recordTourAnalyticsEvent(createClient(), {
+          eventType: "tour_completed",
+          experienceId: experience.id,
+          journeyId: analyticsJourneyIdRef.current,
+        }).catch(() => undefined);
+      }
     }
   }, [
     routeMatch,
@@ -1514,6 +1524,7 @@ export default function Home() {
     journeyProgress,
     activeJourneyExperienceId,
     recordDiagnostic,
+    simulatorEnabled,
   ]);
 
   const currentStoryIndex = useMemo(() => {
@@ -2335,6 +2346,16 @@ export default function Home() {
 
     setActiveJourneyDirection(direction);
 
+    const analyticsJourneyId = crypto.randomUUID();
+    analyticsJourneyIdRef.current = analyticsJourneyId;
+    if (!simulatorEnabled) {
+      void recordTourAnalyticsEvent(createClient(), {
+        eventType: "tour_started",
+        experienceId: experience.id,
+        journeyId: analyticsJourneyId,
+      }).catch(() => undefined);
+    }
+
     setDiagnosticEvents([
       {
         at: new Date().toISOString(),
@@ -2904,7 +2925,7 @@ export default function Home() {
               </span>
 
               <strong>
-                Explore →
+                Explore
               </strong>
             </div>
           </div>
@@ -3034,7 +3055,7 @@ export default function Home() {
                     fontSize: "13px",
                   }}
                 >
-                  Resume journey →
+                  Resume journey
                 </div>
               </div>
             </button>
@@ -4029,7 +4050,7 @@ export default function Home() {
                     </div>
                     <h3>{recommendation.title}</h3>
                     <p>{recommendation.summary}</p>
-                    {recommendation.url && <strong>View details ↗</strong>}
+                    {recommendation.url && <strong>View details</strong>}
                     </>
                   );
 
@@ -4040,6 +4061,16 @@ export default function Home() {
                       rel="noreferrer"
                       className="destinationRecommendationCard"
                       key={recommendation.id}
+                      onClick={() => {
+                        if (!simulatorEnabled) {
+                          void recordTourAnalyticsEvent(createClient(), {
+                            eventType: "recommendation_clicked",
+                            experienceId: experience.id,
+                            journeyId: analyticsJourneyIdRef.current ?? undefined,
+                            recommendationId: recommendation.id,
+                          }).catch(() => undefined);
+                        }
+                      }}
                     >
                       {recommendationContent}
                     </a>

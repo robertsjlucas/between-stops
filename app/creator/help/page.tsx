@@ -118,7 +118,7 @@ export default function CreatorHelpPage() {
 
       <div className="helpAction">
         <a href="/creator">
-          Start or continue an experience →
+          Start or continue an experience
         </a>
       </div>
 

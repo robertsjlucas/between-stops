@@ -112,8 +112,20 @@ type OperationsMetrics = {
   pending_approvals: number;
   pending_reviews: number;
   open_reports: number;
+  tours_started: number;
+  tours_completed: number;
+  recommendation_clicks: number;
   storage_bytes: number;
   storage_by_bucket: Record<string, number>;
+};
+
+type RecommendationClick = {
+  id: number;
+  experience_id: string;
+  recommendation_id: string | null;
+  user_id: string | null;
+  device_token: string | null;
+  created_at: string;
 };
 
 type PlatformReport = {
@@ -228,6 +240,8 @@ export default function AdminPage() {
     useState<OperationsMetrics | null>(null);
   const [platformReports, setPlatformReports] =
     useState<PlatformReport[]>([]);
+  const [recommendationClicks, setRecommendationClicks] =
+    useState<RecommendationClick[]>([]);
 
   const busRouteStops = useMemo(() => {
     return routeChoices
@@ -276,7 +290,11 @@ export default function AdminPage() {
     const passengerReviewRows =
       await loadAdminPassengerReviews(supabase);
 
-    const [{ data: metricsData, error: metricsError }, { data: reportData, error: reportError }] =
+    const [
+      { data: metricsData, error: metricsError },
+      { data: reportData, error: reportError },
+      { data: clickData, error: clickError },
+    ] =
       await Promise.all([
         supabase.rpc("get_admin_operations_metrics"),
         supabase
@@ -284,10 +302,17 @@ export default function AdminPage() {
           .select("id, report_type, message, page_url, reporter_email, status, created_at")
           .order("created_at", { ascending: false })
           .limit(100),
+        supabase
+          .from("tour_analytics_events")
+          .select("id, experience_id, recommendation_id, user_id, device_token, created_at")
+          .eq("event_type", "recommendation_clicked")
+          .order("created_at", { ascending: false })
+          .limit(100),
       ]);
 
     if (metricsError) throw metricsError;
     if (reportError) throw reportError;
+    if (clickError) throw clickError;
 
     const {
       data: experienceData,
@@ -385,6 +410,7 @@ export default function AdminPage() {
     setPassengerReviews(passengerReviewRows);
     setOperationsMetrics(metricsData as OperationsMetrics);
     setPlatformReports((reportData ?? []) as PlatformReport[]);
+    setRecommendationClicks((clickData ?? []) as RecommendationClick[]);
     setRanks(
       Object.fromEntries(
         rows.map((row) => [
@@ -532,6 +558,17 @@ export default function AdminPage() {
       .eq("id", reportId);
 
     if (updateError) setError(updateError.message);
+    else await loadQueue();
+    setBusyId(null);
+  }
+
+  async function resetTourAnalytics() {
+    if (!window.confirm("Reset all tour starts, completions and recommendation clicks? This cannot be undone.")) return;
+    if (window.prompt("Type RESET to confirm") !== "RESET") return;
+
+    setBusyId("analytics-reset");
+    const { error: resetError } = await createClient().rpc("admin_reset_tour_analytics");
+    if (resetError) setError(resetError.message);
     else await loadQueue();
     setBusyId(null);
   }
@@ -1433,7 +1470,7 @@ export default function AdminPage() {
                         )}
                         {recommendation.url && (
                           <a href={recommendation.url} target="_blank" rel="noreferrer">
-                            Open link ↗
+                            Open link
                           </a>
                         )}
                         <div className="destinationCardActions">
@@ -1469,6 +1506,9 @@ export default function AdminPage() {
               ["Awaiting approval", operationsMetrics.pending_approvals],
               ["Reviews awaiting moderation", operationsMetrics.pending_reviews],
               ["Open reports", operationsMetrics.open_reports],
+              ["Tours started", operationsMetrics.tours_started],
+              ["Tours completed", operationsMetrics.tours_completed],
+              ["Recommendation clicks", operationsMetrics.recommendation_clicks],
             ].map(([label, value]) => (
               <article key={label}><span>{label}</span><strong>{value}</strong></article>
             ))}
@@ -1486,6 +1526,27 @@ export default function AdminPage() {
             </div>
           )}
 
+          <div className="analyticsControls">
+            <div><h2>Tour analytics</h2><p>Simulator journeys are excluded. Reset this once testing is finished to begin public reporting from zero.</p></div>
+            <button disabled={busyId === "analytics-reset"} onClick={resetTourAnalytics}>Reset test metrics</button>
+          </div>
+
+          <div className="recommendationClickList">
+            <div className="destinationListHeading"><h2>Destination recommendation clicks</h2><span>{recommendationClicks.length}</span></div>
+            {recommendationClicks.length === 0 ? (
+              <div className="adminEmpty">No recommendation clicks recorded.</div>
+            ) : recommendationClicks.map((click) => {
+              const recommendation = recommendations.find((item) => item.id === click.recommendation_id);
+              const tour = experiences.find((item) => item.id === click.experience_id);
+              return (
+                <article className="recommendationClickRow" key={click.id}>
+                  <div><strong>{recommendation?.title ?? "Recommendation"}</strong><span>{tour?.title ?? "Tour"}</span></div>
+                  <small>{new Date(click.created_at).toLocaleString("en-GB")} · {click.user_id ? "Signed-in passenger" : `Anonymous device ${click.device_token?.slice(0, 8) ?? "unknown"}`}</small>
+                </article>
+              );
+            })}
+          </div>
+
           <div className="platformReportList">
             <div className="destinationListHeading"><h2>Issues, ideas and errors</h2><span>{platformReports.length}</span></div>
             {platformReports.length === 0 ? (
@@ -1495,7 +1556,7 @@ export default function AdminPage() {
                 <div><span>{report.report_type}</span><b>{report.status.replace("_", " ")}</b></div>
                 <p>{report.message}</p>
                 <small>{new Date(report.created_at).toLocaleString("en-GB")}{report.reporter_email ? ` · ${report.reporter_email}` : ""}</small>
-                {report.page_url && <a href={report.page_url} target="_blank" rel="noreferrer">Open reported page ↗</a>}
+                {report.page_url && <a href={report.page_url} target="_blank" rel="noreferrer">Open reported page</a>}
                 <div className="platformReportActions">
                   <button disabled={busyId === report.id} onClick={() => setPlatformReportStatus(report.id, "in_progress")}>In progress</button>
                   <button disabled={busyId === report.id} onClick={() => setPlatformReportStatus(report.id, "resolved")}>Resolve</button>

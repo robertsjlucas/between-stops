@@ -68,7 +68,7 @@ export default function GuidesPage() {
 
       <section className="guideFinalCta">
         <div><p className="guidesKicker">ALREADY A GUIDE?</p><h2>Continue building.</h2></div>
-        <Link href="/login?next=/creator">Guide sign in →</Link>
+        <Link href="/login?next=/creator">Guide sign in</Link>
       </section>
 
       <footer className="guidesFooter">

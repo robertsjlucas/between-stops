@@ -79,7 +79,7 @@ export default async function LandingPage() {
       </section>
 
       {firstTours.length > 0 && <section className="landingToursSection">
-        <div className="landingSectionHeading rowHeading"><div><p className="landingKicker">START IN EDINBURGH</p><h2>{featured.length > 0 ? "Featured tours" : "Tours to try"}</h2></div><Link href="/tours">See all tours →</Link></div>
+        <div className="landingSectionHeading rowHeading"><div><p className="landingKicker">START IN EDINBURGH</p><h2>{featured.length > 0 ? "Featured tours" : "Tours to try"}</h2></div><Link href="/tours">See all tours</Link></div>
         <div className="landingTourGrid">{firstTours.map((option) => <TourCard key={option.experience.id} option={option} />)}</div>
       </section>}
 
@@ -88,7 +88,7 @@ export default async function LandingPage() {
         <div className="landingTourGrid">{seasonal.map((option) => <TourCard key={option.experience.id} option={option} />)}</div>
       </section>}
 
-      <section className="creatorLandingCta"><div><p className="landingKicker">KNOW A STORY WORTH SHARING?</p><h2>Build an experience of your own.</h2></div><Link href="/guides">Become a guide →</Link></section>
+      <section className="creatorLandingCta"><div><p className="landingKicker">KNOW A STORY WORTH SHARING?</p><h2>Build an experience of your own.</h2></div><Link href="/guides">Become a guide</Link></section>
       <footer className="landingFooter"><div className="landingBrand footerBrand"><img src="/branding/between-stops-icon.png" alt="" /><span>Between Stops</span></div><p>Stories for the space between A and B.</p><nav><Link href="/tours">Tours</Link><Link href="/guides">Guides</Link></nav></footer>
     </main>
   );

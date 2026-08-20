@@ -105,7 +105,7 @@ export default function LoginPage() {
             <img src="/branding/between-stops-icon.png" alt="" />
             <div><div className="loginLogo">Between Stops</div><p className="loginArea">{areaLabel}</p></div>
           </div>
-          <a href="/">Passenger view →</a>
+          <a href="/">Passenger view</a>
         </header>
 
         <div className="loginContent">

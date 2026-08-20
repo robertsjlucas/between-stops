@@ -238,9 +238,9 @@ img[src="/branding/between-stops-icon.png"] {
 }
 
 .brandMark {
-  width: 46px;
-  height: 46px;
-  flex: 0 0 46px;
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
   overflow: hidden;
   border-radius: 0;
   background: transparent;
@@ -259,14 +259,14 @@ img[src="/branding/between-stops-icon.png"] {
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 700;
 }
 
 .miniBrand img {
   display: block;
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
   border-radius: 0;
   clip-path: inset(2.5% round 22%);
 }
@@ -632,6 +632,13 @@ img[src="/branding/between-stops-icon.png"] {
   padding-top: 18px;
   border-top: 1px solid #eceae4;
   font-size: 13px;
+}
+
+.cardFooter strong {
+  padding: 9px 13px;
+  border-radius: 999px;
+  background: #171717;
+  color: white;
 }
 
 .textButton,

@@ -12,7 +12,7 @@
 
 .creatorBrandHeader {
   display: flex;
-  min-height: 78px;
+  min-height: 102px;
   padding: 0 34px;
   align-items: center;
   justify-content: space-between;
@@ -29,7 +29,11 @@
 }
 
 .creatorBrandHeader > div:last-child > a {
-  color: #d7d7d2;
+  padding: 9px 12px;
+  border: 1px solid #464646;
+  border-radius: 999px;
+  background: #262626;
+  color: white;
   font-size: 11px;
   font-weight: 700;
   text-decoration: none;
@@ -39,15 +43,15 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 22px;
+  font-size: 33px;
   font-weight: 800;
   letter-spacing: -0.045em;
 }
 
 .creatorLogo img {
   display: block;
-  width: 48px;
-  height: 48px;
+  width: 72px;
+  height: 72px;
   border-radius: 0;
   clip-path: inset(2.5% round 22%);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
@@ -148,7 +152,9 @@
 .headerTextButton {
   padding: 9px 11px;
   border: 0;
-  background: transparent;
+  border: 1px solid #464646;
+  border-radius: 999px;
+  background: #262626;
   color: inherit;
   font-size: 12px;
   cursor: pointer;
