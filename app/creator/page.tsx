@@ -449,6 +449,16 @@ export default function CreatorPage() {
   );
 
   const [
+    tourAccessType,
+    setTourAccessType,
+  ] = useState<"free" | "paid">("free");
+
+  const [
+    tourPrice,
+    setTourPrice,
+  ] = useState("");
+
+  const [
     creatorProfile,
     setCreatorProfile,
   ] = useState<CreatorProfile | null>(
@@ -1594,10 +1604,11 @@ export default function CreatorPage() {
         existing?.visibility ??
         "private",
       accessType:
-        existing?.accessType ??
-        "free",
+        tourAccessType,
       pricePence:
-        existing?.pricePence,
+        tourAccessType === "paid"
+          ? Math.round(Number(tourPrice) * 100)
+          : undefined,
       currency:
         existing?.currency ??
         "GBP",
@@ -1636,6 +1647,8 @@ export default function CreatorPage() {
     setAvailableTo("");
     setSeasonalAvailability(false);
     setAgeGuidance("all_ages");
+    setTourAccessType("free");
+    setTourPrice("");
     setStories([]);
 
     setMode("tram");
@@ -1712,6 +1725,20 @@ export default function CreatorPage() {
 
     setAgeGuidance(
       project.ageGuidance ?? "all_ages"
+    );
+
+    const savedAccessType =
+      project.accessType === "paid"
+        ? "paid"
+        : "free";
+
+    setTourAccessType(savedAccessType);
+
+    setTourPrice(
+      savedAccessType === "paid" &&
+      project.pricePence
+        ? (project.pricePence / 100).toFixed(2)
+        : ""
     );
 
     setPendingCoverFile(null);
@@ -2213,6 +2240,18 @@ export default function CreatorPage() {
     if (!rightsConfirmed) {
       missing.push(
         "the rights confirmation"
+      );
+    }
+
+    if (
+      tourAccessType === "paid" &&
+      (
+        !Number.isFinite(Number(tourPrice)) ||
+        Number(tourPrice) < 2.99
+      )
+    ) {
+      missing.push(
+        "a paid tour price of at least £2.99"
       );
     }
 
@@ -3589,6 +3628,65 @@ export default function CreatorPage() {
                 Not suitable for children
               </option>
             </select>
+
+            <label htmlFor="tour-access-type">
+              Price
+            </label>
+
+            <select
+              id="tour-access-type"
+              value={tourAccessType}
+              onChange={(event) => {
+                const value =
+                  event.target.value as "free" | "paid";
+
+                setTourAccessType(value);
+
+                if (value === "free") {
+                  setTourPrice("");
+                }
+              }}
+            >
+              <option value="free">Free</option>
+              <option value="paid">Paid</option>
+            </select>
+
+            {tourAccessType === "paid" && (
+              <>
+                <label htmlFor="tour-price">
+                  Passenger price
+                  <span>Minimum £2.99</span>
+                </label>
+
+                <input
+                  id="tour-price"
+                  type="number"
+                  min="2.99"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={tourPrice}
+                  onChange={(event) =>
+                    setTourPrice(event.target.value)
+                  }
+                  placeholder="2.99"
+                />
+
+                {Number(tourPrice) >= 2.99 && (
+                  <div className="automaticDurationCard">
+                    <span>Price split</span>
+                    <strong>
+                      You receive £
+                      {(Number(tourPrice) * 0.75).toFixed(2)}
+                    </strong>
+                    <small>
+                      Between Stops retains 25% of the tour price.
+                      Ordinary payment processing is covered from
+                      the Between Stops share.
+                    </small>
+                  </div>
+                )}
+              </>
+            )}
 
             <label htmlFor="tour-availability">
               Availability
