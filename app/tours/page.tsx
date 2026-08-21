@@ -2137,6 +2137,37 @@ export default function Home() {
     async function refreshPurchases() {
       try {
         await loadPassengerPurchases();
+
+        if (
+          selectedOption.accessType === "paid" &&
+          !purchasedExperienceIds.has(
+            selectedOption.experience.id
+          )
+        ) {
+          const response = await fetch(
+            "/api/stripe/purchases/recover",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type":
+                  "application/json",
+              },
+              body: JSON.stringify({
+                experienceId:
+                  selectedOption.experience.id,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const result =
+              await response.json();
+
+            if (result.recovered) {
+              await loadPassengerPurchases();
+            }
+          }
+        }
       } catch {
         if (!cancelled) {
           setCheckoutError(
