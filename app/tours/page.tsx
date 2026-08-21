@@ -15,6 +15,12 @@ import { royalMileToShoreExperience } from "@/data/experiences/royal-mile-to-sho
 import {
   createClient,
 } from "@/lib/supabase/client";
+import {
+  loadPlatformAudio,
+} from "@/lib/platform-audio";
+import type {
+  PlatformAudioKey,
+} from "@/lib/platform-audio";
 
 import {
   loadPublishedExperiences,
@@ -520,6 +526,7 @@ export default function Home() {
   const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
   const resumeAfterTimestampRef = useRef<number | null>(null);
   const finalAnnouncementPlayedRef = useRef(false);
+  const endAnnouncementPlayedRef = useRef(false);
   const previousMotionReadingRef = useRef<{
     routeProgress: number;
     capturedAt: number;
@@ -532,7 +539,9 @@ export default function Home() {
   const [vehicleMoving, setVehicleMoving] =
     useState(false);
   const [brandAnnouncement, setBrandAnnouncement] =
-    useState<"welcome" | "final" | null>(null);
+    useState<PlatformAudioKey | null>(null);
+  const [platformAudioUrls, setPlatformAudioUrls] =
+    useState<Partial<Record<PlatformAudioKey, string>>>({});
 
   const [markedSpots, setMarkedSpots] =
     useState<MarkedSpot[]>([]);
@@ -763,6 +772,33 @@ export default function Home() {
   }, [experience.id, screen]);
 
   useEffect(() => {
+    let active = true;
+
+    void loadPlatformAudio(createClient())
+      .then((items) => {
+        if (!active) return;
+
+        const urls:
+          Partial<Record<PlatformAudioKey, string>> = {};
+
+        items.forEach((item) => {
+          if (item.url) {
+            urls[item.key] = item.url;
+          }
+        });
+
+        setPlatformAudioUrls(urls);
+      })
+      .catch(() => {
+        // Missing platform audio must never stop a tour.
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
     const audio = new Audio();
     audio.preload = "auto";
     audioElementRef.current = audio;
@@ -837,7 +873,6 @@ export default function Home() {
         if (audio) {
           audio.currentTime = 0;
         }
-        window.speechSynthesis?.cancel();
         setBrandAnnouncement(null);
         setAudioQueueIds([]);
         setActiveAudioStoryId(null);
@@ -1527,6 +1562,30 @@ export default function Home() {
     simulatorEnabled,
   ]);
 
+  useEffect(() => {
+    if (
+      !journeyCompleted ||
+      screen !== "journey" ||
+      pageHidden ||
+      endAnnouncementPlayedRef.current ||
+      brandAnnouncement !== null ||
+      activeAudioStoryId ||
+      audioQueueIds.length > 0
+    ) {
+      return;
+    }
+
+    endAnnouncementPlayedRef.current = true;
+    void playBrandAnnouncement("tour_end");
+  }, [
+    activeAudioStoryId,
+    audioQueueIds.length,
+    brandAnnouncement,
+    journeyCompleted,
+    pageHidden,
+    screen,
+  ]);
+
   const currentStoryIndex = useMemo(() => {
     let index = -1;
 
@@ -1879,7 +1938,7 @@ export default function Home() {
     }
 
     finalAnnouncementPlayedRef.current = true;
-    playBrandAnnouncement("final");
+    void playBrandAnnouncement("next_stop");
   }, [
     activeAudioStoryId,
     audioQueueIds.length,
@@ -2210,29 +2269,78 @@ export default function Home() {
     }
   }
 
-  function playBrandAnnouncement(kind: "welcome" | "final") {
-    if (!("speechSynthesis" in window)) return;
+  async function playBrandAnnouncement(
+    kind: PlatformAudioKey
+  ) {
+    const audio = audioElementRef.current;
+    const url = platformAudioUrls[kind];
 
-    const message =
-      kind === "welcome"
-        ? "Welcome to Between Stops. Keep this screen open and your phone unlocked so each story can arrive at the right moment."
-        : "Your stop is next. When you arrive, take a look at the recommendations on screen for things to do nearby.";
-    const utterance = new SpeechSynthesisUtterance(message);
-    utterance.rate = 0.94;
-    utterance.pitch = 1;
-    utterance.onend = () => setBrandAnnouncement(null);
-    utterance.onerror = () => setBrandAnnouncement(null);
+    if (!audio || !url) {
+      recordDiagnostic(
+        "brand_announcement",
+        `Between Stops ${kind} audio was not available. Journey continued normally.`,
+        { journeyProgress }
+      );
+      setBrandAnnouncement(null);
+      return;
+    }
 
-    window.speechSynthesis.cancel();
+    audio.pause();
+    audio.currentTime = 0;
+
     setBrandAnnouncement(kind);
-    recordDiagnostic(
-      "brand_announcement",
-      kind === "welcome"
-        ? "Played the Between Stops welcome."
-        : "Played the Between Stops final-stop reminder.",
-      { journeyProgress }
-    );
-    window.speechSynthesis.speak(utterance);
+
+    audio.onended = () => {
+      setBrandAnnouncement(null);
+      setAudioPlaybackStatus("idle");
+    };
+
+    audio.onerror = () => {
+      recordDiagnostic(
+        "media_error",
+        `Between Stops ${kind} audio failed while loading or playing.`,
+        { journeyProgress }
+      );
+      setBrandAnnouncement(null);
+      setAudioPlaybackStatus("idle");
+    };
+
+    if (audio.getAttribute("src") !== url) {
+      audio.src = url;
+      audio.load();
+    }
+
+    try {
+      await audio.play();
+      setAudioPlaybackStatus("playing");
+
+      recordDiagnostic(
+        "brand_announcement",
+        kind === "welcome"
+          ? "Played the Between Stops welcome."
+          : kind === "next_stop"
+            ? "Played the Between Stops next-stop reminder."
+            : "Played the Between Stops end-of-tour message.",
+        { journeyProgress }
+      );
+    } catch (playError) {
+      const blocked =
+        playError instanceof DOMException &&
+        playError.name === "NotAllowedError";
+
+      setBrandAnnouncement(null);
+      setAudioPlaybackStatus(
+        blocked ? "blocked" : "error"
+      );
+
+      recordDiagnostic(
+        blocked ? "audio_blocked" : "media_error",
+        blocked
+          ? `The browser blocked the Between Stops ${kind} announcement.`
+          : `The Between Stops ${kind} announcement could not start.`,
+        { journeyProgress }
+      );
+    }
   }
 
   function requestPreflightLocation() {
@@ -2279,7 +2387,6 @@ export default function Home() {
     }
 
     audio?.pause();
-    window.speechSynthesis?.cancel();
     setAudioTestStatus("testing");
 
     try {
@@ -2335,6 +2442,7 @@ export default function Home() {
     previousMotionReadingRef.current = null;
     resumeAfterTimestampRef.current = null;
     finalAnnouncementPlayedRef.current = false;
+    endAnnouncementPlayedRef.current = false;
     setPageHidden(false);
     setDirectionDetecting(
       directionMode === "automatic"
@@ -2368,7 +2476,7 @@ export default function Home() {
     setSimulatorProgress(0);
     setWatching(!simulatorEnabled);
     setScreen("journey");
-    playBrandAnnouncement("welcome");
+    void playBrandAnnouncement("welcome");
   }
 
   function pauseJourneyAudioForNavigation() {
