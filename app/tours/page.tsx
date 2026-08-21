@@ -1567,7 +1567,8 @@ export default function Home() {
       !simulatorEnabled ||
       screen !== "journey" ||
       journeyCompleted ||
-      journeyProgress < 100
+      journeyProgress < 100 ||
+      !finalAnnouncementPlayedRef.current
     ) {
       return;
     }
@@ -2301,9 +2302,35 @@ export default function Home() {
     kind: PlatformAudioKey
   ) {
     const audio = audioElementRef.current;
-    const url = platformAudioUrls[kind];
 
-    if (!audio || !url) {
+    if (!audio) {
+      return;
+    }
+
+    let url = platformAudioUrls[kind];
+
+    if (!url) {
+      try {
+        const items =
+          await loadPlatformAudio(createClient());
+
+        const refreshedUrls:
+          Partial<Record<PlatformAudioKey, string>> = {};
+
+        items.forEach((item) => {
+          if (item.url) {
+            refreshedUrls[item.key] = item.url;
+          }
+        });
+
+        setPlatformAudioUrls(refreshedUrls);
+        url = refreshedUrls[kind];
+      } catch {
+        // Platform audio is optional. The journey must continue.
+      }
+    }
+
+    if (!url) {
       recordDiagnostic(
         "brand_announcement",
         `Between Stops ${kind} audio was not available. Journey continued normally.`,
