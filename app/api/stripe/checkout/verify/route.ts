@@ -90,16 +90,28 @@ export async function POST(
 
     const session =
       await stripe.checkout.sessions.retrieve(
-        sessionId
+        sessionId,
+        {
+          expand: ["payment_intent"],
+        }
       );
 
-    if (
-      session.payment_status !== "paid"
-    ) {
+    const paymentIntent =
+      typeof session.payment_intent === "string"
+        ? await stripe.paymentIntents.retrieve(
+            session.payment_intent
+          )
+        : session.payment_intent;
+
+    const paymentConfirmed =
+      session.payment_status === "paid" ||
+      paymentIntent?.status === "succeeded";
+
+    if (!paymentConfirmed) {
       return NextResponse.json(
         {
           error:
-            "Stripe has not confirmed this payment.",
+            `Stripe payment is not complete. Session status: ${session.payment_status}; payment status: ${paymentIntent?.status ?? "unknown"}.`,
         },
         { status: 409 }
       );
