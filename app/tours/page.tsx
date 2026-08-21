@@ -1564,6 +1564,34 @@ export default function Home() {
 
   useEffect(() => {
     if (
+      !simulatorEnabled ||
+      screen !== "journey" ||
+      journeyCompleted ||
+      journeyProgress < 100
+    ) {
+      return;
+    }
+
+    setJourneyCompleted(true);
+    setJourneyProgress(100);
+
+    recordDiagnostic(
+      "journey_completed",
+      "Simulator journey completed.",
+      {
+        journeyProgress: 100,
+      }
+    );
+  }, [
+    journeyCompleted,
+    journeyProgress,
+    recordDiagnostic,
+    screen,
+    simulatorEnabled,
+  ]);
+
+  useEffect(() => {
+    if (
       !journeyCompleted ||
       screen !== "journey" ||
       pageHidden ||
@@ -1929,7 +1957,7 @@ export default function Home() {
       pageHidden ||
       finalAnnouncementPlayedRef.current ||
       journeyProgress < finalAnnouncementJourneyProgress ||
-      !vehicleMoving ||
+      (!simulatorEnabled && !vehicleMoving) ||
       brandAnnouncement !== null ||
       activeAudioStoryId ||
       audioQueueIds.length > 0
@@ -2592,23 +2620,56 @@ export default function Home() {
   }
 
   function resetJourneyTest() {
-    audioElementRef.current?.pause();
+    const audio = audioElementRef.current;
+
+    audio?.pause();
+
+    if (audio) {
+      audio.currentTime = 0;
+      audio.removeAttribute("src");
+      audio.load();
+    }
+
+    localStorage.removeItem(
+      "between-stops-active-journey"
+    );
+
+    setActiveJourneyExperienceId(null);
     setJourneyProgress(0);
     setJourneyCompleted(false);
-    setSimulatorProgress(0);
-    journeyStartedNearOrigin.current = false;
-    detectionStartProgress.current = null;
-    previousRouteStatus.current = null;
-    previousStoryId.current = null;
     setTriggeredStoryIds([]);
     setAudioQueueIds([]);
     setActiveAudioStoryId(null);
     setAudioPlaybackStatus("idle");
+    setBrandAnnouncement(null);
+
+    setSimulatorProgress(0);
+    setSimulatorCondition("good");
+
+    journeyStartedNearOrigin.current = false;
+    detectionStartProgress.current = null;
+    previousRouteStatus.current = null;
+    previousStoryId.current = null;
+    previousMotionReadingRef.current = null;
+    resumeAfterTimestampRef.current = null;
+
+    finalAnnouncementPlayedRef.current = false;
+    endAnnouncementPlayedRef.current = false;
+
+    analyticsJourneyIdRef.current = null;
+
+    setDiagnosticEvents([]);
+    setError("");
+
     recordDiagnostic(
       "progress_reset",
-      "Journey test returned to the starting point.",
-      { journeyProgress: 0 }
+      "Test journey returned to the start.",
+      {
+        journeyProgress: 0,
+      }
     );
+
+    setScreen("overview");
   }
 
   function toggleStoryAudio(storyId: string) {
@@ -4746,7 +4807,7 @@ export default function Home() {
             className="resetButton secondaryResetButton"
             onClick={resetJourneyTest}
           >
-            Return test to start
+            Reset test tour
           </button>
 
           <button
