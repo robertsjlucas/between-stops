@@ -1788,6 +1788,18 @@ export default function CreatorPage() {
       return;
     }
 
+    if (
+      tourAccessType === "paid" &&
+      (
+        !Number.isFinite(Number(tourPrice)) ||
+        Number(tourPrice) < 2.99
+      )
+    ) {
+      setProjectError("");
+      setSaveMessage("");
+      return;
+    }
+
     const id =
       projectId ??
       crypto.randomUUID();
@@ -1895,6 +1907,18 @@ export default function CreatorPage() {
       window.alert(
         "Choose both the first and last available dates."
       );
+      return;
+    }
+
+    if (
+      tourAccessType === "paid" &&
+      (
+        !Number.isFinite(Number(tourPrice)) ||
+        Number(tourPrice) < 2.99
+      )
+    ) {
+      setProjectError("");
+      setSaveMessage("");
       return;
     }
 
@@ -2858,10 +2882,6 @@ export default function CreatorPage() {
               </a>
             )}
 
-            <a href="/tours">
-              Passenger tours
-            </a>
-
             <button
               className="headerTextButton"
               onClick={() =>
@@ -3523,16 +3543,6 @@ export default function CreatorPage() {
               experience is a draft.
             </p>
 
-            {projectId && (
-              <a
-                className="detailsPreviewLink"
-                href={`/preview?id=${projectId}&from=creator`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Preview passenger view
-              </a>
-            )}
           </div>
 
           <div className="marketplaceFormCard">
@@ -3669,7 +3679,27 @@ export default function CreatorPage() {
                     setTourPrice(event.target.value)
                   }
                   placeholder="2.99"
+                  aria-invalid={
+                    tourPrice !== "" &&
+                    (
+                      !Number.isFinite(Number(tourPrice)) ||
+                      Number(tourPrice) < 2.99
+                    )
+                  }
                 />
+
+                {tourPrice !== "" &&
+                  (
+                    !Number.isFinite(Number(tourPrice)) ||
+                    Number(tourPrice) < 2.99
+                  ) && (
+                    <p
+                      className="marketplaceFormError"
+                      role="alert"
+                    >
+                      Paid tours must cost at least £2.99.
+                    </p>
+                  )}
 
                 {Number(tourPrice) >= 2.99 && (
                   <div className="automaticDurationCard">
