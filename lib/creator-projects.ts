@@ -230,6 +230,17 @@ export async function loadCreatorProjects(
   supabase: SupabaseClient,
   retryFutureJwt = true
 ): Promise<SavedProject[]> {
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error(
+      "Your session has expired. Please sign in again."
+    );
+  }
+
   const { data, error } =
     await supabase
       .from("experiences")
@@ -294,6 +305,7 @@ export async function loadCreatorProjects(
           image_size_bytes
         )
       `)
+      .eq("owner_id", user.id)
       .order(
         "updated_at",
         {
