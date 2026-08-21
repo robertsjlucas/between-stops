@@ -44,6 +44,15 @@ import type {
   RecommendationCategory,
   RecommendationPlacement,
 } from "@/lib/destination-recommendations";
+import {
+  loadPlatformAudio,
+  platformAudioLabels,
+  uploadPlatformAudio,
+} from "@/lib/platform-audio";
+import type {
+  PlatformAudioItem,
+  PlatformAudioKey,
+} from "@/lib/platform-audio";
 
 type ReviewStory = {
   id: string;
@@ -102,6 +111,7 @@ type AdminSection =
   | "approvals"
   | "passenger_reviews"
   | "destinations"
+  | "platform_audio"
   | "operations";
 
 type OperationsMetrics = {
@@ -242,6 +252,10 @@ export default function AdminPage() {
     useState<PlatformReport[]>([]);
   const [recommendationClicks, setRecommendationClicks] =
     useState<RecommendationClick[]>([]);
+  const [platformAudio, setPlatformAudio] =
+    useState<PlatformAudioItem[]>([]);
+  const [pendingPlatformAudio, setPendingPlatformAudio] =
+    useState<Partial<Record<PlatformAudioKey, File>>>({});
 
   const busRouteStops = useMemo(() => {
     return routeChoices
@@ -286,6 +300,9 @@ export default function AdminPage() {
       await loadAllDestinationRecommendations(
         supabase
       );
+
+    const platformAudioRows =
+      await loadPlatformAudio(supabase);
 
     const passengerReviewRows =
       await loadAdminPassengerReviews(supabase);
@@ -407,6 +424,7 @@ export default function AdminPage() {
     );
     setCoverUrls(nextCoverUrls);
     setRecommendations(recommendationRows);
+    setPlatformAudio(platformAudioRows);
     setPassengerReviews(passengerReviewRows);
     setOperationsMetrics(metricsData as OperationsMetrics);
     setPlatformReports((reportData ?? []) as PlatformReport[]);
@@ -560,6 +578,57 @@ export default function AdminPage() {
     if (updateError) setError(updateError.message);
     else await loadQueue();
     setBusyId(null);
+  }
+
+  async function savePlatformAudio(
+    key: PlatformAudioKey
+  ) {
+    const file = pendingPlatformAudio[key];
+
+    if (!file) {
+      setError("Choose an audio file first.");
+      return;
+    }
+
+    setBusyId(`platform-audio-${key}`);
+    setError("");
+
+    try {
+      const supabase = createClient();
+      const { data: userData } =
+        await supabase.auth.getUser();
+
+      if (!userData.user) {
+        throw new Error(
+          "Your administrator session has expired."
+        );
+      }
+
+      await uploadPlatformAudio(
+        supabase,
+        key,
+        file,
+        userData.user.id
+      );
+
+      const rows =
+        await loadPlatformAudio(supabase);
+
+      setPlatformAudio(rows);
+      setPendingPlatformAudio((current) => {
+        const updated = { ...current };
+        delete updated[key];
+        return updated;
+      });
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error
+          ? uploadError.message
+          : "The platform audio could not be saved."
+      );
+    } finally {
+      setBusyId(null);
+    }
   }
 
   async function resetTourAnalytics() {
@@ -929,6 +998,12 @@ export default function AdminPage() {
           onClick={() => setAdminSection("destinations")}
         >
           Destination recommendations
+        </button>
+        <button
+          className={adminSection === "platform_audio" ? "active" : ""}
+          onClick={() => setAdminSection("platform_audio")}
+        >
+          Platform audio
         </button>
         <button
           className={adminSection === "operations" ? "active" : ""}
@@ -1490,6 +1565,109 @@ export default function AdminPage() {
                 );
               })
             )}
+          </div>
+        </section>
+      )}
+
+      {adminSection === "platform_audio" && (
+        <section className="operationsSection">
+          <div className="analyticsControls">
+            <div>
+              <h2>Platform audio</h2>
+              <p>
+                These announcements are used across every
+                Between Stops tour. Creators do not manage them.
+              </p>
+            </div>
+          </div>
+
+          <div className="recommendationClickList">
+            {(
+              [
+                "welcome",
+                "next_stop",
+                "tour_end",
+              ] as PlatformAudioKey[]
+            ).map((key) => {
+              const item = platformAudio.find(
+                (audio) => audio.key === key
+              );
+              const labels =
+                platformAudioLabels[key];
+              const busy =
+                busyId === `platform-audio-${key}`;
+
+              return (
+                <article
+                  className="passengerReviewCard"
+                  key={key}
+                >
+                  <h2>{labels.title}</h2>
+                  <p>{labels.description}</p>
+
+                  {item?.url ? (
+                    <audio
+                      controls
+                      preload="metadata"
+                      src={item.url}
+                    />
+                  ) : (
+                    <div className="adminEmpty">
+                      No audio uploaded yet.
+                    </div>
+                  )}
+
+                  <label>
+                    {item?.url
+                      ? "Replace audio"
+                      : "Upload audio"}
+                    <input
+                      type="file"
+                      accept="audio/*"
+                      onChange={(event) => {
+                        const file =
+                          event.target.files?.[0];
+
+                        setPendingPlatformAudio(
+                          (current) => ({
+                            ...current,
+                            [key]: file,
+                          })
+                        );
+                      }}
+                    />
+                  </label>
+
+                  {pendingPlatformAudio[key] && (
+                    <small>
+                      Selected:{" "}
+                      {
+                        pendingPlatformAudio[key]
+                          ?.name
+                      }
+                    </small>
+                  )}
+
+                  <div className="passengerReviewActions">
+                    <button
+                      disabled={
+                        busy ||
+                        !pendingPlatformAudio[key]
+                      }
+                      onClick={() =>
+                        void savePlatformAudio(key)
+                      }
+                    >
+                      {busy
+                        ? "Uploading…"
+                        : item?.url
+                          ? "Replace audio"
+                          : "Upload audio"}
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
           </div>
         </section>
       )}
