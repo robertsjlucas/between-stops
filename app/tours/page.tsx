@@ -410,6 +410,15 @@ export default function Home() {
 
   const [passengerSignedIn, setPassengerSignedIn] = useState(false);
 
+  const [purchasedExperienceIds, setPurchasedExperienceIds] =
+    useState<Set<string>>(new Set());
+
+  const [checkoutLoading, setCheckoutLoading] =
+    useState(false);
+
+  const [checkoutError, setCheckoutError] =
+    useState("");
+
   const [
     locatingNearby,
     setLocatingNearby,
@@ -2084,6 +2093,159 @@ export default function Home() {
       location,
     ]);
 
+  async function loadPassengerPurchases() {
+    const supabase = createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setPurchasedExperienceIds(new Set());
+      return false;
+    }
+
+    const { data, error } = await supabase
+      .from("passenger_purchases")
+      .select("experience_id")
+      .eq("user_id", user.id)
+      .eq("status", "paid");
+
+    if (error) {
+      throw error;
+    }
+
+    setPurchasedExperienceIds(
+      new Set(
+        (data ?? []).map(
+          (purchase) => purchase.experience_id
+        )
+      )
+    );
+
+    return true;
+  }
+
+  useEffect(() => {
+    if (!passengerSignedIn) {
+      setPurchasedExperienceIds(new Set());
+      return;
+    }
+
+    let cancelled = false;
+
+    async function refreshPurchases() {
+      try {
+        await loadPassengerPurchases();
+      } catch {
+        if (!cancelled) {
+          setCheckoutError(
+            "Your purchases could not be checked."
+          );
+        }
+      }
+    }
+
+    void refreshPurchases();
+
+    const params = new URLSearchParams(
+      window.location.search
+    );
+
+    if (params.get("checkout") === "success") {
+      let attempts = 0;
+
+      const timer = window.setInterval(() => {
+        attempts += 1;
+
+        void loadPassengerPurchases()
+          .then(() => {
+            if (attempts >= 6) {
+              window.clearInterval(timer);
+            }
+          })
+          .catch(() => {
+            if (attempts >= 6) {
+              window.clearInterval(timer);
+            }
+          });
+      }, 1000);
+
+      return () => {
+        cancelled = true;
+        window.clearInterval(timer);
+      };
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [passengerSignedIn]);
+
+  const selectedTourPurchased =
+    purchasedExperienceIds.has(
+      experience.id
+    );
+
+  function signInToBuy() {
+    const next =
+      `${window.location.pathname}${window.location.search}`;
+
+    window.location.href =
+      `/login?next=${encodeURIComponent(next)}&mode=passenger`;
+  }
+
+  async function buySelectedTour() {
+    if (checkoutLoading) return;
+
+    if (!passengerSignedIn) {
+      signInToBuy();
+      return;
+    }
+
+    setCheckoutLoading(true);
+    setCheckoutError("");
+
+    try {
+      const response = await fetch(
+        "/api/stripe/checkout",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            experienceId: experience.id,
+          }),
+        }
+      );
+
+      const result = await response.json();
+
+      if (result.alreadyPurchased) {
+        await loadPassengerPurchases();
+        setCheckoutLoading(false);
+        return;
+      }
+
+      if (!response.ok || !result.url) {
+        throw new Error(
+          result.error ??
+            "Checkout could not be started."
+        );
+      }
+
+      window.location.assign(result.url);
+    } catch (error) {
+      setCheckoutError(
+        error instanceof Error
+          ? error.message
+          : "Checkout could not be started."
+      );
+      setCheckoutLoading(false);
+    }
+  }
+
   function toggleFavourite(
     experienceId: string
   ) {
@@ -2173,6 +2335,18 @@ export default function Home() {
   }
 
   function prepareExperience() {
+    if (
+      selectedOption.accessType === "paid" &&
+      !selectedTourPurchased
+    ) {
+      if (passengerSignedIn) {
+        void buySelectedTour();
+      } else {
+        signInToBuy();
+      }
+      return;
+    }
+
     setDirectionMode("automatic");
     setDirectionDetecting(false);
     detectionStartProgress.current = null;
@@ -3824,6 +3998,33 @@ export default function Home() {
             >
               Resume experience
             </button>
+          ) : selectedOption.accessType === "paid" &&
+            !selectedTourPurchased ? (
+            <button
+              className="primaryButton"
+              disabled={checkoutLoading}
+              onClick={() =>
+                passengerSignedIn
+                  ? void buySelectedTour()
+                  : signInToBuy()
+              }
+            >
+              {checkoutLoading
+                ? "Opening checkout…"
+                : `${passengerSignedIn ? "Buy experience" : "Sign in to buy"} · ${
+                    selectedOption.pricePence !== undefined
+                      ? new Intl.NumberFormat(
+                          "en-GB",
+                          {
+                            style: "currency",
+                            currency: selectedOption.currency,
+                          }
+                        ).format(
+                          selectedOption.pricePence / 100
+                        )
+                      : "Paid"
+                  }`}
+            </button>
           ) : (
             <button
               className="primaryButton"
@@ -3833,8 +4034,17 @@ export default function Home() {
             </button>
           )}
 
+          {checkoutError && (
+            <p className="errorNotice">
+              {checkoutError}
+            </p>
+          )}
+
           <p>
-            Location access keeps the experience in sync. Download the tour before travelling to avoid using mobile data for audio and images.
+            {selectedOption.accessType === "paid" &&
+            !selectedTourPurchased
+              ? "Purchase once to keep access to this tour on your Between Stops account. Your public transport fare is separate."
+              : "Location access keeps the experience in sync. Download the tour before travelling to avoid using mobile data for audio and images."}
           </p>
         </div>
       </main>
