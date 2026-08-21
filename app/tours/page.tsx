@@ -1503,6 +1503,7 @@ export default function Home() {
         : distanceFromStart;
 
     if (
+      !simulatorEnabled &&
       !journeyCompleted &&
       journeyStartedNearOrigin.current &&
       progress >= 85 &&
@@ -1977,6 +1978,7 @@ export default function Home() {
     journeyProgress,
     pageHidden,
     screen,
+    simulatorEnabled,
     vehicleMoving,
   ]);
 
