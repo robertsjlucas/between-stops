@@ -6,7 +6,13 @@ import { createPublicServerClient } from "@/lib/supabase/public-server";
 
 export const dynamic = "force-dynamic";
 
-type TourPageProps = { params: Promise<{ slug: string }> };
+type TourPageProps = {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{
+    checkout?: string;
+    session_id?: string;
+  }>;
+};
 
 const getTour = cache(
   async (slug: string) =>
@@ -45,10 +51,36 @@ export async function generateMetadata({ params }: TourPageProps): Promise<Metad
   };
 }
 
-export default async function TourPage({ params }: TourPageProps) {
+export default async function TourPage({
+  params,
+  searchParams,
+}: TourPageProps) {
   const { slug } = await params;
+  const query = await searchParams;
   const tour = await getTour(slug);
 
   if (!tour) notFound();
-  redirect(`/tours?tour=${tour.experience.id}`);
+
+  const destination =
+    new URLSearchParams({
+      tour: tour.experience.id,
+    });
+
+  if (query.checkout) {
+    destination.set(
+      "checkout",
+      query.checkout
+    );
+  }
+
+  if (query.session_id) {
+    destination.set(
+      "session_id",
+      query.session_id
+    );
+  }
+
+  redirect(
+    `/tours?${destination.toString()}`
+  );
 }
