@@ -413,6 +413,12 @@ export default function Home() {
   const [purchasedExperienceIds, setPurchasedExperienceIds] =
     useState<Set<string>>(new Set());
 
+  const [startedPurchasedExperienceIds, setStartedPurchasedExperienceIds] =
+    useState<Set<string>>(new Set());
+
+  const [completedPurchasedExperienceIds, setCompletedPurchasedExperienceIds] =
+    useState<Set<string>>(new Set());
+
   const [checkoutLoading, setCheckoutLoading] =
     useState(false);
 
@@ -1558,6 +1564,15 @@ export default function Home() {
           journeyId: analyticsJourneyIdRef.current,
         }).catch(() => undefined);
       }
+
+      if (
+        selectedOption.accessType === "paid" &&
+        selectedTourPurchased
+      ) {
+        void updatePaidTourLifecycle(
+          "complete"
+        ).catch(() => undefined);
+      }
     }
   }, [
     routeMatch,
@@ -2102,12 +2117,18 @@ export default function Home() {
 
     if (!user) {
       setPurchasedExperienceIds(new Set());
+      setStartedPurchasedExperienceIds(new Set());
+      setCompletedPurchasedExperienceIds(new Set());
       return false;
     }
 
     const { data, error } = await supabase
       .from("passenger_purchases")
-      .select("experience_id")
+      .select(`
+        experience_id,
+        started_at,
+        completed_at
+      `)
       .eq("user_id", user.id)
       .eq("status", "paid");
 
@@ -2115,11 +2136,41 @@ export default function Home() {
       throw error;
     }
 
+    const rows = data ?? [];
+
     setPurchasedExperienceIds(
       new Set(
-        (data ?? []).map(
+        rows.map(
           (purchase) => purchase.experience_id
         )
+      )
+    );
+
+    setStartedPurchasedExperienceIds(
+      new Set(
+        rows
+          .filter(
+            (purchase) =>
+              Boolean(purchase.started_at)
+          )
+          .map(
+            (purchase) =>
+              purchase.experience_id
+          )
+      )
+    );
+
+    setCompletedPurchasedExperienceIds(
+      new Set(
+        rows
+          .filter(
+            (purchase) =>
+              Boolean(purchase.completed_at)
+          )
+          .map(
+            (purchase) =>
+              purchase.experience_id
+          )
       )
     );
 
@@ -2129,6 +2180,8 @@ export default function Home() {
   useEffect(() => {
     if (!passengerSignedIn) {
       setPurchasedExperienceIds(new Set());
+      setStartedPurchasedExperienceIds(new Set());
+      setCompletedPurchasedExperienceIds(new Set());
       return;
     }
 
@@ -2247,6 +2300,55 @@ export default function Home() {
     purchasedExperienceIds.has(
       experience.id
     );
+
+  const selectedTourStarted =
+    startedPurchasedExperienceIds.has(
+      experience.id
+    );
+
+  const selectedTourCompleted =
+    completedPurchasedExperienceIds.has(
+      experience.id
+    );
+
+  async function updatePaidTourLifecycle(
+    action: "start" | "complete"
+  ) {
+    if (
+      selectedOption.accessType !== "paid" ||
+      !selectedTourPurchased
+    ) {
+      return;
+    }
+
+    const response = await fetch(
+      "/api/stripe/purchases/lifecycle",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+        body: JSON.stringify({
+          experienceId:
+            experience.id,
+          action,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const result =
+        await response.json();
+
+      throw new Error(
+        result.error ??
+          "Paid tour status could not be updated."
+      );
+    }
+
+    await loadPassengerPurchases();
+  }
 
   function signInToBuy() {
     const next =
@@ -2396,6 +2498,16 @@ export default function Home() {
   }
 
   function prepareExperience() {
+    if (
+      selectedOption.accessType === "paid" &&
+      selectedTourCompleted
+    ) {
+      setCheckoutError(
+        "You have completed this paid experience."
+      );
+      return;
+    }
+
     if (
       selectedOption.accessType === "paid" &&
       !selectedTourPurchased
@@ -2766,6 +2878,18 @@ export default function Home() {
 
     const analyticsJourneyId = crypto.randomUUID();
     analyticsJourneyIdRef.current = analyticsJourneyId;
+
+    if (
+      !simulatorEnabled &&
+      selectedOption.accessType === "paid" &&
+      selectedTourPurchased &&
+      !selectedTourCompleted
+    ) {
+      void updatePaidTourLifecycle(
+        "start"
+      ).catch(() => undefined);
+    }
+
     if (!simulatorEnabled) {
       void recordTourAnalyticsEvent(createClient(), {
         eventType: "tour_started",
@@ -3340,23 +3464,32 @@ export default function Home() {
               </span>
 
               <span>
-                {option.accessType ===
-                "free"
+                {option.accessType === "free"
                   ? "Free"
-                  : option.pricePence !==
-                        undefined
-                    ? new Intl.NumberFormat(
-                        "en-GB",
-                        {
-                          style: "currency",
-                          currency:
-                            option.currency,
-                        }
-                      ).format(
-                        option.pricePence /
-                          100
+                  : completedPurchasedExperienceIds.has(
+                      option.experience.id
+                    )
+                    ? "Completed ✓"
+                    : purchasedExperienceIds.has(
+                        option.experience.id
                       )
-                    : "Paid"}
+                      ? startedPurchasedExperienceIds.has(
+                          option.experience.id
+                        )
+                        ? "Paid ✓ · In progress"
+                        : "Paid ✓"
+                      : option.pricePence !== undefined
+                        ? new Intl.NumberFormat(
+                            "en-GB",
+                            {
+                              style: "currency",
+                              currency:
+                                option.currency,
+                            }
+                          ).format(
+                            option.pricePence / 100
+                          )
+                        : "Paid"}
               </span>
             </div>
 
@@ -4052,7 +4185,15 @@ export default function Home() {
         </section>
 
         <div className="stickyAction">
-          {selectedJourneyIsActive ? (
+          {selectedOption.accessType === "paid" &&
+          selectedTourCompleted ? (
+            <button
+              className="primaryButton"
+              disabled
+            >
+              Completed ✓
+            </button>
+          ) : selectedJourneyIsActive ? (
             <button
               className="primaryButton"
               onClick={resumeExperience}
@@ -4103,9 +4244,16 @@ export default function Home() {
 
           <p>
             {selectedOption.accessType === "paid" &&
-            !selectedTourPurchased
-              ? "Purchase once to keep access to this tour on your Between Stops account. Your public transport fare is separate."
-              : "Location access keeps the experience in sync. Download the tour before travelling to avoid using mobile data for audio and images."}
+            selectedTourCompleted
+              ? "You have completed this paid experience."
+              : selectedOption.accessType === "paid" &&
+                selectedTourPurchased
+                ? selectedTourStarted
+                  ? "Paid ✓ · In progress. You can resume until the journey is completed."
+                  : "Paid ✓ · This experience is ready to start."
+                : selectedOption.accessType === "paid"
+                  ? "Purchase once to take this tour. Your public transport fare is separate."
+                  : "Location access keeps the experience in sync. Download the tour before travelling to avoid using mobile data for audio and images."}
           </p>
         </div>
       </main>
