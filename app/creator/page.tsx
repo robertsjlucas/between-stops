@@ -3065,8 +3065,7 @@ export default function CreatorPage() {
             </button>
           </div>
 
-          {hasPaidProjects && (
-            <section className="payoutPanel">
+          <section className="payoutPanel">
               <div className="payoutPanelCopy">
                 <p className="creatorKicker">
                   PAYMENTS &amp; PAYOUTS
@@ -3114,10 +3113,11 @@ export default function CreatorPage() {
                       Set up payouts
                     </h2>
                     <p>
-                      You have a paid tour.
-                      Connect securely with
-                      Stripe before it goes on
-                      sale.
+                      You only need Stripe if you
+                      plan to sell paid tours.
+                      Set it up now or come back
+                      before your first paid tour
+                      goes on sale.
                     </p>
                   </>
                 )}
@@ -3153,7 +3153,6 @@ export default function CreatorPage() {
                 )}
               </div>
             </section>
-          )}
 
           <div className="projectsGrid">
             <div className="projectStatusFilters" aria-label="Filter experiences by status">
