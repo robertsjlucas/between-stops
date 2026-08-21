@@ -1838,3 +1838,65 @@
   color: #99713a;
   font-weight: 650;
 }
+
+
+/* Stripe Connect payout status */
+
+.payoutPanel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 0 24px;
+  padding: 22px 24px;
+  border: 1px solid rgba(20, 20, 20, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.payoutPanelCopy {
+  max-width: 650px;
+}
+
+.payoutPanelCopy h2 {
+  margin: 3px 0 7px;
+  font-size: 1.2rem;
+}
+
+.payoutPanelCopy p {
+  margin: 0;
+}
+
+.payoutPanelCopy .creatorKicker {
+  margin-bottom: 5px;
+}
+
+.payoutPanelAction {
+  flex: 0 0 auto;
+}
+
+.payoutReadyBadge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(20, 20, 20, 0.14);
+  font-weight: 700;
+}
+
+.payoutError {
+  margin-top: 10px !important;
+  font-weight: 600;
+}
+
+@media (max-width: 720px) {
+  .payoutPanel {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .payoutPanelAction button {
+    width: 100%;
+  }
+}
