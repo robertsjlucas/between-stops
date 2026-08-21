@@ -2153,27 +2153,57 @@ export default function Home() {
     );
 
     if (params.get("checkout") === "success") {
-      let attempts = 0;
+      const sessionId =
+        params.get("session_id");
 
-      const timer = window.setInterval(() => {
-        attempts += 1;
+      async function confirmReturnedPurchase() {
+        try {
+          if (sessionId) {
+            const response = await fetch(
+              "/api/stripe/checkout/verify",
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type":
+                    "application/json",
+                },
+                body: JSON.stringify({
+                  sessionId,
+                }),
+              }
+            );
 
-        void loadPassengerPurchases()
-          .then(() => {
-            if (attempts >= 6) {
-              window.clearInterval(timer);
+            const result =
+              await response.json();
+
+            if (!response.ok) {
+              throw new Error(
+                result.error ??
+                  "Purchase could not be confirmed."
+              );
             }
-          })
-          .catch(() => {
-            if (attempts >= 6) {
-              window.clearInterval(timer);
-            }
-          });
-      }, 1000);
+          }
+
+          await loadPassengerPurchases();
+
+          if (!cancelled) {
+            setCheckoutError("");
+          }
+        } catch (error) {
+          if (!cancelled) {
+            setCheckoutError(
+              error instanceof Error
+                ? error.message
+                : "Purchase could not be confirmed."
+            );
+          }
+        }
+      }
+
+      void confirmReturnedPurchase();
 
       return () => {
         cancelled = true;
-        window.clearInterval(timer);
       };
     }
 
