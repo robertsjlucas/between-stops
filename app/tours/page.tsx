@@ -2350,6 +2350,24 @@ export default function Home() {
     audio.onended = () => {
       setBrandAnnouncement(null);
       setAudioPlaybackStatus("idle");
+
+      if (
+        kind === "next_stop" &&
+        simulatorEnabled &&
+        journeyProgress >= 100 &&
+        !journeyCompleted
+      ) {
+        setJourneyCompleted(true);
+        setJourneyProgress(100);
+
+        recordDiagnostic(
+          "journey_completed",
+          "Simulator journey completed after the next-stop reminder.",
+          {
+            journeyProgress: 100,
+          }
+        );
+      }
     };
 
     audio.onerror = () => {
