@@ -54,6 +54,16 @@ import type {
   PlatformAudioKey,
 } from "@/lib/platform-audio";
 
+import {
+  loadHomepageImages,
+  uploadHomepageImage,
+  removeHomepageImage,
+} from "@/lib/homepage-images";
+
+import type {
+  HomepageImage,
+} from "@/lib/homepage-images";
+
 type ReviewStory = {
   id: string;
   title: string;
@@ -111,6 +121,7 @@ type AdminSection =
   | "approvals"
   | "passenger_reviews"
   | "destinations"
+  | "homepage_images"
   | "platform_audio"
   | "operations";
 
@@ -257,6 +268,30 @@ export default function AdminPage() {
   const [pendingPlatformAudio, setPendingPlatformAudio] =
     useState<Partial<Record<PlatformAudioKey, File>>>({});
 
+  const [homepageImages, setHomepageImages] =
+    useState<HomepageImage[]>([]);
+
+  const [editingHomepageImageId, setEditingHomepageImageId] =
+    useState<string | null>(null);
+
+  const [homepageImageCity, setHomepageImageCity] =
+    useState("Edinburgh");
+
+  const [homepageImageAlt, setHomepageImageAlt] =
+    useState("");
+
+  const [homepageImageHero, setHomepageImageHero] =
+    useState(false);
+
+  const [homepageImageActive, setHomepageImageActive] =
+    useState(true);
+
+  const [homepageImageOrder, setHomepageImageOrder] =
+    useState("100");
+
+  const [pendingHomepageImage, setPendingHomepageImage] =
+    useState<File | null>(null);
+
   const busRouteStops = useMemo(() => {
     return routeChoices
       .filter((choice) => choice.route.mode === "bus")
@@ -303,6 +338,14 @@ export default function AdminPage() {
 
     const platformAudioRows =
       await loadPlatformAudio(supabase);
+
+    const homepageImageRows =
+      await loadHomepageImages(
+        supabase,
+        {
+          includeInactive: true,
+        }
+      );
 
     const passengerReviewRows =
       await loadAdminPassengerReviews(supabase);
@@ -425,6 +468,7 @@ export default function AdminPage() {
     setCoverUrls(nextCoverUrls);
     setRecommendations(recommendationRows);
     setPlatformAudio(platformAudioRows);
+    setHomepageImages(homepageImageRows);
     setPassengerReviews(passengerReviewRows);
     setOperationsMetrics(metricsData as OperationsMetrics);
     setPlatformReports((reportData ?? []) as PlatformReport[]);
@@ -882,6 +926,289 @@ export default function AdminPage() {
     }
   }
 
+  function normaliseHomepageCity(
+    value: string
+  ) {
+    const trimmed =
+      value.trim().replace(/\s+/g, " ");
+
+    if (
+      trimmed.toLocaleLowerCase("en-GB") ===
+      "global"
+    ) {
+      return "Global";
+    }
+
+    return trimmed
+      .split(" ")
+      .map((word) =>
+        word.length > 0
+          ? word.charAt(0).toUpperCase() +
+            word.slice(1).toLocaleLowerCase("en-GB")
+          : word
+      )
+      .join(" ");
+  }
+
+  function resetHomepageImageForm() {
+    setEditingHomepageImageId(null);
+    setHomepageImageCity("Edinburgh");
+    setHomepageImageAlt("");
+    setHomepageImageHero(false);
+    setHomepageImageActive(true);
+    setHomepageImageOrder("100");
+    setPendingHomepageImage(null);
+  }
+
+  function editHomepageImage(
+    image: HomepageImage
+  ) {
+    setAdminSection("homepage_images");
+    setEditingHomepageImageId(image.id);
+    setHomepageImageCity(image.city);
+    setHomepageImageAlt(image.altText);
+    setHomepageImageHero(image.isHero);
+    setHomepageImageActive(image.isActive);
+    setHomepageImageOrder(
+      String(image.displayOrder)
+    );
+    setPendingHomepageImage(null);
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
+
+  async function saveHomepageImage() {
+    const city =
+      normaliseHomepageCity(
+        homepageImageCity
+      );
+
+    const altText =
+      homepageImageAlt.trim();
+
+    const displayOrder =
+      Number.parseInt(
+        homepageImageOrder,
+        10
+      );
+
+    if (!city) {
+      window.alert(
+        "Add a city or choose Global."
+      );
+      return;
+    }
+
+    if (
+      !Number.isFinite(displayOrder) ||
+      displayOrder < 1
+    ) {
+      window.alert(
+        "Display order must be a whole number of 1 or higher."
+      );
+      return;
+    }
+
+    const imageId =
+      editingHomepageImageId ??
+      crypto.randomUUID();
+
+    const existing =
+      homepageImages.find(
+        (image) => image.id === imageId
+      );
+
+    if (
+      !pendingHomepageImage &&
+      !existing?.imagePath
+    ) {
+      window.alert(
+        "Choose an image to upload."
+      );
+      return;
+    }
+
+    setBusyId(
+      `homepage-${imageId}`
+    );
+    setError("");
+
+    try {
+      const supabase =
+        createClient();
+
+      const uploadedPath =
+        pendingHomepageImage
+          ? await uploadHomepageImage(
+              supabase,
+              imageId,
+              pendingHomepageImage
+            )
+          : undefined;
+
+      if (homepageImageHero) {
+        const {
+          error: heroError,
+        } = await supabase
+          .from("homepage_images")
+          .update({
+            is_hero: false,
+            updated_at:
+              new Date().toISOString(),
+          })
+          .eq("city", city)
+          .neq("id", imageId);
+
+        if (heroError) {
+          throw heroError;
+        }
+      }
+
+      const {
+        error: saveError,
+      } = await supabase
+        .from("homepage_images")
+        .upsert({
+          id: imageId,
+          city,
+          image_path:
+            uploadedPath ??
+            existing?.imagePath,
+          alt_text: altText,
+          is_hero:
+            homepageImageHero,
+          is_active:
+            homepageImageActive,
+          display_order:
+            displayOrder,
+          updated_at:
+            new Date().toISOString(),
+        });
+
+      if (saveError) {
+        throw saveError;
+      }
+
+      if (
+        uploadedPath &&
+        existing?.imagePath &&
+        existing.imagePath !==
+          uploadedPath
+      ) {
+        await removeHomepageImage(
+          supabase,
+          existing.imagePath
+        );
+      }
+
+      resetHomepageImageForm();
+      await loadQueue();
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error
+          ? saveError.message
+          : "The homepage image could not be saved."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function toggleHomepageImage(
+    image: HomepageImage
+  ) {
+    setBusyId(
+      `homepage-${image.id}`
+    );
+    setError("");
+
+    try {
+      const {
+        error: updateError,
+      } = await createClient()
+        .from("homepage_images")
+        .update({
+          is_active:
+            !image.isActive,
+          updated_at:
+            new Date().toISOString(),
+        })
+        .eq("id", image.id);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      await loadQueue();
+    } catch (updateError) {
+      setError(
+        updateError instanceof Error
+          ? updateError.message
+          : "The homepage image could not be updated."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function deleteHomepageImage(
+    image: HomepageImage
+  ) {
+    if (
+      !window.confirm(
+        `Delete this ${image.city} homepage image?`
+      )
+    ) {
+      return;
+    }
+
+    setBusyId(
+      `homepage-${image.id}`
+    );
+    setError("");
+
+    try {
+      const supabase =
+        createClient();
+
+      const {
+        error: deleteError,
+      } = await supabase
+        .from("homepage_images")
+        .delete()
+        .eq("id", image.id);
+
+      if (deleteError) {
+        throw deleteError;
+      }
+
+      await removeHomepageImage(
+        supabase,
+        image.imagePath
+      );
+
+      if (
+        editingHomepageImageId ===
+        image.id
+      ) {
+        resetHomepageImageForm();
+      }
+
+      await loadQueue();
+    } catch (deleteError) {
+      setError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : "The homepage image could not be deleted."
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   if (accessDenied) {
     return (
       <main className="adminShell adminMessage">
@@ -967,7 +1294,11 @@ export default function AdminPage() {
               ? "Passenger reviews"
               : adminSection === "destinations"
                 ? "Things to do here"
-                : "Platform operations"}
+                : adminSection === "homepage_images"
+                  ? "Homepage images"
+                  : adminSection === "platform_audio"
+                    ? "Platform audio"
+                    : "Platform operations"}
         </h1>
         <span>
           {adminSection === "approvals"
@@ -976,7 +1307,11 @@ export default function AdminPage() {
               ? "Approve written comments before they appear publicly, or remove abusive submissions entirely."
               : adminSection === "destinations"
                 ? "Manage the recommendations passengers see when they finish at a destination."
-                : "See platform activity, stored uploads, errors and reports in one place."}
+                : adminSection === "homepage_images"
+                  ? "Manage the platform-owned photography used on public landing pages, organised by city."
+                  : adminSection === "platform_audio"
+                    ? "Manage the shared announcements used across Between Stops tours."
+                    : "See platform activity, stored uploads, errors and reports in one place."}
         </span>
       </section>
 
@@ -999,6 +1334,13 @@ export default function AdminPage() {
         >
           Destination recommendations
         </button>
+        <button
+          className={adminSection === "homepage_images" ? "active" : ""}
+          onClick={() => setAdminSection("homepage_images")}
+        >
+          Homepage images
+        </button>
+
         <button
           className={adminSection === "platform_audio" ? "active" : ""}
           onClick={() => setAdminSection("platform_audio")}
@@ -1564,6 +1906,339 @@ export default function AdminPage() {
                   </article>
                 );
               })
+            )}
+          </div>
+        </section>
+      )}
+
+      {adminSection === "homepage_images" && (
+        <section className="homepageImageAdmin">
+          <div className="homepageImageForm">
+            <p className="destinationAdminKicker">
+              {editingHomepageImageId
+                ? "EDIT IMAGE"
+                : "NEW IMAGE"}
+            </p>
+
+            <h2>
+              {editingHomepageImageId
+                ? "Update homepage image"
+                : "Add platform photography"}
+            </h2>
+
+            <label htmlFor="homepage-image-city">
+              City
+            </label>
+
+            <input
+              id="homepage-image-city"
+              list="homepage-city-options"
+              value={homepageImageCity}
+              onChange={(event) =>
+                setHomepageImageCity(
+                  event.target.value
+                )
+              }
+              placeholder="Edinburgh"
+            />
+
+            <datalist id="homepage-city-options">
+              {Array.from(
+                new Set([
+                  "Global",
+                  "Edinburgh",
+                  ...homepageImages.map(
+                    (image) => image.city
+                  ),
+                ])
+              )
+                .sort((a, b) =>
+                  a.localeCompare(
+                    b,
+                    "en-GB"
+                  )
+                )
+                .map((city) => (
+                  <option
+                    key={city}
+                    value={city}
+                  />
+                ))}
+            </datalist>
+
+            <small>
+              Use Global for photography
+              that works regardless of city.
+            </small>
+
+            <label htmlFor="homepage-image-file">
+              Photograph
+            </label>
+
+            {editingHomepageImageId &&
+              homepageImages.find(
+                (image) =>
+                  image.id ===
+                  editingHomepageImageId
+              )?.imageUrl && (
+                <img
+                  className="homepageImageCurrentPreview"
+                  src={
+                    homepageImages.find(
+                      (image) =>
+                        image.id ===
+                        editingHomepageImageId
+                    )?.imageUrl ?? ""
+                  }
+                  alt=""
+                />
+              )}
+
+            <input
+              id="homepage-image-file"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) =>
+                setPendingHomepageImage(
+                  event.target.files?.[0] ??
+                    null
+                )
+              }
+            />
+
+            <small>
+              JPG, PNG or WebP, up to
+              10 MB.
+              {editingHomepageImageId
+                ? " Leave blank to keep the existing photograph."
+                : ""}
+            </small>
+
+            <label htmlFor="homepage-image-alt">
+              Alt text
+            </label>
+
+            <input
+              id="homepage-image-alt"
+              value={homepageImageAlt}
+              onChange={(event) =>
+                setHomepageImageAlt(
+                  event.target.value
+                )
+              }
+              maxLength={180}
+              placeholder="View along Princes Street, Edinburgh"
+            />
+
+            <small>
+              Briefly describe what is
+              visible in the photograph.
+            </small>
+
+            <label htmlFor="homepage-image-order">
+              Display order
+            </label>
+
+            <input
+              id="homepage-image-order"
+              type="number"
+              min="1"
+              value={homepageImageOrder}
+              onChange={(event) =>
+                setHomepageImageOrder(
+                  event.target.value
+                )
+              }
+            />
+
+            <label className="destinationActiveToggle">
+              <input
+                type="checkbox"
+                checked={homepageImageHero}
+                onChange={(event) =>
+                  setHomepageImageHero(
+                    event.target.checked
+                  )
+                }
+              />
+              <span>
+                Preferred hero image for
+                this city
+              </span>
+            </label>
+
+            <label className="destinationActiveToggle">
+              <input
+                type="checkbox"
+                checked={homepageImageActive}
+                onChange={(event) =>
+                  setHomepageImageActive(
+                    event.target.checked
+                  )
+                }
+              />
+              <span>
+                Available on the public
+                site
+              </span>
+            </label>
+
+            <div className="destinationFormActions">
+              {editingHomepageImageId && (
+                <button
+                  className="secondary"
+                  onClick={
+                    resetHomepageImageForm
+                  }
+                >
+                  Cancel
+                </button>
+              )}
+
+              <button
+                disabled={Boolean(busyId)}
+                onClick={() =>
+                  void saveHomepageImage()
+                }
+              >
+                {editingHomepageImageId
+                  ? "Save changes"
+                  : "Add image"}
+              </button>
+            </div>
+          </div>
+
+          <div className="homepageImageLibrary">
+            <div className="destinationListHeading">
+              <div>
+                <h2>
+                  Platform image library
+                </h2>
+                <p>
+                  These images belong to
+                  the Between Stops
+                  presentation layer, not
+                  individual tours.
+                </p>
+              </div>
+
+              <span>
+                {homepageImages.length}
+              </span>
+            </div>
+
+            {homepageImages.length ===
+            0 ? (
+              <div className="adminEmpty">
+                No homepage images yet.
+              </div>
+            ) : (
+              <div className="homepageImageGrid">
+                {homepageImages.map(
+                  (image) => {
+                    const busy =
+                      busyId ===
+                      `homepage-${image.id}`;
+
+                    return (
+                      <article
+                        className={
+                          image.isActive
+                            ? "homepageImageCard"
+                            : "homepageImageCard inactive"
+                        }
+                        key={image.id}
+                      >
+                        <div className="homepageImageThumb">
+                          {image.imageUrl ? (
+                            <img
+                              src={
+                                image.imageUrl
+                              }
+                              alt=""
+                            />
+                          ) : (
+                            <span>
+                              Image unavailable
+                            </span>
+                          )}
+
+                          <div className="homepageImageBadges">
+                            <span>
+                              {image.city}
+                            </span>
+
+                            {image.isHero && (
+                              <b>
+                                Hero
+                              </b>
+                            )}
+
+                            {!image.isActive && (
+                              <b>
+                                Hidden
+                              </b>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="homepageImageCardBody">
+                          <strong>
+                            {image.altText ||
+                              "No alt text"}
+                          </strong>
+
+                          <small>
+                            Display order{" "}
+                            {
+                              image.displayOrder
+                            }
+                          </small>
+
+                          <div className="passengerReviewActions">
+                            <button
+                              disabled={busy}
+                              onClick={() =>
+                                editHomepageImage(
+                                  image
+                                )
+                              }
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              className="secondary"
+                              disabled={busy}
+                              onClick={() =>
+                                void toggleHomepageImage(
+                                  image
+                                )
+                              }
+                            >
+                              {image.isActive
+                                ? "Hide"
+                                : "Show"}
+                            </button>
+
+                            <button
+                              className="danger"
+                              disabled={busy}
+                              onClick={() =>
+                                void deleteHomepageImage(
+                                  image
+                                )
+                              }
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  }
+                )}
+              </div>
             )}
           </div>
         </section>
