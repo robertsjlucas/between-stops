@@ -510,6 +510,9 @@ export default function Home() {
 
   const [testerOpen, setTesterOpen] = useState(false);
 
+  const [completionPreviewEnabled, setCompletionPreviewEnabled] =
+    useState(false);
+
   const [simulatorEnabled, setSimulatorEnabled] =
     useState(false);
 
@@ -2647,7 +2650,8 @@ export default function Home() {
   ) {
     if (
       tipLoading ||
-      simulatorEnabled
+      simulatorEnabled ||
+      completionPreviewEnabled
     ) {
       return;
     }
@@ -3085,6 +3089,32 @@ export default function Home() {
     setWatching(false);
     setTesterOpen(false);
     setScreen("home");
+  }
+
+  function previewCompletionScreen() {
+    pauseJourneyAudioForNavigation();
+    setWatching(false);
+    setSimulatorEnabled(false);
+    setCompletionPreviewEnabled(true);
+    setJourneyProgress(100);
+    setJourneyCompleted(true);
+    setScreen("journey");
+
+    recordDiagnostic(
+      "simulator_changed",
+      "Completion screen preview opened. No purchase, lifecycle or analytics data was changed.",
+      {
+        source: "simulator",
+        journeyProgress: 100,
+      }
+    );
+  }
+
+  function exitCompletionPreview() {
+    setCompletionPreviewEnabled(false);
+    setJourneyCompleted(false);
+    setJourneyProgress(0);
+    setScreen("overview");
   }
 
   function setSimulatorActive(enabled: boolean) {
@@ -4661,6 +4691,23 @@ export default function Home() {
 
       {journeyCompleted && (
         <>
+          {completionPreviewEnabled && (
+            <section className="completionPreviewBanner">
+              <div>
+                <strong>Completion preview</strong>
+                <span>
+                  Test only · no payment, completion or analytics data is being recorded.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={exitCompletionPreview}
+              >
+                Exit preview
+              </button>
+            </section>
+          )}
+
           <section className="journeyCompleteCard">
             <span>✓</span>
             <p className="kicker">JOURNEY COMPLETE</p>
@@ -4744,7 +4791,7 @@ export default function Home() {
             )}
           </section>
 
-          {!simulatorEnabled && (
+          {(!simulatorEnabled || completionPreviewEnabled) && (
             <section className="completionTipCard">
               <p className="kicker">
                 SUPPORT YOUR GUIDE
@@ -4832,7 +4879,8 @@ export default function Home() {
                 type="button"
                 disabled={
                   tipLoading ||
-                  selectedTipPence === null
+                  selectedTipPence === null ||
+                  completionPreviewEnabled
                 }
                 onClick={() => {
                   const amount =
@@ -4853,9 +4901,11 @@ export default function Home() {
                   );
                 }}
               >
-                {tipLoading
-                  ? "Opening Stripe…"
-                  : "Leave a tip"}
+                {completionPreviewEnabled
+                  ? "Tip checkout disabled in preview"
+                  : tipLoading
+                    ? "Opening Stripe…"
+                    : "Leave a tip"}
               </button>
 
               {tipMessage && (
@@ -5190,6 +5240,22 @@ export default function Home() {
           </div>
 
           <div className="simulatorCard">
+            <div className="completionPreviewControl">
+              <div>
+                <strong>Completion screen</strong>
+                <span>
+                  Preview review, tipping and destination recommendations without completing a real tour.
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={previewCompletionScreen}
+              >
+                Preview completion
+              </button>
+            </div>
+
             <div className="simulatorSwitchRow">
               <div>
                 <strong>Route simulator</strong>
