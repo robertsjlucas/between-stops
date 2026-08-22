@@ -3684,7 +3684,7 @@ export default function Home() {
         <header className="brandHeader">
           <div className="brandMark">
             <img
-              src="/branding/between-stops-icon-v2.png"
+              src="/branding/between-stops-icon.png?v=2"
               alt=""
             />
           </div>
@@ -3939,7 +3939,7 @@ export default function Home() {
 
           <span className="miniBrand">
             <img
-              src="/branding/between-stops-icon-v2.png"
+              src="/branding/between-stops-icon.png?v=2"
               alt=""
             />
             <span>Between Stops</span>
@@ -4401,7 +4401,7 @@ export default function Home() {
         <header className="topBar">
           <span className="miniBrand">
             <img
-              src="/branding/between-stops-icon-v2.png"
+              src="/branding/between-stops-icon.png?v=2"
               alt=""
             />
             <span>Between Stops</span>
@@ -4536,7 +4536,7 @@ export default function Home() {
         <div>
           <span className="miniBrand">
             <img
-              src="/branding/between-stops-icon-v2.png"
+              src="/branding/between-stops-icon.png?v=2"
               alt=""
             />
             <span>Between Stops</span>

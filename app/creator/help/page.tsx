@@ -41,7 +41,7 @@ export default function CreatorHelpPage() {
         <div>
           <div className="creatorLogo">
             <img
-              src="/branding/between-stops-icon-v2.png"
+              src="/branding/between-stops-icon.png?v=2"
               alt=""
             />
             <span>Between Stops</span>
@@ -126,7 +126,7 @@ export default function CreatorHelpPage() {
         <div>
           <strong className="creatorFooterBrand">
             <img
-              src="/branding/between-stops-icon-v2.png"
+              src="/branding/between-stops-icon.png?v=2"
               alt=""
             />
             <span>Between Stops</span>

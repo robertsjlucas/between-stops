@@ -108,7 +108,7 @@ async function cacheAppShell(cache: Cache) {
   );
 
   for (const path of [
-    "/branding/between-stops-icon-v2.png",
+    "/branding/between-stops-icon.png?v=2",
     "/branding/between-stops-logo.png",
     "/between-stops-sw.js",
   ]) {
