@@ -5,7 +5,7 @@ import { createPublicServerClient } from "@/lib/supabase/public-server";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://between-stops.vercel.app";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://beyondthestops.com";
   const entries: MetadataRoute.Sitemap = [
     { url: baseUrl, changeFrequency: "weekly", priority: 1 },
     { url: `${baseUrl}/tours`, changeFrequency: "daily", priority: 0.9 },

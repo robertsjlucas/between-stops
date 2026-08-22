@@ -1276,7 +1276,7 @@ export default function AdminPage() {
       <header className="adminHeader">
         <a className="adminBrand" href="/">
           <img src="/branding/between-stops-logo-light.png?v=1" alt="" />
-          <span>Between Stops</span>
+          <span>Beyond the Stops</span>
         </a>
 
         <nav>
@@ -1310,7 +1310,7 @@ export default function AdminPage() {
                 : adminSection === "homepage_images"
                   ? "Manage the platform-owned photography used on public landing pages, organised by city."
                   : adminSection === "platform_audio"
-                    ? "Manage the shared announcements used across Between Stops tours."
+                    ? "Manage the shared announcements used across Beyond the Stops tours."
                     : "See platform activity, stored uploads, errors and reports in one place."}
         </span>
       </section>
@@ -1697,7 +1697,7 @@ export default function AdminPage() {
             />
             <small className="destinationPhotoHelp">
               JPG, PNG or WebP, up to 5 MB. Without a photo,
-              Between Stops uses branded category artwork.
+              Beyond the Stops uses branded category artwork.
             </small>
 
             <div className="destinationFormRow">
@@ -2116,7 +2116,7 @@ export default function AdminPage() {
                 </h2>
                 <p>
                   These images belong to
-                  the Between Stops
+                  the Beyond the Stops
                   presentation layer, not
                   individual tours.
                 </p>
@@ -2251,7 +2251,7 @@ export default function AdminPage() {
               <h2>Platform audio</h2>
               <p>
                 These announcements are used across every
-                Between Stops tour. Creators do not manage them.
+                Beyond the Stops tour. Creators do not manage them.
               </p>
             </div>
           </div>

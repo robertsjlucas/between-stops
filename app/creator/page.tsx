@@ -263,7 +263,7 @@ function CreatorFooter() {
             src="/branding/between-stops-logo-light.png?v=1"
             alt=""
           />
-          <span>Between Stops</span>
+          <span>Beyond the Stops</span>
         </strong>
         <span>
           © {new Date().getFullYear()}
@@ -2545,7 +2545,7 @@ export default function CreatorPage() {
   async function pausePublishedProject(project: SavedProject) {
     if (
       !window.confirm(
-        "Pause this tour? It will disappear from the public catalogue immediately. You can restore the unchanged version later."
+        "Pause this experience? It will disappear from the public catalogue immediately. You can restore the unchanged version later."
       )
     ) {
       return;
@@ -2597,7 +2597,7 @@ export default function CreatorPage() {
   async function editPausedProject(project: SavedProject) {
     if (
       !window.confirm(
-        "Return this tour to draft for editing? Your changes will need administrator approval before it can go live again."
+        "Return this experience to draft for editing? Your changes will need administrator approval before it can go live again."
       )
     ) {
       return;
@@ -3111,7 +3111,7 @@ export default function CreatorPage() {
               src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
-            <span>Between Stops</span>
+            <span>Beyond the Stops</span>
           </div>
 
           <div>
@@ -3349,7 +3349,7 @@ export default function CreatorPage() {
                       <div className="projectCardPlaceholder" aria-label="Tour image placeholder">
                         <img src="/branding/between-stops-logo-light.png?v=1" alt="" />
                         <div>
-                          <small>BETWEEN STOPS</small>
+                          <small>BEYOND THE STOPS</small>
                           <strong>{choice?.label ?? "A new journey"}</strong>
                         </div>
                       </div>
@@ -3479,7 +3479,7 @@ export default function CreatorPage() {
                 src="/branding/between-stops-logo-light.png?v=1"
                 alt=""
               />
-              <span>Between Stops</span>
+              <span>Beyond the Stops</span>
             </div>
 
             <p className="creatorAreaLabel">
@@ -3600,7 +3600,7 @@ export default function CreatorPage() {
                 <h2>Guide voice prompts</h2>
                 <p>
                   Record these two short clips once. For a
-                  Something to spot Story, Between Stops will
+                  Something to spot Story, Beyond the Stops will
                   automatically play the correct clip before
                   the Story audio, including on the return
                   journey.
@@ -3727,7 +3727,7 @@ export default function CreatorPage() {
               src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
-            <span>Between Stops</span>
+            <span>Beyond the Stops</span>
           </div>
 
           <button
@@ -3835,11 +3835,11 @@ export default function CreatorPage() {
                 src="/branding/between-stops-logo-light.png?v=1"
                 alt=""
               />
-              <span>Between Stops</span>
+              <span>Beyond the Stops</span>
             </div>
 
             <p className="creatorAreaLabel">
-              Tour details
+              Experience details
             </p>
           </div>
 
@@ -3907,7 +3907,7 @@ export default function CreatorPage() {
                   event.target.value
                 )
               }
-              placeholder="One sentence that helps passengers decide whether to take this tour."
+              placeholder="One sentence that helps passengers decide whether to choose this experience."
               maxLength={180}
               rows={3}
             />
@@ -4037,9 +4037,9 @@ export default function CreatorPage() {
                       {(Number(tourPrice) * 0.75).toFixed(2)}
                     </strong>
                     <small>
-                      Between Stops retains 25% of the tour price.
+                      Beyond the Stops retains 25% of the tour price.
                       Ordinary payment processing is covered from
-                      the Between Stops share.
+                      the Beyond the Stops share.
                     </small>
                   </div>
                 )}
@@ -4266,7 +4266,7 @@ export default function CreatorPage() {
               >
                 {detailsSaving
                   ? "Saving…"
-                  : "Save tour details"}
+                  : "Save experience details"}
               </button>
             </div>
           </div>
@@ -4290,7 +4290,7 @@ export default function CreatorPage() {
                 src="/branding/between-stops-logo-light.png?v=1"
                 alt=""
               />
-              <span>Between Stops</span>
+              <span>Beyond the Stops</span>
             </div>
 
             <p className="creatorAreaLabel">
@@ -4424,7 +4424,7 @@ export default function CreatorPage() {
                 )
               }
             >
-              Tour details
+              Experience details
             </button>
 
             <button
@@ -4456,7 +4456,7 @@ export default function CreatorPage() {
             </strong>
             <p>
               {activeProject.reviewNote ||
-                "Open the tour details, make the requested updates, then submit it again."}
+                "Open the experience details, make the requested updates, then submit it again."}
             </p>
           </aside>
         )}
@@ -5037,7 +5037,7 @@ export default function CreatorPage() {
               src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
-            <span>Between Stops</span>
+            <span>Beyond the Stops</span>
           </div>
 
           <p className="creatorAreaLabel">

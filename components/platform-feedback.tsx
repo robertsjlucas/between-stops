@@ -38,7 +38,7 @@ export function PlatformFeedback() {
       </button>
       {open && (
         <div className="platformFeedbackPanel">
-          <strong>Help improve Between Stops</strong>
+          <strong>Help improve Beyond the Stops</strong>
           <form onSubmit={submit}>
             <label htmlFor="platform-report-type">This is an</label>
             <select id="platform-report-type" value={type} onChange={(event) => setType(event.target.value as "issue" | "idea")}>

@@ -44,7 +44,7 @@ export default function CreatorHelpPage() {
               src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
-            <span>Between Stops</span>
+            <span>Beyond the Stops</span>
           </div>
 
           <p className="creatorAreaLabel">
@@ -71,7 +71,7 @@ export default function CreatorHelpPage() {
         </h1>
 
         <p>
-          A strong Between Stops tour is
+          A strong Beyond the Stops experience is
           clear, well paced and worth
           looking up from your phone for.
         </p>
@@ -129,7 +129,7 @@ export default function CreatorHelpPage() {
               src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
-            <span>Between Stops</span>
+            <span>Beyond the Stops</span>
           </strong>
           <span>
             Creator guidance will develop

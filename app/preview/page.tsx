@@ -102,7 +102,7 @@ export default function PreviewPage() {
       <header className="topBar">
         <span className="miniBrand">
           <img src="/branding/between-stops-logo-light.png?v=1" alt="" />
-          <span>Between Stops</span>
+          <span>Beyond the Stops</span>
         </span>
       </header>
 

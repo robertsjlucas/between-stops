@@ -14,13 +14,14 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://beyondthestops.com"),
   title: {
-    default: "Between Stops",
-    template: "%s · Between Stops",
+    default: "Beyond the Stops",
+    template: "%s · Beyond the Stops",
   },
   description:
-    "Stories, sights and sounds that unfold as you travel through the city.",
-  applicationName: "Between Stops",
+    "Discover the stories, places and people you're passing as you travel by bus, tram or train.",
+  applicationName: "Beyond the Stops",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

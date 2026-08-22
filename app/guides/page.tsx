@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Create a tour",
   description:
-    "Turn your knowledge of a place into a public-transport audio experience with Between Stops.",
+    "Turn your knowledge of a place into a public-transport audio experience with Beyond the Stops.",
   alternates: {
     canonical: "/guides",
   },
@@ -53,12 +53,12 @@ export default async function GuidesPage() {
             src="/branding/between-stops-logo-light.png?v=1"
             alt=""
           />
-          <span>Between Stops</span>
+          <span>Beyond the Stops</span>
         </Link>
 
         <nav>
           <Link href="/tours">
-            Explore tours
+            Explore journeys
           </Link>
 
           <Link
@@ -73,7 +73,7 @@ export default async function GuidesPage() {
       <section className="guidesHero">
         <div className="guidesHeroCopy">
           <p className="guidesKicker">
-            CREATE WITH BETWEEN STOPS
+            CREATE WITH BEYOND THE STOPS
           </p>
 
           <h1>
@@ -110,7 +110,7 @@ export default async function GuidesPage() {
         <aside className="guideSignature">
           <div className="guideSignatureInner">
             <p className="guidesKicker">
-              BETWEEN STOPS
+              BEYOND THE STOPS
             </p>
 
             <h2>
@@ -147,7 +147,7 @@ export default async function GuidesPage() {
           add your voice and images,
           then submit the finished
           experience for review.
-          Between Stops handles the
+          Beyond the Stops handles the
           location-aware delivery to
           passengers.
         </p>
@@ -283,7 +283,7 @@ export default async function GuidesPage() {
       </section>
 
       <footer className="guidesFooter">
-        <strong>Between Stops</strong>
+        <strong>Beyond the Stops</strong>
 
         <p>
           Stories for the space
@@ -291,7 +291,7 @@ export default async function GuidesPage() {
         </p>
 
         <Link href="/tours">
-          Explore tours
+          Explore journeys
         </Link>
       </footer>
     </main>

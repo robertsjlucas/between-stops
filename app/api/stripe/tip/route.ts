@@ -165,7 +165,7 @@ export async function POST(
           No application_fee_amount.
 
           The full gross tip is transferred to the creator.
-          Between Stops absorbs Stripe processing costs.
+          Beyond the Stops absorbs Stripe processing costs.
         */
         payment_intent_data: {
           transfer_data: {

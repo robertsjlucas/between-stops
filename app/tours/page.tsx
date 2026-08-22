@@ -2640,7 +2640,7 @@ export default function Home() {
           submittedReviewsKey,
           JSON.stringify(Array.from(updated))
         );
-        setReviewMessage("You have already rated this tour.");
+        setReviewMessage("You have already rated this experience.");
       } else {
         setReviewMessage(detail);
       }
@@ -2787,7 +2787,7 @@ export default function Home() {
     if (!url) {
       recordDiagnostic(
         "brand_announcement",
-        `Between Stops ${kind} audio was not available. Journey continued normally.`,
+        `Beyond the Stops ${kind} audio was not available. Journey continued normally.`,
         { journeyProgress }
       );
       setBrandAnnouncement(null);
@@ -2826,7 +2826,7 @@ export default function Home() {
     audio.onerror = () => {
       recordDiagnostic(
         "media_error",
-        `Between Stops ${kind} audio failed while loading or playing.`,
+        `Beyond the Stops ${kind} audio failed while loading or playing.`,
         { journeyProgress }
       );
       setBrandAnnouncement(null);
@@ -2845,10 +2845,10 @@ export default function Home() {
       recordDiagnostic(
         "brand_announcement",
         kind === "welcome"
-          ? "Played the Between Stops welcome."
+          ? "Played the Beyond the Stops welcome."
           : kind === "next_stop"
-            ? "Played the Between Stops next-stop reminder."
-            : "Played the Between Stops end-of-tour message.",
+            ? "Played the Beyond the Stops next-stop reminder."
+            : "Played the Beyond the Stops end-of-tour message.",
         { journeyProgress }
       );
     } catch (playError) {
@@ -2864,8 +2864,8 @@ export default function Home() {
       recordDiagnostic(
         blocked ? "audio_blocked" : "media_error",
         blocked
-          ? `The browser blocked the Between Stops ${kind} announcement.`
-          : `The Between Stops ${kind} announcement could not start.`,
+          ? `The browser blocked the Beyond the Stops ${kind} announcement.`
+          : `The Beyond the Stops ${kind} announcement could not start.`,
         { journeyProgress }
       );
     }
@@ -3284,7 +3284,7 @@ export default function Home() {
 
   function downloadDiagnosticReport() {
     const report = {
-      product: "Between Stops",
+      product: "Beyond the Stops",
       reportVersion: 1,
       generatedAt: new Date().toISOString(),
       tour: {
@@ -3689,7 +3689,7 @@ export default function Home() {
             />
           </div>
 
-          <span>Between Stops</span>
+          <span>Beyond the Stops</span>
 
           <div className="passengerHeaderActions">
             {passengerSignedIn ? (
@@ -3901,8 +3901,8 @@ export default function Home() {
 
                 <h2>
                   {location
-                    ? "Tours near you"
-                    : "Explore all tours"}
+                    ? "Journeys near you"
+                    : "Explore all journeys"}
                 </h2>
               </div>
 
@@ -3942,7 +3942,7 @@ export default function Home() {
               src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
-            <span>Between Stops</span>
+            <span>Beyond the Stops</span>
           </span>
         </header>
 
@@ -4164,7 +4164,7 @@ export default function Home() {
                 <strong>
                   {selectedOfflineRecord
                     ? "Saved for offline use"
-                    : "Download this tour"}
+                    : "Download this experience"}
                 </strong>
                 <p>
                   {selectedOfflineRecord
@@ -4404,7 +4404,7 @@ export default function Home() {
               src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
-            <span>Between Stops</span>
+            <span>Beyond the Stops</span>
           </span>
 
           <button
@@ -4452,7 +4452,7 @@ export default function Home() {
             <div>
               <h2>Allow location</h2>
               <p>
-                Between Stops uses your position to match the route and trigger Stories. Your journey progress stays on this device.
+                Beyond the Stops uses your position to match the route and trigger Stories. Your journey progress stays on this device.
               </p>
               <button
                 className="preflightAction"
@@ -4499,7 +4499,7 @@ export default function Home() {
           <article className="preflightCard keepOpenCard">
             <span className="preflightIcon">▣</span>
             <div>
-              <h2>Keep Between Stops open</h2>
+              <h2>Keep Beyond the Stops open</h2>
               <p>
                 Keep this page on screen and your phone unlocked throughout the journey. Switching apps or locking your phone can pause location and audio. If that happens, passed Stories will be skipped rather than played as a backlog.
               </p>
@@ -4539,7 +4539,7 @@ export default function Home() {
               src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
-            <span>Between Stops</span>
+            <span>Beyond the Stops</span>
           </span>
 
           <p>
@@ -4688,7 +4688,7 @@ export default function Home() {
 
       {brandAnnouncement && (
         <div className="brandAnnouncementBanner" role="status">
-          <span>Between Stops</span>
+          <span>Beyond the Stops</span>
           <strong>
             {brandAnnouncement === "welcome"
               ? "Welcome and journey guidance"
@@ -4724,7 +4724,7 @@ export default function Home() {
               This completion has been saved on this device.
             </p>
             <button onClick={goToExperienceOverview}>
-              Tour details
+              Experience details
             </button>
           </section>
 
@@ -4743,7 +4743,7 @@ export default function Home() {
               </div>
             ) : (
               <>
-                <p className="kicker">RATE THIS TOUR</p>
+                <p className="kicker">RATE THIS EXPERIENCE</p>
                 <h2>How was the experience?</h2>
 
                 <div
@@ -4811,7 +4811,7 @@ export default function Home() {
 
               <p>
                 You can leave an optional tip
-                for your guide. Between Stops
+                for your guide. Beyond the Stops
                 takes no commission from tips.
               </p>
 

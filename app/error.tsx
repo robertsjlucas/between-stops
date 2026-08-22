@@ -26,7 +26,7 @@ export default function ErrorBoundary({
   return (
     <main className="systemErrorPage">
       <img src="/branding/between-stops-icon.png?v=2" alt="" />
-      <p>BETWEEN STOPS</p>
+      <p>BEYOND THE STOPS</p>
       <h1>Something went wrong</h1>
       <span>The problem has been reported. You can try this page again now.</span>
       <button onClick={reset}>Try again</button>

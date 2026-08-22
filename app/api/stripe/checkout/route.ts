@@ -201,7 +201,7 @@ export async function POST(
                 name:
                   experience.title,
                 description:
-                  "Between Stops audio tour",
+                  "Beyond the Stops audio tour",
               },
             },
           },

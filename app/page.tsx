@@ -86,7 +86,7 @@ function TourListing({
 
         <span>
           {option.creator?.displayName ??
-            "Between Stops"}
+            "Beyond the Stops"}
         </span>
       </div>
 
@@ -192,14 +192,14 @@ export default async function LandingPage() {
         <Link
           className="landingBrand"
           href="/"
-          aria-label="Between Stops home"
+          aria-label="Beyond the Stops home"
         >
           <img
             src="/branding/between-stops-logo-light.png?v=1"
             alt=""
           />
           <span>
-            Between Stops
+            Beyond the Stops
           </span>
         </Link>
 
@@ -207,7 +207,7 @@ export default async function LandingPage() {
           aria-label="Main navigation"
         >
           <Link href="/tours">
-            Explore tours
+            Explore journeys
           </Link>
 
           <Link href="/guides">
@@ -246,7 +246,7 @@ export default async function LandingPage() {
               className="primaryLandingButton"
               href="/tours"
             >
-              Explore tours
+              Explore journeys
               <span>↗</span>
             </Link>
 
@@ -303,7 +303,7 @@ export default async function LandingPage() {
         </div>
 
         <p>
-          Between Stops turns
+          Beyond the Stops turns
           ordinary public transport
           journeys into
           location-aware audio
@@ -399,7 +399,7 @@ export default async function LandingPage() {
             </div>
 
             <Link href="/tours">
-              All tours
+              All journeys
               <span>↗</span>
             </Link>
           </header>
@@ -454,14 +454,14 @@ export default async function LandingPage() {
           </p>
 
           <Link href="/guides">
-            Create with Between Stops
+            Create with Beyond the Stops
             <span>↗</span>
           </Link>
         </div>
       </section>
 
       <footer className="landingFooter">
-        <strong>Between Stops</strong>
+        <strong>Beyond the Stops</strong>
 
         <p>
           Stories for the space

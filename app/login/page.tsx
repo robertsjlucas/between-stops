@@ -103,13 +103,13 @@ export default function LoginPage() {
         <header className="loginHeader">
           <div className="loginHeaderBrand">
             <img src="/branding/between-stops-logo-light.png?v=1" alt="" />
-            <div><div className="loginLogo">Between Stops</div><p className="loginArea">{areaLabel}</p></div>
+            <div><div className="loginLogo">Beyond the Stops</div><p className="loginArea">{areaLabel}</p></div>
           </div>
           <a href="/">Passenger view</a>
         </header>
 
         <div className="loginContent">
-          <p className="loginKicker">{passengerMode ? "YOUR BETWEEN STOPS ACCOUNT" : "CREATOR ACCESS"}</p>
+          <p className="loginKicker">{passengerMode ? "YOUR BEYOND THE STOPS ACCOUNT" : "CREATOR ACCESS"}</p>
           <h1>{heading}</h1>
           <p className="loginIntro">
             {view === "forgot"
