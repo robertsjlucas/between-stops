@@ -4,8 +4,8 @@
   margin: 16px auto;
   overflow: hidden;
   border-radius: 24px;
-  background: #ffffff;
-  color: #373737;
+  background: #f6f7f4;
+  color: #171717;
   box-shadow: 0 20px 70px rgba(0, 0, 0, 0.09);
   font-family: Arial, Helvetica, sans-serif;
 }
@@ -18,7 +18,7 @@
   justify-content: space-between;
   gap: 20px;
   border-bottom: 1px solid #2d2d2d;
-  background: #373737;
+  background: #0e0e0e;
   color: white;
 }
 
@@ -204,7 +204,7 @@
   padding: 9px 12px;
   border: 1px solid #cfd3cd;
   border-radius: 999px;
-  background: #f7f8fa;
+  background: #eef0ec;
   color: #303530;
   font-size: 10px;
   font-weight: 750;
@@ -294,8 +294,8 @@
 }
 
 .adminSectionTabs button.active {
-  border-color: #373737;
-  background: #373737;
+  border-color: #171717;
+  background: #171717;
   color: white;
 }
 
@@ -309,7 +309,7 @@
 
 .destinationFormCard,
 .destinationAdminCard {
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd2;
   border-radius: 20px;
   background: white;
 }
@@ -351,9 +351,9 @@
   width: 100%;
   box-sizing: border-box;
   padding: 11px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #d8d4ca;
   border-radius: 11px;
-  background: #ffffff;
+  background: #fbfaf7;
   font: inherit;
   font-size: 12px;
 }
@@ -418,7 +418,7 @@
   padding: 10px 13px;
   border: 0;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-size: 10px;
   font-weight: 750;
@@ -429,7 +429,7 @@
 .destinationCardActions button:nth-child(2) {
   border: 1px solid #d5d1c8;
   background: white;
-  color: #373737;
+  color: #171717;
 }
 
 .destinationCardActions button.danger {
@@ -453,7 +453,7 @@
   padding: 14px;
   grid-template-columns: minmax(170px, 1.4fr) repeat(3, minmax(115px, 1fr));
   gap: 8px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd2;
   border-radius: 16px;
   background: #efede7;
 }
@@ -483,7 +483,7 @@
   height: 28px;
   place-items: center;
   border-radius: 50%;
-  background: #f1f3f5;
+  background: #e7e3da;
   font-size: 10px;
   font-weight: 800;
 }
@@ -572,7 +572,7 @@
   margin-top: 12px;
   padding: 9px 12px;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-size: 10px;
   font-weight: 750;
@@ -582,7 +582,7 @@
   width: fit-content;
   padding: 9px 12px;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-weight: 750;
   text-decoration: none;
@@ -610,7 +610,7 @@
 .destinationRouteCoverage span {
   padding: 5px 7px;
   border-radius: 999px;
-  background: #f1f3f5;
+  background: #e7e3da;
   font-size: 8px;
   font-weight: 750;
 }
@@ -620,17 +620,17 @@
 .featuredControl button {
   border: 0;
   border-radius: 999px;
-  background: #f1f3f5;
-  color: #373737;
+  background: #e7e3da;
+  color: #171717;
   font-weight: 700;
   cursor: pointer;
 }
 
 .reviewPreviewLink {
   padding: 11px 15px;
-  border: 1px solid #373737;
+  border: 1px solid #171717;
   border-radius: 999px;
-  color: #373737;
+  color: #171717;
   font-size: 11px;
   font-weight: 700;
   text-decoration: none;
@@ -645,7 +645,7 @@
 .adminFilters button.active,
 .reviewActions button,
 .featuredControl button {
-  background: #373737;
+  background: #171717;
   color: white;
 }
 
@@ -654,7 +654,7 @@
   margin: 0 30px 30px;
   padding: 20px;
   border-radius: 16px;
-  background: #f7f8fa;
+  background: #ece9e1;
 }
 
 .adminError {
@@ -672,7 +672,7 @@
   display: grid;
   grid-template-columns: minmax(230px, 34%) 1fr;
   overflow: hidden;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd2;
   border-radius: 22px;
   background: white;
 }
@@ -680,7 +680,7 @@
 .reviewCover {
   position: relative;
   min-height: 290px;
-  background: #f7f8fa;
+  background: #e9e6dd;
 }
 
 .reviewCover img {
@@ -766,7 +766,7 @@
   width: 100%;
   padding: 13px;
   resize: vertical;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #d8d4ca;
   border-radius: 12px;
   font: inherit;
   line-height: 1.45;
@@ -788,7 +788,7 @@
 .reviewActions button.secondary {
   border: 1px solid #d2cec4;
   background: white;
-  color: #373737;
+  color: #171717;
 }
 
 .reviewActions button:disabled,
@@ -812,7 +812,7 @@
 .featuredControl input {
   min-width: 0;
   padding: 10px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #d8d4ca;
   border-radius: 10px;
 }
 
@@ -831,7 +831,7 @@
 }
 
 .adminMessage a {
-  color: #373737;
+  color: #171717;
   font-weight: 700;
 }
 
@@ -844,7 +844,7 @@
 
 .passengerReviewCard {
   padding: 22px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd2;
   border-radius: 20px;
   background: white;
 }
@@ -915,7 +915,7 @@
   padding: 10px 13px;
   border: 0;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-size: 10px;
   font-weight: 750;
@@ -925,7 +925,7 @@
 .passengerReviewActions button.secondary {
   border: 1px solid #d2cec4;
   background: white;
-  color: #373737;
+  color: #171717;
 }
 
 .passengerReviewActions button.danger {
@@ -1046,7 +1046,7 @@
   position: sticky;
   top: 20px;
   padding: 24px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 22px;
   background: #fff;
 }
@@ -1096,7 +1096,7 @@
 
 .homepageImageCard {
   overflow: hidden;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 20px;
   background: #fff;
 }
@@ -1109,7 +1109,7 @@
   position: relative;
   aspect-ratio: 16 / 10;
   overflow: hidden;
-  background: #f7f8fa;
+  background: #eeece5;
 }
 
 .homepageImageThumb > img {

@@ -3,13 +3,13 @@
 }
 
 html {
-  background: #f7f8fa;
+  background: #eef0ec;
 }
 
 body {
   margin: 0;
-  background: #f7f8fa;
-  color: #373737;
+  background: #eef0ec;
+  color: #171717;
   font-family:
     Arial,
     Helvetica,
@@ -47,7 +47,7 @@ a {
   padding: 11px 15px;
   border: 1px solid #3d3d3d;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-size: 11px;
   font-weight: 750;
@@ -63,8 +63,8 @@ a {
   padding: 20px;
   border: 1px solid #d7dad4;
   border-radius: 18px;
-  background: #ffffff;
-  color: #373737;
+  background: #f6f7f4;
+  color: #171717;
   box-shadow: 0 18px 50px rgba(0, 0, 0, 0.2);
 }
 
@@ -93,7 +93,7 @@ a {
   border: 1px solid #cfd3cd;
   border-radius: 10px;
   background: white;
-  color: #373737;
+  color: #171717;
   font: inherit;
 }
 
@@ -102,7 +102,7 @@ a {
   margin-top: 7px;
   border: 0;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-weight: 750;
   cursor: pointer;
@@ -121,7 +121,7 @@ a {
   padding: 30px;
   place-content: center;
   justify-items: start;
-  background: #ffffff;
+  background: #f6f7f4;
 }
 
 .systemErrorPage img {
@@ -155,14 +155,14 @@ a {
   padding: 13px 17px;
   border: 0;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-weight: 750;
   cursor: pointer;
 }
 
 button:focus-visible {
-  outline: 3px solid #373737;
+  outline: 3px solid #171717;
   outline-offset: 3px;
 }
 
@@ -177,7 +177,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   max-width: 520px;
   min-height: 100vh;
   margin: 0 auto;
-  background: #ffffff;
+  background: #f6f7f4;
 }
 
 .brandHeader,
@@ -192,7 +192,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .brandHeader {
   gap: 10px;
   justify-content: flex-start;
-  background: #373737;
+  background: #0e0e0e;
   color: white;
   font-weight: 700;
   letter-spacing: -0.02em;
@@ -219,7 +219,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 
 .topBar,
 .journeyHeader {
-  background: #373737;
+  background: #0e0e0e;
   color: white;
 }
 
@@ -234,7 +234,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .topBar .homeBubbleButton,
 .journeyHeader .homeBubbleButton {
   background: white;
-  color: #373737;
+  color: #171717;
 }
 
 .brandMark {
@@ -316,9 +316,9 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   align-items: center;
   justify-content: space-between;
   gap: 18px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 18px;
-  background: #f7f8fa;
+  background: #eeece5;
 }
 
 .nearbyPrompt strong {
@@ -333,7 +333,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 11px 14px;
   border: 0;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-size: 11px;
   font-weight: 700;
@@ -366,7 +366,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 
 .catalogueEmpty h2 {
   margin: 0;
-  color: #373737;
+  color: #171717;
   font-size: 28px;
   letter-spacing: -0.04em;
 }
@@ -394,7 +394,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   height: 30px;
   place-items: center;
   border-radius: 50%;
-  background: #eef1f4;
+  background: #e5e1d7;
   font-size: 12px;
 }
 
@@ -440,14 +440,14 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   border: 0;
   border-radius: 50%;
   background: rgba(248, 247, 243, 0.9);
-  color: #373737;
+  color: #171717;
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
   font-size: 22px;
   cursor: pointer;
 }
 
 .favouriteButton.active {
-  background: #373737;
+  background: #171717;
   color: white;
 }
 
@@ -637,7 +637,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .cardFooter strong {
   padding: 9px 13px;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
 }
 
@@ -658,7 +658,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   min-height: 42px;
   padding: 10px 15px;
   border-radius: 999px;
-  background: #f1f3f5;
+  background: #e7e3da;
   font-weight: 750;
 }
 
@@ -666,7 +666,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   width: 42px;
   height: 42px;
   border-radius: 50%;
-  background: #f7f8fa;
+  background: #ebe8df;
   font-weight: 700;
 }
 
@@ -695,9 +695,9 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   margin: 12px 22px 0;
   padding: 0;
   border: 0;
-  border-bottom: 1px solid #373737;
+  border-bottom: 1px solid #171717;
   background: transparent;
-  color: #373737;
+  color: #171717;
   font-size: 12px;
   font-weight: 750;
   cursor: pointer;
@@ -713,7 +713,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .overviewMeta span {
   padding: 8px 11px;
   border-radius: 999px;
-  background: #f7f8fa;
+  background: #e9e6dd;
   color: #57544e;
   font-size: 12px;
 }
@@ -727,7 +727,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .publicReviewsSection {
   margin: 0 14px 24px;
   padding: 22px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 24px;
   background: white;
 }
@@ -783,7 +783,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .publicReviewCard {
   padding: 16px;
   border-radius: 15px;
-  background: #f7f8fa;
+  background: #f3f0e8;
 }
 
 .publicReviewCard > span i {
@@ -809,7 +809,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   align-items: flex-start;
   gap: 13px;
   border-radius: 18px;
-  background: #f7f8fa;
+  background: #ebe8df;
 }
 
 .overviewCreator > img {
@@ -901,7 +901,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   bottom: 18px;
   left: 7px;
   width: 2px;
-  background: #e2e4e7;
+  background: #d9d5cc;
 }
 
 .timelineStop,
@@ -917,9 +917,9 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   flex: 0 0 auto;
   width: 16px;
   height: 16px;
-  border: 3px solid #373737;
+  border: 3px solid #171717;
   border-radius: 50%;
-  background: #f7f8fa;
+  background: #f8f7f3;
 }
 
 .timelineDot.small {
@@ -959,7 +959,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   background:
     linear-gradient(
       to top,
-      #f7f8fa 65%,
+      #f8f7f3 65%,
       rgba(248, 247, 243, 0)
     );
 }
@@ -969,7 +969,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 17px 20px;
   border: 0;
   border-radius: 999px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-weight: 700;
   cursor: pointer;
@@ -1019,7 +1019,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   grid-template-columns: 45px 1fr;
   gap: 14px;
   padding: 18px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dfdcd3;
   border-radius: 18px;
   background: white;
 }
@@ -1029,7 +1029,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 }
 
 .preflightCard.dataCard {
-  background: #edf4fd;
+  background: #e8e7f4;
 }
 
 .preflightCard.keepOpenCard {
@@ -1042,7 +1042,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   height: 42px;
   place-items: center;
   border-radius: 13px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-size: 18px;
   font-weight: 800;
@@ -1064,10 +1064,10 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .preflightAction {
   margin-top: 13px;
   padding: 9px 12px;
-  border: 1px solid #d7dade;
+  border: 1px solid #c9c5bc;
   border-radius: 999px;
-  background: #f7f8fa;
-  color: #373737;
+  background: #f8f7f3;
+  color: #171717;
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
@@ -1096,12 +1096,12 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 
 .progressTrack {
   height: 3px;
-  background: #e2e4e7;
+  background: #dedbd3;
 }
 
 .progressFill {
   height: 100%;
-  background: #373737;
+  background: #171717;
   transition: width 0.8s ease;
 }
 
@@ -1112,7 +1112,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   margin: 18px 16px 0;
   padding: 13px 15px;
   border-radius: 14px;
-  background: #f7f8fa;
+  background: #ebe8df;
   font-size: 12px;
 }
 
@@ -1128,7 +1128,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   justify-content: space-between;
   gap: 14px;
   border-radius: 15px;
-  background: #373737;
+  background: #171717;
   color: white;
 }
 
@@ -1167,7 +1167,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   border: 0;
   border-radius: 999px;
   background: white;
-  color: #373737;
+  color: #171717;
   font-size: 10px;
   font-weight: 800;
   cursor: pointer;
@@ -1185,7 +1185,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .nextCue {
   margin: 0 9px;
   padding: 17px 20px;
-  background: #f7f8fa;
+  background: #ece9e1;
   opacity: 0.58;
 }
 
@@ -1249,10 +1249,10 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 
 .storyTranscript > button {
   padding: 9px 12px;
-  border: 1px solid #d7dade;
+  border: 1px solid #cbc7bd;
   border-radius: 999px;
-  background: #f7f8fa;
-  color: #373737;
+  background: #f8f7f3;
+  color: #171717;
   font-size: 11px;
   font-weight: 800;
   cursor: pointer;
@@ -1261,7 +1261,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .storyTranscript .cueCopy {
   padding: 16px;
   border-radius: 14px;
-  background: #f7f8fa;
+  background: #f1efe9;
   white-space: pre-wrap;
 }
 
@@ -1296,7 +1296,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   margin: 20px 0 25px;
   padding: 16px;
   border-radius: 17px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-weight: 700;
 }
@@ -1325,7 +1325,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 15px;
   border: 0;
   border-radius: 18px;
-  background: #373737;
+  background: #171717;
   color: white;
   text-align: left;
   cursor: pointer;
@@ -1355,7 +1355,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   place-items: center;
   border-radius: 50%;
   background: white;
-  color: #373737;
+  color: #171717;
   font-size: 12px;
 }
 
@@ -1367,9 +1367,9 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 
 .answerChoices button {
   padding: 13px 15px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 14px;
-  background: #f7f8fa;
+  background: #f8f7f3;
   text-align: left;
   cursor: pointer;
 }
@@ -1437,8 +1437,8 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 }
 
 .simulatorToggle.active {
-  border-color: #7caded;
-  background: #7caded;
+  border-color: #b9c1ff;
+  background: #b9c1ff;
   color: #20233e;
   font-weight: 800;
 }
@@ -1451,7 +1451,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .simulatorRange {
   width: 100%;
   margin: 14px 0 8px;
-  accent-color: #7caded;
+  accent-color: #b9c1ff;
 }
 
 .simulatorEndpoints {
@@ -1491,7 +1491,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .simulatorConditions button.active {
   border-color: white;
   background: white;
-  color: #373737;
+  color: #171717;
   font-weight: 800;
 }
 
@@ -1533,7 +1533,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .markButton {
   border: 0;
   background: white;
-  color: #373737;
+  color: #171717;
   font-weight: 700;
 }
 
@@ -1557,7 +1557,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 14px;
   border: 0;
   border-radius: 14px;
-  background: #7caded;
+  background: #b9c1ff;
   color: #20233e;
   font-weight: 800;
   cursor: pointer;
@@ -1642,7 +1642,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   min-height: 100vh;
   margin: 0 auto;
   padding-bottom: 70px;
-  background: #f7f8fa;
+  background: #f8f7f3;
 }
 
 .creatorHeader {
@@ -1659,7 +1659,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 }
 
 .creatorPreviewLink {
-  color: #373737;
+  color: #171717;
   font-size: 13px;
   text-decoration: none;
 }
@@ -1696,7 +1696,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   margin-top: 22px;
   padding: 5px;
   border-radius: 15px;
-  background: #f7f8fa;
+  background: #eeece5;
 }
 
 .directionSwitch button {
@@ -1710,14 +1710,14 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 }
 
 .directionSwitch button.active {
-  background: #373737;
+  background: #171717;
   color: white;
 }
 
 .directionChoiceBlock {
   margin: 28px 22px 0;
   padding: 16px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 18px;
   background: white;
 }
@@ -1753,7 +1753,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   flex: 0 0 34px;
   place-items: center;
   border-radius: 50%;
-  background: #373737;
+  background: #171717;
   color: white;
   font-size: 17px;
 }
@@ -1787,7 +1787,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .automaticDirectionButton {
   flex: 0 0 auto;
   padding: 9px 11px;
-  border: 1px solid #d7dade;
+  border: 1px solid #cbc7bd;
   border-radius: 999px;
   background: transparent;
   color: #625f58;
@@ -1797,8 +1797,8 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 }
 
 .automaticDirectionButton.active {
-  border-color: #373737;
-  background: #373737;
+  border-color: #171717;
+  background: #171717;
   color: white;
 }
 
@@ -1810,7 +1810,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   margin: 14px 22px 0;
   padding: 16px;
   border-radius: 18px;
-  background: #373737;
+  background: #171717;
   color: white;
 }
 
@@ -1827,8 +1827,8 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   flex: 0 0 auto;
   place-items: center;
   border-radius: 50%;
-  background: #ff8b25;
-  color: #373737;
+  background: #df7454;
+  color: #171717;
   font-size: 18px;
   font-weight: 900;
 }
@@ -1865,7 +1865,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 11px 13px;
   border-radius: 11px;
   background: white;
-  color: #373737;
+  color: #171717;
 }
 
 .offlineRemoveButton {
@@ -1891,7 +1891,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   overflow: hidden;
   border: 0;
   border-radius: 999px;
-  accent-color: #ff8b25;
+  accent-color: #df7454;
 }
 
 .offlineDownloadError {
@@ -1915,7 +1915,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 14px 15px;
   align-items: flex-start;
   gap: 11px;
-  background: #edf4fd;
+  background: #e8e7f4;
 }
 
 .directionNotice strong,
@@ -1940,7 +1940,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   flex: 0 0 9px;
   margin-top: 3px;
   border-radius: 50%;
-  background: #2657af;
+  background: #6670bc;
   box-shadow: 0 0 0 5px rgba(102, 112, 188, 0.15);
 }
 
@@ -1956,7 +1956,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .liveJourneyTimeline {
   margin: 16px 14px 0;
   padding: 18px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 20px;
   background: white;
 }
@@ -1983,7 +1983,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   flex: 0 0 42px;
   place-items: center;
   border-radius: 50%;
-  background: #373737;
+  background: #171717;
   color: white;
   font-size: 10px;
   font-weight: 800;
@@ -1994,14 +1994,14 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   margin: 15px 0 16px;
   overflow: hidden;
   border-radius: 999px;
-  background: #f1f3f5;
+  background: #e7e3da;
 }
 
 .liveJourneyTrack i {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #2657af;
+  background: #7379bd;
   transition: width 0.8s ease;
 }
 
@@ -2028,7 +2028,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   height: 25px;
   place-items: center;
   border-radius: 50%;
-  background: #f7f8fa;
+  background: #ebe8df;
   color: #69655e;
   font-size: 9px;
   font-weight: 800;
@@ -2053,11 +2053,11 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 }
 
 .liveJourneyTimeline li.current {
-  background: #edf4fd;
+  background: #e8e7f4;
 }
 
 .liveJourneyTimeline li.current > span {
-  background: #2657af;
+  background: #7379bd;
   color: white;
 }
 
@@ -2065,7 +2065,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   display: block;
   margin-top: 14px;
   padding-top: 11px;
-  border-top: 1px solid #f7f8fa;
+  border-top: 1px solid #ebe8df;
   color: #77736c;
   font-size: 8px;
   text-align: center;
@@ -2077,7 +2077,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 13px 15px;
   gap: 3px;
   border-radius: 14px;
-  background: #373737;
+  background: #171717;
   color: white;
 }
 
@@ -2097,7 +2097,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   margin: 20px 14px 0;
   padding: 25px;
   border-radius: 24px;
-  background: #373737;
+  background: #171717;
   color: white;
 }
 
@@ -2135,7 +2135,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   border: 0;
   border-radius: 999px;
   background: white;
-  color: #373737;
+  color: #171717;
   font-size: 11px;
   font-weight: 700;
   cursor: pointer;
@@ -2144,7 +2144,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .completionReviewCard {
   margin: 14px 14px 0;
   padding: 22px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 24px;
   background: white;
 }
@@ -2198,9 +2198,9 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   margin-top: 7px;
   padding: 12px;
   resize: vertical;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #d8d4ca;
   border-radius: 12px;
-  background: #ffffff;
+  background: #faf9f6;
   font: inherit;
   font-size: 12px;
   line-height: 1.5;
@@ -2220,7 +2220,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 13px;
   border: 0;
   border-radius: 12px;
-  background: #373737;
+  background: #171717;
   color: white;
   font-size: 11px;
   font-weight: 800;
@@ -2273,9 +2273,9 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .destinationRecommendations {
   margin: 20px 14px 8px;
   padding: 22px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 24px;
-  background: #f7f8fa;
+  background: #f5f2ea;
 }
 
 .destinationRecommendationsHeading .kicker {
@@ -2305,10 +2305,10 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 .destinationRecommendationCard {
   display: block;
   padding: 17px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 16px;
   background: white;
-  color: #373737;
+  color: #171717;
   text-decoration: none;
 }
 
@@ -2319,8 +2319,8 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   overflow: hidden;
   place-items: center;
   border-radius: 15px 15px 9px 9px;
-  background: #edf4fd;
-  color: #373737;
+  background: #e6e4f1;
+  color: #171717;
 }
 
 .recommendationArtwork svg {
@@ -2341,13 +2341,13 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 
 .recommendationArtwork.category-food_drink,
 .recommendationArtwork.category-events {
-  background: #ff8b25;
-  color: #373737;
+  background: #df7454;
+  color: #171717;
 }
 
 .recommendationArtwork.category-museum,
 .recommendationArtwork.category-great_view {
-  background: #2657af;
+  background: #7379bd;
   color: white;
 }
 
@@ -2450,7 +2450,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   height: 28px;
   place-items: center;
   border-radius: 50%;
-  background: #f7f8fa;
+  background: #eeece5;
   font-size: 11px;
   font-weight: 700;
 }
@@ -2512,10 +2512,10 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   width: 100%;
   margin-top: 7px;
   padding: 13px 14px;
-  border: 1px solid #e2e4e7;
+  border: 1px solid #dedbd3;
   border-radius: 12px;
-  background: #ffffff;
-  color: #373737;
+  background: #faf9f6;
+  color: #171717;
   font-size: 15px;
 }
 
@@ -2531,7 +2531,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 
 .creatorPrimaryButton {
   border: 0;
-  background: #373737;
+  background: #171717;
   color: white;
 }
 
@@ -2540,9 +2540,9 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 }
 
 .creatorSecondaryButton {
-  border: 1px solid #e2e4e7;
+  border: 1px solid #d8d5cd;
   background: transparent;
-  color: #373737;
+  color: #171717;
 }
 
 .locationReadout {
@@ -2559,7 +2559,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   justify-content: space-between;
   padding: 12px;
   border-radius: 13px;
-  background: #f7f8fa;
+  background: #f0eee8;
 }
 
 .locationReadout small {
@@ -2738,16 +2738,16 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 0 10px;
   border: 1px solid rgba(20, 20, 20, 0.14);
   border-radius: 14px;
-  background: #f7f8fa;
-  color: #373737;
+  background: #f5f4ef;
+  color: #171717;
   font: inherit;
   font-weight: 750;
   cursor: pointer;
 }
 
 .tipChoices button.selected {
-  border-color: #373737;
-  background: #373737;
+  border-color: #171717;
+  background: #171717;
   color: #fff;
 }
 
@@ -2770,7 +2770,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   overflow: hidden;
   border: 1px solid rgba(20, 20, 20, 0.14);
   border-radius: 14px;
-  background: #f7f8fa;
+  background: #f8f7f3;
 }
 
 .customTipField > div > span {
@@ -2796,7 +2796,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding: 0 18px;
   border: 0;
   border-radius: 15px;
-  background: #373737;
+  background: #171717;
   color: #fff;
   font: inherit;
   font-weight: 800;
@@ -2812,7 +2812,7 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   margin: 14px 0 0 !important;
   padding: 12px 14px;
   border-radius: 12px;
-  background: #f7f8fa;
+  background: #f5f4ef;
   font-size: 0.92rem;
   font-weight: 700;
 }
@@ -2826,152 +2826,4 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   .tipChoices {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-}
-
-
-/* BETWEEN STOPS — SHARED BRAND SYSTEM */
-
-:root {
-  --bs-dark: #373737;
-  --bs-blue-light: #7caded;
-  --bs-blue: #2657af;
-  --bs-blue-deep: #1d3d75;
-  --bs-orange: #ff8b25;
-  --bs-background: #f7f8fa;
-  --bs-surface: #ffffff;
-  --bs-border: #e2e4e7;
-  --bs-muted: #6d7075;
-}
-
-html,
-body {
-  background: var(--bs-background);
-  color: var(--bs-dark);
-}
-
-button,
-input,
-textarea,
-select {
-  font-family: inherit;
-}
-
-button:focus-visible,
-a:focus-visible,
-input:focus-visible,
-textarea:focus-visible,
-select:focus-visible {
-  outline: 3px solid var(--bs-blue-light);
-  outline-offset: 3px;
-}
-
-/* Passenger surfaces */
-
-.shell,
-.journeyShell,
-.creatorShell {
-  background: var(--bs-surface);
-}
-
-.brandHeader,
-.topBar,
-.journeyHeader {
-  background: var(--bs-dark);
-}
-
-.progressFill {
-  background: var(--bs-blue);
-}
-
-.kicker {
-  color: var(--bs-blue);
-}
-
-.primaryButton,
-.creatorPrimaryButton,
-.submitTourReviewButton,
-.submitTipButton {
-  background: var(--bs-dark);
-}
-
-.overviewMeta span,
-.routeNotice,
-.previousCue,
-.nextCue {
-  background: var(--bs-background);
-}
-
-/* Use brand geometry sparingly on major passenger cards */
-
-.experienceCard,
-.publicReviewsSection,
-.completionReviewCard,
-.completionTipCard,
-.destinationRecommendations {
-  border-color: var(--bs-border);
-  box-shadow: none;
-}
-
-.experienceCard {
-  border: 1px solid var(--bs-border);
-}
-
-/* Journey */
-
-.activeCue {
-  border: 1px solid var(--bs-border);
-  box-shadow: 0 16px 40px rgba(55, 55, 55, 0.08);
-}
-
-.journeyAudioBanner,
-.lookPanel,
-.brandAnnouncementBanner,
-.journeyCompleteCard,
-.offlineDownloadCard {
-  background: var(--bs-dark);
-}
-
-.liveJourneyTrack i {
-  background: var(--bs-blue);
-}
-
-.liveJourneyTimeline li.current {
-  background: #edf4fd;
-}
-
-.liveJourneyTimeline li.current > span {
-  background: var(--bs-blue);
-}
-
-/* Creator / forms */
-
-.creatorRoute,
-.creatorStories,
-.creatorAdd,
-.creatorLocation,
-.directionChoiceBlock,
-.liveJourneyTimeline,
-.preflightCard {
-  border: 1px solid var(--bs-border);
-  box-shadow: none;
-}
-
-.creatorAdd input,
-.completionReviewCard textarea,
-.customTipField > div {
-  border-color: var(--bs-border);
-  background: #fff;
-}
-
-/* Feedback */
-
-.platformFeedbackTrigger,
-.platformFeedbackPanel button[type="submit"],
-.systemErrorPage button {
-  background: var(--bs-dark);
-}
-
-.platformFeedbackPanel {
-  border-color: var(--bs-border);
-  background: #fff;
 }
