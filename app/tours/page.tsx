@@ -489,6 +489,15 @@ export default function Home() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
 
+  const [selectedTipPence, setSelectedTipPence] =
+    useState<number | null>(null);
+  const [customTipValue, setCustomTipValue] =
+    useState("");
+  const [tipLoading, setTipLoading] =
+    useState(false);
+  const [tipMessage, setTipMessage] =
+    useState("");
+
   const detectionStartProgress = useRef<number | null>(null);
   const journeyStartedNearOrigin = useRef(false);
   const analyticsJourneyIdRef = useRef<string | null>(null);
@@ -2178,6 +2187,27 @@ export default function Home() {
   }
 
   useEffect(() => {
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    if (
+      params.get("tip") === "success"
+    ) {
+      setTipMessage(
+        "Thank you for supporting your guide."
+      );
+    } else if (
+      params.get("tip") === "cancelled"
+    ) {
+      setTipMessage(
+        "Tip cancelled. No payment was taken."
+      );
+    }
+  }, []);
+
+  useEffect(() => {
     if (!passengerSignedIn) {
       setPurchasedExperienceIds(new Set());
       setStartedPurchasedExperienceIds(new Set());
@@ -2609,6 +2639,73 @@ export default function Home() {
       }
     } finally {
       setReviewSubmitting(false);
+    }
+  }
+
+  async function startTipCheckout(
+    amountPence: number
+  ) {
+    if (
+      tipLoading ||
+      simulatorEnabled
+    ) {
+      return;
+    }
+
+    if (
+      !Number.isInteger(amountPence) ||
+      amountPence < 100
+    ) {
+      setTipMessage(
+        "Choose a tip of at least £1."
+      );
+      return;
+    }
+
+    setTipLoading(true);
+    setTipMessage("");
+
+    try {
+      const response =
+        await fetch(
+          "/api/stripe/tip",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type":
+                "application/json",
+            },
+            body: JSON.stringify({
+              experienceId:
+                experience.id,
+              amountPence,
+            }),
+          }
+        );
+
+      const result =
+        await response.json();
+
+      if (
+        !response.ok ||
+        !result.url
+      ) {
+        throw new Error(
+          result.error ??
+            "Tip checkout could not be started."
+        );
+      }
+
+      window.location.assign(
+        result.url
+      );
+    } catch (error) {
+      setTipMessage(
+        error instanceof Error
+          ? error.message
+          : "Tip checkout could not be started."
+      );
+      setTipLoading(false);
     }
   }
 
@@ -4646,6 +4743,134 @@ export default function Home() {
               </>
             )}
           </section>
+
+          {!simulatorEnabled && (
+            <section className="completionTipCard">
+              <p className="kicker">
+                SUPPORT YOUR GUIDE
+              </p>
+
+              <h2>
+                Enjoyed the tour?
+              </h2>
+
+              <p>
+                You can leave an optional tip
+                for your guide. Between Stops
+                takes no commission from tips.
+              </p>
+
+              <div className="tipChoices">
+                {[200, 500, 1000].map(
+                  (amount) => (
+                    <button
+                      key={amount}
+                      type="button"
+                      className={
+                        selectedTipPence === amount
+                          ? "selected"
+                          : ""
+                      }
+                      disabled={tipLoading}
+                      onClick={() => {
+                        setSelectedTipPence(
+                          amount
+                        );
+                        setCustomTipValue("");
+                        setTipMessage("");
+                      }}
+                    >
+                      £{amount / 100}
+                    </button>
+                  )
+                )}
+
+                <button
+                  type="button"
+                  className={
+                    selectedTipPence === -1
+                      ? "selected"
+                      : ""
+                  }
+                  disabled={tipLoading}
+                  onClick={() => {
+                    setSelectedTipPence(-1);
+                    setTipMessage("");
+                  }}
+                >
+                  Other
+                </button>
+              </div>
+
+              {selectedTipPence === -1 && (
+                <label className="customTipField">
+                  <span>
+                    Tip amount
+                  </span>
+                  <div>
+                    <span>£</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      step="0.01"
+                      inputMode="decimal"
+                      value={customTipValue}
+                      onChange={(event) =>
+                        setCustomTipValue(
+                          event.target.value
+                        )
+                      }
+                      placeholder="5.00"
+                    />
+                  </div>
+                </label>
+              )}
+
+              <button
+                className="submitTipButton"
+                type="button"
+                disabled={
+                  tipLoading ||
+                  selectedTipPence === null
+                }
+                onClick={() => {
+                  const amount =
+                    selectedTipPence === -1
+                      ? Math.round(
+                          Number(
+                            customTipValue
+                          ) * 100
+                        )
+                      : selectedTipPence;
+
+                  if (amount === null) {
+                    return;
+                  }
+
+                  void startTipCheckout(
+                    amount
+                  );
+                }}
+              >
+                {tipLoading
+                  ? "Opening Stripe…"
+                  : "Leave a tip"}
+              </button>
+
+              {tipMessage && (
+                <p className="tipMessage">
+                  {tipMessage}
+                </p>
+              )}
+
+              <small>
+                Stripe payment processing
+                charges are absorbed by
+                Between Stops.
+              </small>
+            </section>
+          )}
 
           {destinationRecommendationsLoading && (
             <p className="destinationRecommendationsLoading">

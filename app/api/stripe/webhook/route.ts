@@ -130,6 +130,10 @@ export async function POST(
       session.metadata
         ?.between_stops_experience_id;
 
+    const paymentType =
+      session.metadata
+        ?.between_stops_payment_type;
+
     if (!userId || !experienceId) {
       throw new Error(
         "Stripe Checkout metadata is incomplete."
@@ -138,6 +142,75 @@ export async function POST(
 
     const supabase =
       getSupabaseAdmin();
+
+    if (paymentType === "tip") {
+      const creatorId =
+        session.metadata
+          ?.between_stops_creator_id;
+
+      const amountPence =
+        session.amount_total;
+
+      if (
+        !creatorId ||
+        !Number.isInteger(amountPence) ||
+        !amountPence ||
+        amountPence < 100
+      ) {
+        throw new Error(
+          "Stripe tip metadata is incomplete."
+        );
+      }
+
+      const paymentIntentId =
+        typeof session.payment_intent ===
+        "string"
+          ? session.payment_intent
+          : session.payment_intent?.id ??
+            null;
+
+      const {
+        error: tipError,
+      } = await supabase
+        .from("creator_tips")
+        .upsert(
+          {
+            user_id:
+              userId,
+            experience_id:
+              experienceId,
+            creator_id:
+              creatorId,
+            stripe_checkout_session_id:
+              session.id,
+            stripe_payment_intent_id:
+              paymentIntentId,
+            amount_pence:
+              amountPence,
+            currency:
+              (
+                session.currency ??
+                "gbp"
+              ).toLowerCase(),
+            status:
+              "paid",
+            created_at:
+              new Date().toISOString(),
+          },
+          {
+            onConflict:
+              "stripe_checkout_session_id",
+          }
+        );
+
+      if (tipError) {
+        throw tipError;
+      }
+
+      return NextResponse.json({
+        received: true,
+      });
+    }
 
     const {
       data: experience,
