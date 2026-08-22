@@ -67,7 +67,7 @@ export default function PreviewPage() {
   if (loading || error || !option) {
     return (
       <main className="previewMessage">
-        <img src="/branding/between-stops-icon.png" alt="" />
+        <img src="/branding/between-stops-icon-v2.png" alt="" />
         <h1>{loading ? "Loading preview…" : "Preview unavailable"}</h1>
         {error && <p>{error}</p>}
         <a href={returnPath}>← Return</a>
@@ -101,7 +101,7 @@ export default function PreviewPage() {
 
       <header className="topBar">
         <span className="miniBrand">
-          <img src="/branding/between-stops-icon.png" alt="" />
+          <img src="/branding/between-stops-icon-v2.png" alt="" />
           <span>Between Stops</span>
         </span>
       </header>

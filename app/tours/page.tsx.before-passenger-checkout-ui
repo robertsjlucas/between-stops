@@ -410,21 +410,6 @@ export default function Home() {
 
   const [passengerSignedIn, setPassengerSignedIn] = useState(false);
 
-  const [purchasedExperienceIds, setPurchasedExperienceIds] =
-    useState<Set<string>>(new Set());
-
-  const [startedPurchasedExperienceIds, setStartedPurchasedExperienceIds] =
-    useState<Set<string>>(new Set());
-
-  const [completedPurchasedExperienceIds, setCompletedPurchasedExperienceIds] =
-    useState<Set<string>>(new Set());
-
-  const [checkoutLoading, setCheckoutLoading] =
-    useState(false);
-
-  const [checkoutError, setCheckoutError] =
-    useState("");
-
   const [
     locatingNearby,
     setLocatingNearby,
@@ -489,15 +474,6 @@ export default function Home() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
 
-  const [selectedTipPence, setSelectedTipPence] =
-    useState<number | null>(null);
-  const [customTipValue, setCustomTipValue] =
-    useState("");
-  const [tipLoading, setTipLoading] =
-    useState(false);
-  const [tipMessage, setTipMessage] =
-    useState("");
-
   const detectionStartProgress = useRef<number | null>(null);
   const journeyStartedNearOrigin = useRef(false);
   const analyticsJourneyIdRef = useRef<string | null>(null);
@@ -509,9 +485,6 @@ export default function Home() {
     useState<JourneyDirection>("forward");
 
   const [testerOpen, setTesterOpen] = useState(false);
-
-  const [completionPreviewEnabled, setCompletionPreviewEnabled] =
-    useState(false);
 
   const [simulatorEnabled, setSimulatorEnabled] =
     useState(false);
@@ -554,7 +527,6 @@ export default function Home() {
   const resumeAfterTimestampRef = useRef<number | null>(null);
   const finalAnnouncementPlayedRef = useRef(false);
   const endAnnouncementPlayedRef = useRef(false);
-  const completionOccurredThisSessionRef = useRef(false);
   const previousMotionReadingRef = useRef<{
     routeProgress: number;
     capturedAt: number;
@@ -1544,7 +1516,6 @@ export default function Home() {
         completedAt: new Date().toISOString(),
       };
 
-      completionOccurredThisSessionRef.current = true;
       setJourneyCompleted(true);
       setJourneyProgress(100);
       recordDiagnostic(
@@ -1578,15 +1549,6 @@ export default function Home() {
           journeyId: analyticsJourneyIdRef.current,
         }).catch(() => undefined);
       }
-
-      if (
-        selectedOption.accessType === "paid" &&
-        selectedTourPurchased
-      ) {
-        void updatePaidTourLifecycle(
-          "complete"
-        ).catch(() => undefined);
-      }
     }
   }, [
     routeMatch,
@@ -1612,7 +1574,6 @@ export default function Home() {
       return;
     }
 
-    completionOccurredThisSessionRef.current = true;
     setJourneyCompleted(true);
     setJourneyProgress(100);
 
@@ -1634,7 +1595,6 @@ export default function Home() {
   useEffect(() => {
     if (
       !journeyCompleted ||
-      !completionOccurredThisSessionRef.current ||
       screen !== "journey" ||
       pageHidden ||
       endAnnouncementPlayedRef.current ||
@@ -2124,328 +2084,6 @@ export default function Home() {
       location,
     ]);
 
-  async function loadPassengerPurchases() {
-    const supabase = createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      setPurchasedExperienceIds(new Set());
-      setStartedPurchasedExperienceIds(new Set());
-      setCompletedPurchasedExperienceIds(new Set());
-      return false;
-    }
-
-    const { data, error } = await supabase
-      .from("passenger_purchases")
-      .select(`
-        experience_id,
-        started_at,
-        completed_at
-      `)
-      .eq("user_id", user.id)
-      .eq("status", "paid");
-
-    if (error) {
-      throw error;
-    }
-
-    const rows = data ?? [];
-
-    setPurchasedExperienceIds(
-      new Set(
-        rows.map(
-          (purchase) => purchase.experience_id
-        )
-      )
-    );
-
-    setStartedPurchasedExperienceIds(
-      new Set(
-        rows
-          .filter(
-            (purchase) =>
-              Boolean(purchase.started_at)
-          )
-          .map(
-            (purchase) =>
-              purchase.experience_id
-          )
-      )
-    );
-
-    setCompletedPurchasedExperienceIds(
-      new Set(
-        rows
-          .filter(
-            (purchase) =>
-              Boolean(purchase.completed_at)
-          )
-          .map(
-            (purchase) =>
-              purchase.experience_id
-          )
-      )
-    );
-
-    return true;
-  }
-
-  useEffect(() => {
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-    if (
-      params.get("tip") === "success"
-    ) {
-      setTipMessage(
-        "Thank you for supporting your guide."
-      );
-    } else if (
-      params.get("tip") === "cancelled"
-    ) {
-      setTipMessage(
-        "Tip cancelled. No payment was taken."
-      );
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!passengerSignedIn) {
-      setPurchasedExperienceIds(new Set());
-      setStartedPurchasedExperienceIds(new Set());
-      setCompletedPurchasedExperienceIds(new Set());
-      return;
-    }
-
-    let cancelled = false;
-
-    async function refreshPurchases() {
-      try {
-        await loadPassengerPurchases();
-
-        if (
-          selectedOption.accessType === "paid" &&
-          !purchasedExperienceIds.has(
-            selectedOption.experience.id
-          )
-        ) {
-          const response = await fetch(
-            "/api/stripe/purchases/recover",
-            {
-              method: "POST",
-              headers: {
-                "Content-Type":
-                  "application/json",
-              },
-              body: JSON.stringify({
-                experienceId:
-                  selectedOption.experience.id,
-              }),
-            }
-          );
-
-          if (response.ok) {
-            const result =
-              await response.json();
-
-            if (result.recovered) {
-              await loadPassengerPurchases();
-            }
-          }
-        }
-      } catch {
-        if (!cancelled) {
-          setCheckoutError(
-            "Your purchases could not be checked."
-          );
-        }
-      }
-    }
-
-    void refreshPurchases();
-
-    const params = new URLSearchParams(
-      window.location.search
-    );
-
-    if (params.get("checkout") === "success") {
-      const sessionId =
-        params.get("session_id");
-
-      async function confirmReturnedPurchase() {
-        try {
-          if (sessionId) {
-            const response = await fetch(
-              "/api/stripe/checkout/verify",
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type":
-                    "application/json",
-                },
-                body: JSON.stringify({
-                  sessionId,
-                }),
-              }
-            );
-
-            const result =
-              await response.json();
-
-            if (!response.ok) {
-              throw new Error(
-                result.error ??
-                  "Purchase could not be confirmed."
-              );
-            }
-          }
-
-          await loadPassengerPurchases();
-
-          if (!cancelled) {
-            setCheckoutError("");
-          }
-        } catch (error) {
-          if (!cancelled) {
-            setCheckoutError(
-              error instanceof Error
-                ? error.message
-                : "Purchase could not be confirmed."
-            );
-          }
-        }
-      }
-
-      void confirmReturnedPurchase();
-
-      return () => {
-        cancelled = true;
-      };
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [passengerSignedIn]);
-
-  const selectedTourPurchased =
-    purchasedExperienceIds.has(
-      experience.id
-    );
-
-  const selectedTourStarted =
-    startedPurchasedExperienceIds.has(
-      experience.id
-    );
-
-  const selectedTourCompleted =
-    completedPurchasedExperienceIds.has(
-      experience.id
-    );
-
-  async function updatePaidTourLifecycle(
-    action: "start" | "complete"
-  ) {
-    if (
-      selectedOption.accessType !== "paid" ||
-      !selectedTourPurchased
-    ) {
-      return;
-    }
-
-    const response = await fetch(
-      "/api/stripe/purchases/lifecycle",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type":
-            "application/json",
-        },
-        body: JSON.stringify({
-          experienceId:
-            experience.id,
-          action,
-        }),
-      }
-    );
-
-    if (!response.ok) {
-      const result =
-        await response.json();
-
-      throw new Error(
-        result.error ??
-          "Paid tour status could not be updated."
-      );
-    }
-
-    await loadPassengerPurchases();
-  }
-
-  function signInToBuy() {
-    const next =
-      `${window.location.pathname}${window.location.search}`;
-
-    window.location.href =
-      `/login?next=${encodeURIComponent(next)}&mode=passenger`;
-  }
-
-  async function buySelectedTour() {
-    if (checkoutLoading) return;
-
-    if (!passengerSignedIn) {
-      signInToBuy();
-      return;
-    }
-
-    setCheckoutLoading(true);
-    setCheckoutError("");
-
-    try {
-      const response = await fetch(
-        "/api/stripe/checkout",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            experienceId: experience.id,
-          }),
-        }
-      );
-
-      const result = await response.json();
-
-      if (result.alreadyPurchased) {
-        await loadPassengerPurchases();
-        setCheckoutLoading(false);
-        return;
-      }
-
-      if (!response.ok || !result.url) {
-        throw new Error(
-          result.error ??
-            "Checkout could not be started."
-        );
-      }
-
-      window.location.assign(result.url);
-    } catch (error) {
-      setCheckoutError(
-        error instanceof Error
-          ? error.message
-          : "Checkout could not be started."
-      );
-      setCheckoutLoading(false);
-    }
-  }
-
   function toggleFavourite(
     experienceId: string
   ) {
@@ -2535,28 +2173,6 @@ export default function Home() {
   }
 
   function prepareExperience() {
-    if (
-      selectedOption.accessType === "paid" &&
-      selectedTourCompleted
-    ) {
-      setCheckoutError(
-        "You have completed this paid experience."
-      );
-      return;
-    }
-
-    if (
-      selectedOption.accessType === "paid" &&
-      !selectedTourPurchased
-    ) {
-      if (passengerSignedIn) {
-        void buySelectedTour();
-      } else {
-        signInToBuy();
-      }
-      return;
-    }
-
     setDirectionMode("automatic");
     setDirectionDetecting(false);
     detectionStartProgress.current = null;
@@ -2646,74 +2262,6 @@ export default function Home() {
       }
     } finally {
       setReviewSubmitting(false);
-    }
-  }
-
-  async function startTipCheckout(
-    amountPence: number
-  ) {
-    if (
-      tipLoading ||
-      simulatorEnabled ||
-      completionPreviewEnabled
-    ) {
-      return;
-    }
-
-    if (
-      !Number.isInteger(amountPence) ||
-      amountPence < 100
-    ) {
-      setTipMessage(
-        "Choose a tip of at least £1."
-      );
-      return;
-    }
-
-    setTipLoading(true);
-    setTipMessage("");
-
-    try {
-      const response =
-        await fetch(
-          "/api/stripe/tip",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              experienceId:
-                experience.id,
-              amountPence,
-            }),
-          }
-        );
-
-      const result =
-        await response.json();
-
-      if (
-        !response.ok ||
-        !result.url
-      ) {
-        throw new Error(
-          result.error ??
-            "Tip checkout could not be started."
-        );
-      }
-
-      window.location.assign(
-        result.url
-      );
-    } catch (error) {
-      setTipMessage(
-        error instanceof Error
-          ? error.message
-          : "Tip checkout could not be started."
-      );
-      setTipLoading(false);
     }
   }
 
@@ -2809,7 +2357,6 @@ export default function Home() {
         journeyProgress >= 100 &&
         !journeyCompleted
       ) {
-        completionOccurredThisSessionRef.current = true;
         setJourneyCompleted(true);
         setJourneyProgress(100);
 
@@ -2971,7 +2518,6 @@ export default function Home() {
     resumeAfterTimestampRef.current = null;
     finalAnnouncementPlayedRef.current = false;
     endAnnouncementPlayedRef.current = false;
-    completionOccurredThisSessionRef.current = false;
     setPageHidden(false);
     setDirectionDetecting(
       directionMode === "automatic"
@@ -2985,18 +2531,6 @@ export default function Home() {
 
     const analyticsJourneyId = crypto.randomUUID();
     analyticsJourneyIdRef.current = analyticsJourneyId;
-
-    if (
-      !simulatorEnabled &&
-      selectedOption.accessType === "paid" &&
-      selectedTourPurchased &&
-      !selectedTourCompleted
-    ) {
-      void updatePaidTourLifecycle(
-        "start"
-      ).catch(() => undefined);
-    }
-
     if (!simulatorEnabled) {
       void recordTourAnalyticsEvent(createClient(), {
         eventType: "tour_started",
@@ -3095,34 +2629,6 @@ export default function Home() {
     setWatching(false);
     setTesterOpen(false);
     setScreen("home");
-  }
-
-  function previewCompletionScreen() {
-    pauseJourneyAudioForNavigation();
-    setWatching(false);
-    setSimulatorEnabled(false);
-    completionOccurredThisSessionRef.current = false;
-    endAnnouncementPlayedRef.current = true;
-    setCompletionPreviewEnabled(true);
-    setJourneyProgress(100);
-    setJourneyCompleted(true);
-    setScreen("journey");
-
-    recordDiagnostic(
-      "simulator_changed",
-      "Completion screen preview opened. No purchase, lifecycle or analytics data was changed.",
-      {
-        source: "simulator",
-        journeyProgress: 100,
-      }
-    );
-  }
-
-  function exitCompletionPreview() {
-    setCompletionPreviewEnabled(false);
-    setJourneyCompleted(false);
-    setJourneyProgress(0);
-    setScreen("overview");
   }
 
   function setSimulatorActive(enabled: boolean) {
@@ -3599,32 +3105,23 @@ export default function Home() {
               </span>
 
               <span>
-                {option.accessType === "free"
+                {option.accessType ===
+                "free"
                   ? "Free"
-                  : completedPurchasedExperienceIds.has(
-                      option.experience.id
-                    )
-                    ? "Completed ✓"
-                    : purchasedExperienceIds.has(
-                        option.experience.id
+                  : option.pricePence !==
+                        undefined
+                    ? new Intl.NumberFormat(
+                        "en-GB",
+                        {
+                          style: "currency",
+                          currency:
+                            option.currency,
+                        }
+                      ).format(
+                        option.pricePence /
+                          100
                       )
-                      ? startedPurchasedExperienceIds.has(
-                          option.experience.id
-                        )
-                        ? "Paid ✓ · In progress"
-                        : "Paid ✓"
-                      : option.pricePence !== undefined
-                        ? new Intl.NumberFormat(
-                            "en-GB",
-                            {
-                              style: "currency",
-                              currency:
-                                option.currency,
-                            }
-                          ).format(
-                            option.pricePence / 100
-                          )
-                        : "Paid"}
+                    : "Paid"}
               </span>
             </div>
 
@@ -4320,47 +3817,12 @@ export default function Home() {
         </section>
 
         <div className="stickyAction">
-          {selectedOption.accessType === "paid" &&
-          selectedTourCompleted ? (
-            <button
-              className="primaryButton"
-              disabled
-            >
-              Completed ✓
-            </button>
-          ) : selectedJourneyIsActive ? (
+          {selectedJourneyIsActive ? (
             <button
               className="primaryButton"
               onClick={resumeExperience}
             >
               Resume experience
-            </button>
-          ) : selectedOption.accessType === "paid" &&
-            !selectedTourPurchased ? (
-            <button
-              className="primaryButton"
-              disabled={checkoutLoading}
-              onClick={() =>
-                passengerSignedIn
-                  ? void buySelectedTour()
-                  : signInToBuy()
-              }
-            >
-              {checkoutLoading
-                ? "Opening checkout…"
-                : `${passengerSignedIn ? "Buy experience" : "Sign in to buy"} · ${
-                    selectedOption.pricePence !== undefined
-                      ? new Intl.NumberFormat(
-                          "en-GB",
-                          {
-                            style: "currency",
-                            currency: selectedOption.currency,
-                          }
-                        ).format(
-                          selectedOption.pricePence / 100
-                        )
-                      : "Paid"
-                  }`}
             </button>
           ) : (
             <button
@@ -4371,24 +3833,8 @@ export default function Home() {
             </button>
           )}
 
-          {checkoutError && (
-            <p className="errorNotice">
-              {checkoutError}
-            </p>
-          )}
-
           <p>
-            {selectedOption.accessType === "paid" &&
-            selectedTourCompleted
-              ? "You have completed this paid experience."
-              : selectedOption.accessType === "paid" &&
-                selectedTourPurchased
-                ? selectedTourStarted
-                  ? "Paid ✓ · In progress. You can resume until the journey is completed."
-                  : "Paid ✓ · This experience is ready to start."
-                : selectedOption.accessType === "paid"
-                  ? "Purchase once to take this tour. Your public transport fare is separate."
-                  : "Location access keeps the experience in sync. Download the tour before travelling to avoid using mobile data for audio and images."}
+            Location access keeps the experience in sync. Download the tour before travelling to avoid using mobile data for audio and images.
           </p>
         </div>
       </main>
@@ -4699,23 +4145,6 @@ export default function Home() {
 
       {journeyCompleted && (
         <>
-          {completionPreviewEnabled && (
-            <section className="completionPreviewBanner">
-              <div>
-                <strong>Completion preview</strong>
-                <span>
-                  Test only · no payment, completion or analytics data is being recorded.
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={exitCompletionPreview}
-              >
-                Exit preview
-              </button>
-            </section>
-          )}
-
           <section className="journeyCompleteCard">
             <span>✓</span>
             <p className="kicker">JOURNEY COMPLETE</p>
@@ -4798,132 +4227,6 @@ export default function Home() {
               </>
             )}
           </section>
-
-          {(!simulatorEnabled || completionPreviewEnabled) && (
-            <section className="completionTipCard">
-              <p className="kicker">
-                SUPPORT YOUR GUIDE
-              </p>
-
-              <h2>
-                Enjoyed the tour?
-              </h2>
-
-              <p>
-                You can leave an optional tip
-                for your guide. Between Stops
-                takes no commission from tips.
-              </p>
-
-              <div className="tipChoices">
-                {[200, 500, 1000].map(
-                  (amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      className={
-                        selectedTipPence === amount
-                          ? "selected"
-                          : ""
-                      }
-                      disabled={tipLoading}
-                      onClick={() => {
-                        setSelectedTipPence(
-                          amount
-                        );
-                        setCustomTipValue("");
-                        setTipMessage("");
-                      }}
-                    >
-                      £{amount / 100}
-                    </button>
-                  )
-                )}
-
-                <button
-                  type="button"
-                  className={
-                    selectedTipPence === -1
-                      ? "selected"
-                      : ""
-                  }
-                  disabled={tipLoading}
-                  onClick={() => {
-                    setSelectedTipPence(-1);
-                    setTipMessage("");
-                  }}
-                >
-                  Other
-                </button>
-              </div>
-
-              {selectedTipPence === -1 && (
-                <label className="customTipField">
-                  <span>
-                    Tip amount
-                  </span>
-                  <div>
-                    <span>£</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="500"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={customTipValue}
-                      onChange={(event) =>
-                        setCustomTipValue(
-                          event.target.value
-                        )
-                      }
-                      placeholder="5.00"
-                    />
-                  </div>
-                </label>
-              )}
-
-              <button
-                className="submitTipButton"
-                type="button"
-                disabled={
-                  tipLoading ||
-                  selectedTipPence === null ||
-                  completionPreviewEnabled
-                }
-                onClick={() => {
-                  const amount =
-                    selectedTipPence === -1
-                      ? Math.round(
-                          Number(
-                            customTipValue
-                          ) * 100
-                        )
-                      : selectedTipPence;
-
-                  if (amount === null) {
-                    return;
-                  }
-
-                  void startTipCheckout(
-                    amount
-                  );
-                }}
-              >
-                {completionPreviewEnabled
-                  ? "Tip checkout disabled in preview"
-                  : tipLoading
-                    ? "Opening Stripe…"
-                    : "Leave a tip"}
-              </button>
-
-              {tipMessage && (
-                <p className="tipMessage">
-                  {tipMessage}
-                </p>
-              )}
-
-            </section>
-          )}
 
           {destinationRecommendationsLoading && (
             <p className="destinationRecommendationsLoading">
@@ -5243,22 +4546,6 @@ export default function Home() {
           </div>
 
           <div className="simulatorCard">
-            <div className="completionPreviewControl">
-              <div>
-                <strong>Completion screen</strong>
-                <span>
-                  Preview review, tipping and destination recommendations without completing a real tour.
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={previewCompletionScreen}
-              >
-                Preview completion
-              </button>
-            </div>
-
             <div className="simulatorSwitchRow">
               <div>
                 <strong>Route simulator</strong>

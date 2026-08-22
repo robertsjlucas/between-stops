@@ -14,7 +14,7 @@ export default function GuidesPage() {
     <main className="guidesPage">
       <header className="guidesHeader">
         <Link className="guidesBrand" href="/">
-          <img src="/branding/between-stops-icon.png" alt="" />
+          <img src="/branding/between-stops-icon-v2.png" alt="" />
           <span>Between Stops</span>
         </Link>
 
@@ -72,7 +72,7 @@ export default function GuidesPage() {
       </section>
 
       <footer className="guidesFooter">
-        <Link className="guidesBrand" href="/"><img src="/branding/between-stops-icon.png" alt="" /><span>Between Stops</span></Link>
+        <Link className="guidesBrand" href="/"><img src="/branding/between-stops-icon-v2.png" alt="" /><span>Between Stops</span></Link>
         <Link href="/tours">Explore tours</Link>
       </footer>
     </main>

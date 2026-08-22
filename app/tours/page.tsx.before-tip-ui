@@ -489,15 +489,6 @@ export default function Home() {
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
   const [reviewMessage, setReviewMessage] = useState("");
 
-  const [selectedTipPence, setSelectedTipPence] =
-    useState<number | null>(null);
-  const [customTipValue, setCustomTipValue] =
-    useState("");
-  const [tipLoading, setTipLoading] =
-    useState(false);
-  const [tipMessage, setTipMessage] =
-    useState("");
-
   const detectionStartProgress = useRef<number | null>(null);
   const journeyStartedNearOrigin = useRef(false);
   const analyticsJourneyIdRef = useRef<string | null>(null);
@@ -509,9 +500,6 @@ export default function Home() {
     useState<JourneyDirection>("forward");
 
   const [testerOpen, setTesterOpen] = useState(false);
-
-  const [completionPreviewEnabled, setCompletionPreviewEnabled] =
-    useState(false);
 
   const [simulatorEnabled, setSimulatorEnabled] =
     useState(false);
@@ -554,7 +542,6 @@ export default function Home() {
   const resumeAfterTimestampRef = useRef<number | null>(null);
   const finalAnnouncementPlayedRef = useRef(false);
   const endAnnouncementPlayedRef = useRef(false);
-  const completionOccurredThisSessionRef = useRef(false);
   const previousMotionReadingRef = useRef<{
     routeProgress: number;
     capturedAt: number;
@@ -1544,7 +1531,6 @@ export default function Home() {
         completedAt: new Date().toISOString(),
       };
 
-      completionOccurredThisSessionRef.current = true;
       setJourneyCompleted(true);
       setJourneyProgress(100);
       recordDiagnostic(
@@ -1612,7 +1598,6 @@ export default function Home() {
       return;
     }
 
-    completionOccurredThisSessionRef.current = true;
     setJourneyCompleted(true);
     setJourneyProgress(100);
 
@@ -1634,7 +1619,6 @@ export default function Home() {
   useEffect(() => {
     if (
       !journeyCompleted ||
-      !completionOccurredThisSessionRef.current ||
       screen !== "journey" ||
       pageHidden ||
       endAnnouncementPlayedRef.current ||
@@ -2194,27 +2178,6 @@ export default function Home() {
   }
 
   useEffect(() => {
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-    if (
-      params.get("tip") === "success"
-    ) {
-      setTipMessage(
-        "Thank you for supporting your guide."
-      );
-    } else if (
-      params.get("tip") === "cancelled"
-    ) {
-      setTipMessage(
-        "Tip cancelled. No payment was taken."
-      );
-    }
-  }, []);
-
-  useEffect(() => {
     if (!passengerSignedIn) {
       setPurchasedExperienceIds(new Set());
       setStartedPurchasedExperienceIds(new Set());
@@ -2649,74 +2612,6 @@ export default function Home() {
     }
   }
 
-  async function startTipCheckout(
-    amountPence: number
-  ) {
-    if (
-      tipLoading ||
-      simulatorEnabled ||
-      completionPreviewEnabled
-    ) {
-      return;
-    }
-
-    if (
-      !Number.isInteger(amountPence) ||
-      amountPence < 100
-    ) {
-      setTipMessage(
-        "Choose a tip of at least £1."
-      );
-      return;
-    }
-
-    setTipLoading(true);
-    setTipMessage("");
-
-    try {
-      const response =
-        await fetch(
-          "/api/stripe/tip",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type":
-                "application/json",
-            },
-            body: JSON.stringify({
-              experienceId:
-                experience.id,
-              amountPence,
-            }),
-          }
-        );
-
-      const result =
-        await response.json();
-
-      if (
-        !response.ok ||
-        !result.url
-      ) {
-        throw new Error(
-          result.error ??
-            "Tip checkout could not be started."
-        );
-      }
-
-      window.location.assign(
-        result.url
-      );
-    } catch (error) {
-      setTipMessage(
-        error instanceof Error
-          ? error.message
-          : "Tip checkout could not be started."
-      );
-      setTipLoading(false);
-    }
-  }
-
   async function removeSelectedOfflineTour() {
     setDownloadError("");
 
@@ -2809,7 +2704,6 @@ export default function Home() {
         journeyProgress >= 100 &&
         !journeyCompleted
       ) {
-        completionOccurredThisSessionRef.current = true;
         setJourneyCompleted(true);
         setJourneyProgress(100);
 
@@ -2971,7 +2865,6 @@ export default function Home() {
     resumeAfterTimestampRef.current = null;
     finalAnnouncementPlayedRef.current = false;
     endAnnouncementPlayedRef.current = false;
-    completionOccurredThisSessionRef.current = false;
     setPageHidden(false);
     setDirectionDetecting(
       directionMode === "automatic"
@@ -3095,34 +2988,6 @@ export default function Home() {
     setWatching(false);
     setTesterOpen(false);
     setScreen("home");
-  }
-
-  function previewCompletionScreen() {
-    pauseJourneyAudioForNavigation();
-    setWatching(false);
-    setSimulatorEnabled(false);
-    completionOccurredThisSessionRef.current = false;
-    endAnnouncementPlayedRef.current = true;
-    setCompletionPreviewEnabled(true);
-    setJourneyProgress(100);
-    setJourneyCompleted(true);
-    setScreen("journey");
-
-    recordDiagnostic(
-      "simulator_changed",
-      "Completion screen preview opened. No purchase, lifecycle or analytics data was changed.",
-      {
-        source: "simulator",
-        journeyProgress: 100,
-      }
-    );
-  }
-
-  function exitCompletionPreview() {
-    setCompletionPreviewEnabled(false);
-    setJourneyCompleted(false);
-    setJourneyProgress(0);
-    setScreen("overview");
   }
 
   function setSimulatorActive(enabled: boolean) {
@@ -4699,23 +4564,6 @@ export default function Home() {
 
       {journeyCompleted && (
         <>
-          {completionPreviewEnabled && (
-            <section className="completionPreviewBanner">
-              <div>
-                <strong>Completion preview</strong>
-                <span>
-                  Test only · no payment, completion or analytics data is being recorded.
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={exitCompletionPreview}
-              >
-                Exit preview
-              </button>
-            </section>
-          )}
-
           <section className="journeyCompleteCard">
             <span>✓</span>
             <p className="kicker">JOURNEY COMPLETE</p>
@@ -4798,132 +4646,6 @@ export default function Home() {
               </>
             )}
           </section>
-
-          {(!simulatorEnabled || completionPreviewEnabled) && (
-            <section className="completionTipCard">
-              <p className="kicker">
-                SUPPORT YOUR GUIDE
-              </p>
-
-              <h2>
-                Enjoyed the tour?
-              </h2>
-
-              <p>
-                You can leave an optional tip
-                for your guide. Between Stops
-                takes no commission from tips.
-              </p>
-
-              <div className="tipChoices">
-                {[200, 500, 1000].map(
-                  (amount) => (
-                    <button
-                      key={amount}
-                      type="button"
-                      className={
-                        selectedTipPence === amount
-                          ? "selected"
-                          : ""
-                      }
-                      disabled={tipLoading}
-                      onClick={() => {
-                        setSelectedTipPence(
-                          amount
-                        );
-                        setCustomTipValue("");
-                        setTipMessage("");
-                      }}
-                    >
-                      £{amount / 100}
-                    </button>
-                  )
-                )}
-
-                <button
-                  type="button"
-                  className={
-                    selectedTipPence === -1
-                      ? "selected"
-                      : ""
-                  }
-                  disabled={tipLoading}
-                  onClick={() => {
-                    setSelectedTipPence(-1);
-                    setTipMessage("");
-                  }}
-                >
-                  Other
-                </button>
-              </div>
-
-              {selectedTipPence === -1 && (
-                <label className="customTipField">
-                  <span>
-                    Tip amount
-                  </span>
-                  <div>
-                    <span>£</span>
-                    <input
-                      type="number"
-                      min="1"
-                      max="500"
-                      step="0.01"
-                      inputMode="decimal"
-                      value={customTipValue}
-                      onChange={(event) =>
-                        setCustomTipValue(
-                          event.target.value
-                        )
-                      }
-                      placeholder="5.00"
-                    />
-                  </div>
-                </label>
-              )}
-
-              <button
-                className="submitTipButton"
-                type="button"
-                disabled={
-                  tipLoading ||
-                  selectedTipPence === null ||
-                  completionPreviewEnabled
-                }
-                onClick={() => {
-                  const amount =
-                    selectedTipPence === -1
-                      ? Math.round(
-                          Number(
-                            customTipValue
-                          ) * 100
-                        )
-                      : selectedTipPence;
-
-                  if (amount === null) {
-                    return;
-                  }
-
-                  void startTipCheckout(
-                    amount
-                  );
-                }}
-              >
-                {completionPreviewEnabled
-                  ? "Tip checkout disabled in preview"
-                  : tipLoading
-                    ? "Opening Stripe…"
-                    : "Leave a tip"}
-              </button>
-
-              {tipMessage && (
-                <p className="tipMessage">
-                  {tipMessage}
-                </p>
-              )}
-
-            </section>
-          )}
 
           {destinationRecommendationsLoading && (
             <p className="destinationRecommendationsLoading">
@@ -5243,22 +4965,6 @@ export default function Home() {
           </div>
 
           <div className="simulatorCard">
-            <div className="completionPreviewControl">
-              <div>
-                <strong>Completion screen</strong>
-                <span>
-                  Preview review, tipping and destination recommendations without completing a real tour.
-                </span>
-              </div>
-
-              <button
-                type="button"
-                onClick={previewCompletionScreen}
-              >
-                Preview completion
-              </button>
-            </div>
-
             <div className="simulatorSwitchRow">
               <div>
                 <strong>Route simulator</strong>

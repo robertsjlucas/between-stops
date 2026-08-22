@@ -512,26 +512,6 @@ export default function CreatorPage() {
   ] = useState(false);
 
   const [
-    payoutStatus,
-    setPayoutStatus,
-  ] = useState<{
-    connected: boolean;
-    onboardingComplete: boolean;
-    chargesEnabled: boolean;
-    payoutsEnabled: boolean;
-  } | null>(null);
-
-  const [
-    payoutLoading,
-    setPayoutLoading,
-  ] = useState(false);
-
-  const [
-    payoutError,
-    setPayoutError,
-  ] = useState("");
-
-  const [
     projectId,
     setProjectId,
   ] = useState<string | null>(
@@ -805,28 +785,6 @@ export default function CreatorPage() {
       isActive = false;
     };
   }, []);
-
-  const hasPaidProjects =
-    projects.some(
-      (project) =>
-        project.accessType === "paid"
-    );
-
-  useEffect(() => {
-    if (
-      stage !== "projects" ||
-      projectsLoading ||
-      !hasPaidProjects
-    ) {
-      return;
-    }
-
-    void refreshPayoutStatus();
-  }, [
-    stage,
-    projectsLoading,
-    hasPaidProjects,
-  ]);
 
   const availableRoutes =
     useMemo(
@@ -1675,100 +1633,6 @@ export default function CreatorPage() {
     };
   }
 
-  async function refreshPayoutStatus() {
-    if (!hasPaidProjects) {
-      setPayoutStatus(null);
-      setPayoutError("");
-      return;
-    }
-
-    setPayoutLoading(true);
-    setPayoutError("");
-
-    try {
-      const response =
-        await fetch(
-          "/api/stripe/connect/status",
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-
-      const result =
-        await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          result.error ??
-            "Payout status could not be checked."
-        );
-      }
-
-      setPayoutStatus({
-        connected:
-          Boolean(result.connected),
-        onboardingComplete:
-          Boolean(
-            result.onboardingComplete
-          ),
-        chargesEnabled:
-          Boolean(
-            result.chargesEnabled
-          ),
-        payoutsEnabled:
-          Boolean(
-            result.payoutsEnabled
-          ),
-      });
-    } catch (error) {
-      setPayoutError(
-        getActionErrorMessage(error)
-      );
-    } finally {
-      setPayoutLoading(false);
-    }
-  }
-
-  async function startPayoutOnboarding() {
-    if (payoutLoading) return;
-
-    setPayoutLoading(true);
-    setPayoutError("");
-
-    try {
-      const response =
-        await fetch(
-          "/api/stripe/connect/onboard",
-          {
-            method: "POST",
-          }
-        );
-
-      const result =
-        await response.json();
-
-      if (
-        !response.ok ||
-        !result.url
-      ) {
-        throw new Error(
-          result.error ??
-            "Stripe payout setup could not be started."
-        );
-      }
-
-      window.location.assign(
-        result.url
-      );
-    } catch (error) {
-      setPayoutError(
-        getActionErrorMessage(error)
-      );
-      setPayoutLoading(false);
-    }
-  }
-
   function newProject() {
     setProjectId(null);
     setExperienceName("");
@@ -1924,18 +1788,6 @@ export default function CreatorPage() {
       return;
     }
 
-    if (
-      tourAccessType === "paid" &&
-      (
-        !Number.isFinite(Number(tourPrice)) ||
-        Number(tourPrice) < 2.99
-      )
-    ) {
-      setProjectError("");
-      setSaveMessage("");
-      return;
-    }
-
     const id =
       projectId ??
       crypto.randomUUID();
@@ -2043,18 +1895,6 @@ export default function CreatorPage() {
       window.alert(
         "Choose both the first and last available dates."
       );
-      return;
-    }
-
-    if (
-      tourAccessType === "paid" &&
-      (
-        !Number.isFinite(Number(tourPrice)) ||
-        Number(tourPrice) < 2.99
-      )
-    ) {
-      setProjectError("");
-      setSaveMessage("");
       return;
     }
 
@@ -3018,6 +2858,10 @@ export default function CreatorPage() {
               </a>
             )}
 
+            <a href="/tours">
+              Passenger tours
+            </a>
+
             <button
               className="headerTextButton"
               onClick={() =>
@@ -3064,95 +2908,6 @@ export default function CreatorPage() {
               + New experience
             </button>
           </div>
-
-          <section className="payoutPanel">
-              <div className="payoutPanelCopy">
-                <p className="creatorKicker">
-                  PAYMENTS &amp; PAYOUTS
-                </p>
-
-                {payoutLoading &&
-                !payoutStatus ? (
-                  <>
-                    <h2>
-                      Checking payout setup…
-                    </h2>
-                    <p>
-                      Checking your Stripe
-                      account.
-                    </p>
-                  </>
-                ) : payoutStatus?.connected &&
-                  payoutStatus.onboardingComplete &&
-                  payoutStatus.payoutsEnabled ? (
-                  <>
-                    <h2>
-                      Payouts ready
-                    </h2>
-                    <p>
-                      Your Stripe account is
-                      ready to receive earnings
-                      from paid tours.
-                    </p>
-                  </>
-                ) : payoutStatus?.connected ? (
-                  <>
-                    <h2>
-                      Finish payout setup
-                    </h2>
-                    <p>
-                      Stripe still needs some
-                      information before you can
-                      receive earnings from paid
-                      tours.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h2>
-                      Set up payouts
-                    </h2>
-                    <p>
-                      You only need Stripe if you
-                      plan to sell paid tours.
-                      Set it up now or come back
-                      before your first paid tour
-                      goes on sale.
-                    </p>
-                  </>
-                )}
-
-                {payoutError && (
-                  <p className="payoutError">
-                    {payoutError}
-                  </p>
-                )}
-              </div>
-
-              <div className="payoutPanelAction">
-                {payoutStatus?.connected &&
-                payoutStatus.onboardingComplete &&
-                payoutStatus.payoutsEnabled ? (
-                  <span className="payoutReadyBadge">
-                    ✓ Ready
-                  </span>
-                ) : (
-                  <button
-                    className="newProjectButton"
-                    disabled={payoutLoading}
-                    onClick={
-                      startPayoutOnboarding
-                    }
-                  >
-                    {payoutLoading
-                      ? "Opening Stripe…"
-                      : payoutStatus?.connected
-                        ? "Finish Stripe setup"
-                        : "Set up payouts"}
-                  </button>
-                )}
-              </div>
-            </section>
 
           <div className="projectsGrid">
             <div className="projectStatusFilters" aria-label="Filter experiences by status">
@@ -3768,6 +3523,16 @@ export default function CreatorPage() {
               experience is a draft.
             </p>
 
+            {projectId && (
+              <a
+                className="detailsPreviewLink"
+                href={`/preview?id=${projectId}&from=creator`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Preview passenger view
+              </a>
+            )}
           </div>
 
           <div className="marketplaceFormCard">
@@ -3904,27 +3669,7 @@ export default function CreatorPage() {
                     setTourPrice(event.target.value)
                   }
                   placeholder="2.99"
-                  aria-invalid={
-                    tourPrice !== "" &&
-                    (
-                      !Number.isFinite(Number(tourPrice)) ||
-                      Number(tourPrice) < 2.99
-                    )
-                  }
                 />
-
-                {tourPrice !== "" &&
-                  (
-                    !Number.isFinite(Number(tourPrice)) ||
-                    Number(tourPrice) < 2.99
-                  ) && (
-                    <p
-                      className="marketplaceFormError"
-                      role="alert"
-                    >
-                      Paid tours must cost at least £2.99.
-                    </p>
-                  )}
 
                 {Number(tourPrice) >= 2.99 && (
                   <div className="automaticDurationCard">

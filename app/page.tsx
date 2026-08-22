@@ -195,7 +195,7 @@ export default async function LandingPage() {
           aria-label="Between Stops home"
         >
           <img
-            src="/branding/between-stops-icon.png"
+            src="/branding/between-stops-icon-v2.png"
             alt=""
           />
           <span>
@@ -273,7 +273,7 @@ export default async function LandingPage() {
             ) : (
               <div className="brandFallback">
                 <img
-                  src="/branding/between-stops-icon.png"
+                  src="/branding/between-stops-icon-v2.png"
                   alt=""
                 />
               </div>
@@ -466,7 +466,7 @@ export default async function LandingPage() {
           href="/"
         >
           <img
-            src="/branding/between-stops-icon.png"
+            src="/branding/between-stops-icon-v2.png"
             alt=""
           />
           <span>

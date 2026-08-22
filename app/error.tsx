@@ -25,7 +25,7 @@ export default function ErrorBoundary({
 
   return (
     <main className="systemErrorPage">
-      <img src="/branding/between-stops-icon.png" alt="" />
+      <img src="/branding/between-stops-icon-v2.png" alt="" />
       <p>BETWEEN STOPS</p>
       <h1>Something went wrong</h1>
       <span>The problem has been reported. You can try this page again now.</span>

@@ -166,7 +166,7 @@ button:focus-visible {
   outline-offset: 3px;
 }
 
-img[src="/branding/between-stops-icon.png"] {
+img[src="/branding/between-stops-icon-v2.png"] {
   border-radius: 0 !important;
   clip-path: inset(2.5% round 22%);
 }
@@ -472,7 +472,7 @@ img[src="/branding/between-stops-icon.png"] {
   height: 74px;
   border: 4px solid rgba(255, 255, 255, 0.9);
   border-radius: 20px;
-  background: white url("/branding/between-stops-icon.png") center / cover no-repeat;
+  background: white url("/branding/between-stops-icon-v2.png") center / cover no-repeat;
   box-shadow: 0 14px 34px rgba(0, 0, 0, 0.2);
   transform: translate(-50%, -50%);
 }

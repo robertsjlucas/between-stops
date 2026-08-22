@@ -37,7 +37,7 @@ export default function ResetPasswordPage() {
       <section className="loginCard">
         <header className="loginHeader">
           <div className="loginHeaderBrand">
-            <img src="/branding/between-stops-icon.png" alt="" />
+            <img src="/branding/between-stops-icon-v2.png" alt="" />
             <div><div className="loginLogo">Between Stops</div><p className="loginArea">Secure account</p></div>
           </div>
           <a href="/">Passenger view</a>
