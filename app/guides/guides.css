@@ -564,3 +564,9 @@
     padding: 38px 25px;
   }
 }
+
+.guidesFooter > strong {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}

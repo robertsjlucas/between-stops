@@ -680,3 +680,31 @@
     padding: 38px 25px 45px;
   }
 }
+
+/* Align passenger hero window with Guide page proportions */
+
+.heroWindow {
+  height: 580px;
+  max-height: none;
+  border-radius: 28px 150px 28px 28px;
+}
+
+.landingFooter > strong {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+
+@media (max-width: 900px) {
+  .heroWindow {
+    height: 500px;
+  }
+}
+
+@media (max-width: 520px) {
+  .heroWindow {
+    height: 420px;
+    max-height: none;
+    border-radius: 22px 95px 22px 22px;
+  }
+}

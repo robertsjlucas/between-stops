@@ -461,18 +461,7 @@ export default async function LandingPage() {
       </section>
 
       <footer className="landingFooter">
-        <Link
-          className="landingBrand"
-          href="/"
-        >
-          <img
-            src="/branding/between-stops-icon.png?v=2"
-            alt=""
-          />
-          <span>
-            Between Stops
-          </span>
-        </Link>
+        <strong>Between Stops</strong>
 
         <p>
           Stories for the space

@@ -283,16 +283,7 @@ export default async function GuidesPage() {
       </section>
 
       <footer className="guidesFooter">
-        <Link
-          className="guidesBrand"
-          href="/"
-        >
-          <img
-            src="/branding/between-stops-icon.png?v=2"
-            alt=""
-          />
-          <span>Between Stops</span>
-        </Link>
+        <strong>Between Stops</strong>
 
         <p>
           Stories for the space
