@@ -1,95 +1,493 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+
 import { TransportIcon } from "@/components/transport-icon";
-import { loadPublishedExperiences, type PublicExperienceOption } from "@/lib/public-experiences";
+import {
+  loadPublishedExperiences,
+  type PublicExperienceOption,
+} from "@/lib/public-experiences";
+import {
+  chooseHomepageImages,
+  loadHomepageImages,
+} from "@/lib/homepage-images";
 import { createPublicServerClient } from "@/lib/supabase/public-server";
+
 import "./home.css";
 
 export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Audio tours for journeys through the city",
-  description: "Turn an ordinary bus or tram journey into a location-aware audio tour with Between Stops.",
-  alternates: { canonical: "/" },
+  description:
+    "Stories, sights and sounds that unfold as you travel by bus or tram.",
+  alternates: {
+    canonical: "/",
+  },
 };
 
-function tourHref(option: PublicExperienceOption) {
+const CURRENT_CITY = "Edinburgh";
+
+function tourHref(
+  option: PublicExperienceOption
+) {
   return `/tours?tour=${option.experience.id}`;
 }
 
-function TourCard({ option }: { option: PublicExperienceOption }) {
+function formatPrice(
+  option: PublicExperienceOption
+) {
+  if (
+    option.accessType === "free" ||
+    option.pricePence === undefined
+  ) {
+    return option.accessType === "free"
+      ? "Free"
+      : "Explore";
+  }
+
+  return new Intl.NumberFormat(
+    "en-GB",
+    {
+      style: "currency",
+      currency: option.currency,
+    }
+  ).format(
+    option.pricePence / 100
+  );
+}
+
+function TourListing({
+  option,
+  number,
+}: {
+  option: PublicExperienceOption;
+  number: number;
+}) {
   return (
-    <Link className="landingTourCard" href={tourHref(option)}>
-      <div className="landingTourImage">
-        {option.coverImageUrl ? <img src={option.coverImageUrl} alt="" /> : <div className={`landingTourPlaceholder ${option.visualClass}`} />}
-        <span className="landingRouteBadge"><TransportIcon mode={option.route.mode} />{option.badge}</span>
+    <Link
+      className="editorialTour"
+      href={tourHref(option)}
+    >
+      <span className="editorialTourNumber">
+        {String(number).padStart(2, "0")}
+      </span>
+
+      <div className="editorialTourMain">
+        <p>
+          <TransportIcon
+            mode={option.route.mode}
+          />
+          {option.badge}
+        </p>
+
+        <h3>
+          {option.experience.title}
+        </h3>
+
+        <span>
+          {option.creator?.displayName ??
+            "Between Stops"}
+        </span>
       </div>
-      <div className="landingTourBody">
-        <p>{option.creator?.displayName ?? "Between Stops"}</p>
-        <h3>{option.experience.title}</h3>
-        <span>{option.experience.durationMinutes} mins · {option.experience.stories.length} Stories</span>
+
+      <div className="editorialTourMeta">
+        <span>
+          About{" "}
+          {
+            option.experience
+              .durationMinutes
+          }{" "}
+          mins
+        </span>
+
+        <strong>
+          {formatPrice(option)}
+        </strong>
       </div>
+
+      <span
+        className="editorialTourArrow"
+        aria-hidden="true"
+      >
+        ↗
+      </span>
     </Link>
   );
 }
 
 export default async function LandingPage() {
-  let tours: PublicExperienceOption[] = [];
+  const supabase =
+    createPublicServerClient();
+
+  let tours:
+    PublicExperienceOption[] = [];
+
+  let platformImages =
+    await loadHomepageImages(
+      supabase,
+      {
+        city: CURRENT_CITY,
+      }
+    ).catch(() => []);
+
   try {
-    tours = await loadPublishedExperiences(createPublicServerClient());
+    tours =
+      await loadPublishedExperiences(
+        supabase
+      );
   } catch {
-    // Keep the introduction available if the catalogue is temporarily unavailable.
+    // Keep the public introduction
+    // available if the catalogue is
+    // temporarily unavailable.
   }
 
-  const featured = tours.filter((tour) => tour.featuredRank !== undefined).slice(0, 3);
-  const seasonal = tours.filter((tour) => tour.availableFrom || tour.availableTo).slice(0, 3);
-  const firstTours = (featured.length > 0 ? featured : tours).slice(0, 3);
-  const heroTour = firstTours[0] ?? tours[0];
+  platformImages =
+    chooseHomepageImages(
+      platformImages,
+      CURRENT_CITY
+    );
+
+  const heroImage =
+    platformImages.find(
+      (image) => image.isHero
+    ) ??
+    platformImages[0] ??
+    null;
+
+  const secondaryImage =
+    platformImages.find(
+      (image) =>
+        image.id !== heroImage?.id
+    ) ??
+    null;
+
+  const thirdImage =
+    platformImages.find(
+      (image) =>
+        image.id !== heroImage?.id &&
+        image.id !==
+          secondaryImage?.id
+    ) ??
+    null;
+
+  const featured =
+    tours
+      .filter(
+        (tour) =>
+          tour.featuredRank !==
+          undefined
+      )
+      .slice(0, 4);
+
+  const shownTours =
+    (
+      featured.length > 0
+        ? featured
+        : tours
+    ).slice(0, 4);
 
   return (
     <main className="landingPage">
       <header className="landingHeader">
-        <Link className="landingBrand" href="/" aria-label="Between Stops home">
-          <img src="/branding/between-stops-icon.png" alt="" /><span>Between Stops</span>
+        <Link
+          className="landingBrand"
+          href="/"
+          aria-label="Between Stops home"
+        >
+          <img
+            src="/branding/between-stops-icon.png"
+            alt=""
+          />
+          <span>
+            Between Stops
+          </span>
         </Link>
-        <nav aria-label="Main navigation"><Link href="/tours">Tours</Link><Link href="/guides">For guides</Link><Link href="/login?next=/creator">Guide sign in</Link></nav>
+
+        <nav
+          aria-label="Main navigation"
+        >
+          <Link href="/tours">
+            Explore tours
+          </Link>
+
+          <Link href="/guides">
+            Create a tour
+          </Link>
+
+          <Link
+            className="landingSignIn"
+            href="/login?next=/creator"
+          >
+            Guide sign in
+          </Link>
+        </nav>
       </header>
 
       <section className="landingHero">
         <div className="landingHeroCopy">
-          <h1>Turn ordinary journeys into extraordinary experiences.</h1>
-          <p>Stories, sights and sounds that unfold as you travel through the city.</p>
+          <p className="landingKicker">
+            STORIES FOR THE JOURNEY
+          </p>
+
+          <h1>
+            Look out.
+            <br />
+            Listen in.
+          </h1>
+
+          <p className="landingIntro">
+            Audio experiences that
+            unfold as you travel
+            through the city.
+          </p>
+
           <div className="landingActions">
-            <Link className="primaryLandingButton" href="/tours">Take me to the tours</Link>
-            <a className="secondaryLandingButton" href="#how-it-works">How it works</a>
+            <Link
+              className="primaryLandingButton"
+              href="/tours"
+            >
+              Explore tours
+              <span>↗</span>
+            </Link>
+
+            <a
+              className="secondaryLandingButton"
+              href="#how-it-works"
+            >
+              How it works
+            </a>
           </div>
         </div>
-        <div className="landingHeroVisual">
-          {heroTour?.coverImageUrl ? <img src={heroTour.coverImageUrl} alt="" /> : <div className="landingWindowArtwork"><img src="/branding/between-stops-icon.png" alt="" /></div>}
-          <div className="landingHeroCaption"><strong>Press play. Watch the city unfold.</strong><span>Made for the journey you&apos;re already taking.</span></div>
+
+        <div className="landingHeroMedia">
+          <div className="windowFrame heroWindow">
+            {heroImage?.imageUrl ? (
+              <img
+                src={
+                  heroImage.imageUrl
+                }
+                alt={
+                  heroImage.altText
+                }
+              />
+            ) : (
+              <div className="brandFallback">
+                <img
+                  src="/branding/between-stops-icon.png"
+                  alt=""
+                />
+              </div>
+            )}
+          </div>
+
+          <p className="heroLocation">
+            <span />
+            {CURRENT_CITY}
+          </p>
         </div>
       </section>
 
-      <section className="howSection" id="how-it-works">
-        <div className="landingSectionHeading"><p className="landingKicker">HOW IT WORKS</p><h2>Your journey becomes the tour.</h2></div>
-        <div className="howGrid">
-          <article><span>01</span><h3>Choose a route</h3><p>Find a tour on a bus or tram journey that suits where you&apos;re going.</p></article>
-          <article><span>02</span><h3>Take your seat</h3><p>Use your own headphones and start when you&apos;re ready to travel.</p></article>
-          <article><span>03</span><h3>Look up</h3><p>Stories and visual prompts unfold as the places outside come into view.</p></article>
+      <section
+        className="landingStatement"
+        id="how-it-works"
+      >
+        <div>
+          <p className="landingKicker">
+            BETWEEN A AND B
+          </p>
+
+          <h2>
+            The journey was
+            interesting all along.
+          </h2>
+        </div>
+
+        <p>
+          Between Stops turns
+          ordinary public transport
+          journeys into
+          location-aware audio
+          experiences. Take your
+          seat, put on your
+          headphones and notice what
+          you would otherwise pass
+          by.
+        </p>
+      </section>
+
+      <section className="journeyMethod">
+        <div className="methodSteps">
+          <article>
+            <span>01</span>
+            <div>
+              <h3>
+                Pick a journey
+              </h3>
+              <p>
+                Choose a tour that
+                follows a bus or tram
+                route.
+              </p>
+            </div>
+          </article>
+
+          <article>
+            <span>02</span>
+            <div>
+              <h3>
+                Take your seat
+              </h3>
+              <p>
+                Start when you are on
+                board. Your location
+                keeps the experience
+                in sync.
+              </p>
+            </div>
+          </article>
+
+          <article>
+            <span>03</span>
+            <div>
+              <h3>
+                Look outside
+              </h3>
+              <p>
+                Stories arrive as the
+                places they belong to
+                come into view.
+              </p>
+            </div>
+          </article>
+        </div>
+
+        {secondaryImage?.imageUrl ? (
+          <div className="windowFrame methodWindow">
+            <img
+              src={
+                secondaryImage.imageUrl
+              }
+              alt={
+                secondaryImage.altText
+              }
+            />
+          </div>
+        ) : (
+          <div className="windowFrame methodWindow brandWindow">
+            <span>
+              Your journey.
+              <br />
+              More to notice.
+            </span>
+          </div>
+        )}
+      </section>
+
+      {shownTours.length > 0 && (
+        <section className="landingToursSection">
+          <header className="landingSectionHeading">
+            <div>
+              <p className="landingKicker">
+                START IN{" "}
+                {CURRENT_CITY.toUpperCase()}
+              </p>
+
+              <h2>
+                Find a story for
+                your journey.
+              </h2>
+            </div>
+
+            <Link href="/tours">
+              All tours
+              <span>↗</span>
+            </Link>
+          </header>
+
+          <div className="editorialTourList">
+            {shownTours.map(
+              (option, index) => (
+                <TourListing
+                  key={
+                    option.experience
+                      .id
+                  }
+                  option={option}
+                  number={index + 1}
+                />
+              )
+            )}
+          </div>
+        </section>
+      )}
+
+      <section className="creatorLanding">
+        {thirdImage?.imageUrl && (
+          <div className="windowFrame creatorWindow">
+            <img
+              src={
+                thirdImage.imageUrl
+              }
+              alt={
+                thirdImage.altText
+              }
+            />
+          </div>
+        )}
+
+        <div className="creatorLandingCopy">
+          <p className="landingKicker">
+            FOR GUIDES
+          </p>
+
+          <h2>
+            Your knowledge.
+            <br />
+            Their journey.
+          </h2>
+
+          <p>
+            Turn the places and
+            stories you know into an
+            experience passengers can
+            discover as they travel.
+          </p>
+
+          <Link href="/guides">
+            Create with Between Stops
+            <span>↗</span>
+          </Link>
         </div>
       </section>
 
-      {firstTours.length > 0 && <section className="landingToursSection">
-        <div className="landingSectionHeading rowHeading"><div><p className="landingKicker">START IN EDINBURGH</p><h2>{featured.length > 0 ? "Featured tours" : "Tours to try"}</h2></div><Link href="/tours">See all tours</Link></div>
-        <div className="landingTourGrid">{firstTours.map((option) => <TourCard key={option.experience.id} option={option} />)}</div>
-      </section>}
+      <footer className="landingFooter">
+        <Link
+          className="landingBrand"
+          href="/"
+        >
+          <img
+            src="/branding/between-stops-icon.png"
+            alt=""
+          />
+          <span>
+            Between Stops
+          </span>
+        </Link>
 
-      {seasonal.length > 0 && <section className="landingToursSection seasonalSection">
-        <div className="landingSectionHeading"><p className="landingKicker">FOR A LIMITED TIME</p><h2>Seasonal journeys</h2></div>
-        <div className="landingTourGrid">{seasonal.map((option) => <TourCard key={option.experience.id} option={option} />)}</div>
-      </section>}
+        <p>
+          Stories for the space
+          between A and B.
+        </p>
 
-      <section className="creatorLandingCta"><div><p className="landingKicker">KNOW A STORY WORTH SHARING?</p><h2>Build an experience of your own.</h2></div><Link href="/guides">Become a guide</Link></section>
-      <footer className="landingFooter"><div className="landingBrand footerBrand"><img src="/branding/between-stops-icon.png" alt="" /><span>Between Stops</span></div><p>Stories for the space between A and B.</p><nav><Link href="/tours">Tours</Link><Link href="/guides">Guides</Link></nav></footer>
+        <nav>
+          <Link href="/tours">
+            Tours
+          </Link>
+          <Link href="/guides">
+            Guides
+          </Link>
+        </nav>
+      </footer>
     </main>
   );
 }
