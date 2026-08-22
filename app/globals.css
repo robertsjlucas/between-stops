@@ -2975,3 +2975,25 @@ select:focus-visible {
   border-color: var(--bs-border);
   background: #fff;
 }
+
+/* Logo variants */
+
+img[src*="between-stops-logo-light.png"],
+img[src*="between-stops-logo-dark.png"] {
+  clip-path: none !important;
+  border-radius: 0 !important;
+  object-fit: contain;
+  box-shadow: none !important;
+}
+
+.brandMark,
+.miniBrand {
+  background: transparent;
+  box-shadow: none;
+}
+
+.brandMark img,
+.miniBrand img {
+  clip-path: none;
+  object-fit: contain;
+}

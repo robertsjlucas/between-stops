@@ -50,7 +50,7 @@ export default async function GuidesPage() {
           href="/"
         >
           <img
-            src="/branding/between-stops-icon.png?v=2"
+            src="/branding/between-stops-logo-light.png?v=1"
             alt=""
           />
           <span>Between Stops</span>

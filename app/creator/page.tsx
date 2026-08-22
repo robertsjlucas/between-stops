@@ -260,7 +260,7 @@ function CreatorFooter() {
       <div>
         <strong className="creatorFooterBrand">
           <img
-            src="/branding/between-stops-icon.png?v=2"
+            src="/branding/between-stops-logo-light.png?v=1"
             alt=""
           />
           <span>Between Stops</span>
@@ -3005,7 +3005,7 @@ export default function CreatorPage() {
         <header className="creatorBrandHeader">
           <div className="creatorLogo">
             <img
-              src="/branding/between-stops-icon.png?v=2"
+              src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
             <span>Between Stops</span>
@@ -3244,7 +3244,7 @@ export default function CreatorPage() {
 
                     {!project.coverImage?.url && (
                       <div className="projectCardPlaceholder" aria-label="Tour image placeholder">
-                        <img src="/branding/between-stops-icon.png?v=2" alt="" />
+                        <img src="/branding/between-stops-logo-light.png?v=1" alt="" />
                         <div>
                           <small>BETWEEN STOPS</small>
                           <strong>{choice?.label ?? "A new journey"}</strong>
@@ -3373,7 +3373,7 @@ export default function CreatorPage() {
           <div>
             <div className="creatorLogo">
               <img
-                src="/branding/between-stops-icon.png?v=2"
+                src="/branding/between-stops-logo-light.png?v=1"
                 alt=""
               />
               <span>Between Stops</span>
@@ -3621,7 +3621,7 @@ export default function CreatorPage() {
         <header className="creatorBrandHeader">
           <div className="creatorLogo">
             <img
-              src="/branding/between-stops-icon.png?v=2"
+              src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
             <span>Between Stops</span>
@@ -3729,7 +3729,7 @@ export default function CreatorPage() {
           <div>
             <div className="creatorLogo">
               <img
-                src="/branding/between-stops-icon.png?v=2"
+                src="/branding/between-stops-logo-light.png?v=1"
                 alt=""
               />
               <span>Between Stops</span>
@@ -4184,7 +4184,7 @@ export default function CreatorPage() {
           <div>
             <div className="creatorLogo">
               <img
-                src="/branding/between-stops-icon.png?v=2"
+                src="/branding/between-stops-logo-light.png?v=1"
                 alt=""
               />
               <span>Between Stops</span>
@@ -4931,7 +4931,7 @@ export default function CreatorPage() {
         <div>
           <div className="creatorLogo">
             <img
-              src="/branding/between-stops-icon.png?v=2"
+              src="/branding/between-stops-logo-light.png?v=1"
               alt=""
             />
             <span>Between Stops</span>

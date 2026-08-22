@@ -1212,7 +1212,7 @@ export default function AdminPage() {
   if (accessDenied) {
     return (
       <main className="adminShell adminMessage">
-        <img src="/branding/between-stops-icon.png?v=2" alt="" />
+        <img src="/branding/between-stops-logo-light.png?v=1" alt="" />
         <h1>Administrator access only</h1>
         <p>This account is not an administrator.</p>
         <a href="/creator">Return to Creator Studio</a>
@@ -1275,7 +1275,7 @@ export default function AdminPage() {
     <main className="adminShell">
       <header className="adminHeader">
         <a className="adminBrand" href="/">
-          <img src="/branding/between-stops-icon.png?v=2" alt="" />
+          <img src="/branding/between-stops-logo-light.png?v=1" alt="" />
           <span>Between Stops</span>
         </a>
 

@@ -102,7 +102,7 @@ export default function LoginPage() {
       <section className="loginCard">
         <header className="loginHeader">
           <div className="loginHeaderBrand">
-            <img src="/branding/between-stops-icon.png?v=2" alt="" />
+            <img src="/branding/between-stops-logo-light.png?v=1" alt="" />
             <div><div className="loginLogo">Between Stops</div><p className="loginArea">{areaLabel}</p></div>
           </div>
           <a href="/">Passenger view</a>
