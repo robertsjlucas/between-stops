@@ -554,6 +554,7 @@ export default function Home() {
   const resumeAfterTimestampRef = useRef<number | null>(null);
   const finalAnnouncementPlayedRef = useRef(false);
   const endAnnouncementPlayedRef = useRef(false);
+  const completionOccurredThisSessionRef = useRef(false);
   const previousMotionReadingRef = useRef<{
     routeProgress: number;
     capturedAt: number;
@@ -1543,6 +1544,7 @@ export default function Home() {
         completedAt: new Date().toISOString(),
       };
 
+      completionOccurredThisSessionRef.current = true;
       setJourneyCompleted(true);
       setJourneyProgress(100);
       recordDiagnostic(
@@ -1610,6 +1612,7 @@ export default function Home() {
       return;
     }
 
+    completionOccurredThisSessionRef.current = true;
     setJourneyCompleted(true);
     setJourneyProgress(100);
 
@@ -1631,6 +1634,7 @@ export default function Home() {
   useEffect(() => {
     if (
       !journeyCompleted ||
+      !completionOccurredThisSessionRef.current ||
       screen !== "journey" ||
       pageHidden ||
       endAnnouncementPlayedRef.current ||
@@ -2805,6 +2809,7 @@ export default function Home() {
         journeyProgress >= 100 &&
         !journeyCompleted
       ) {
+        completionOccurredThisSessionRef.current = true;
         setJourneyCompleted(true);
         setJourneyProgress(100);
 
@@ -2966,6 +2971,7 @@ export default function Home() {
     resumeAfterTimestampRef.current = null;
     finalAnnouncementPlayedRef.current = false;
     endAnnouncementPlayedRef.current = false;
+    completionOccurredThisSessionRef.current = false;
     setPageHidden(false);
     setDirectionDetecting(
       directionMode === "automatic"
@@ -3095,6 +3101,8 @@ export default function Home() {
     pauseJourneyAudioForNavigation();
     setWatching(false);
     setSimulatorEnabled(false);
+    completionOccurredThisSessionRef.current = false;
+    endAnnouncementPlayedRef.current = true;
     setCompletionPreviewEnabled(true);
     setJourneyProgress(100);
     setJourneyCompleted(true);
@@ -4914,11 +4922,6 @@ export default function Home() {
                 </p>
               )}
 
-              <small>
-                Stripe payment processing
-                charges are absorbed by
-                Between Stops.
-              </small>
             </section>
           )}
 
