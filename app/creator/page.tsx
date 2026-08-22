@@ -2626,33 +2626,136 @@ export default function CreatorPage() {
   }
 
   async function deleteProject(
-    id: string
+    project: SavedProject
   ) {
-    const confirmed =
-      window.confirm(
-        "Delete this draft experience?"
-      );
-
-    if (!confirmed) {
-      return;
-    }
-
     setProjectError("");
 
     try {
       const supabase =
         createClient();
 
+      const [
+        purchasesResult,
+        tipsResult,
+        reviewsResult,
+        analyticsResult,
+      ] = await Promise.all([
+        supabase
+          .from("passenger_purchases")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq(
+            "experience_id",
+            project.id
+          ),
+        supabase
+          .from("creator_tips")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq(
+            "experience_id",
+            project.id
+          ),
+        supabase
+          .from("passenger_reviews")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq(
+            "experience_id",
+            project.id
+          ),
+        supabase
+          .from("tour_analytics_events")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq(
+            "experience_id",
+            project.id
+          ),
+      ]);
+
+      const historyErrors = [
+        purchasesResult.error,
+        tipsResult.error,
+        reviewsResult.error,
+        analyticsResult.error,
+      ].filter(Boolean);
+
+      if (historyErrors.length > 0) {
+        throw historyErrors[0];
+      }
+
+      const hasPassengerHistory =
+        (purchasesResult.count ?? 0) > 0 ||
+        (tipsResult.count ?? 0) > 0 ||
+        (reviewsResult.count ?? 0) > 0 ||
+        (analyticsResult.count ?? 0) > 0;
+
+      if (hasPassengerHistory) {
+        const confirmed =
+          window.confirm(
+            "This experience has passenger or payment history, so it cannot be permanently deleted. Retire it instead? It will disappear from the marketplace and your active projects, while its records are kept."
+          );
+
+        if (!confirmed) {
+          return;
+        }
+
+        const {
+          error: retireError,
+        } = await supabase
+          .from("experiences")
+          .update({
+            status: "archived",
+            visibility: "private",
+            featured_rank: null,
+            updated_at:
+              new Date().toISOString(),
+          })
+          .eq("id", project.id);
+
+        if (retireError) {
+          throw retireError;
+        }
+
+        setProjects(
+          (current) =>
+            current.filter(
+              (item) =>
+                item.id !== project.id
+            )
+        );
+
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          "Delete this experience permanently? Its Stories and uploaded media will also be removed. This cannot be undone."
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
       await deleteCreatorProject(
         supabase,
-        id
+        project.id
       );
 
       setProjects(
         (current) =>
           current.filter(
-            (project) =>
-              project.id !== id
+            (item) =>
+              item.id !== project.id
           )
       );
     } catch (error) {
@@ -2671,7 +2774,7 @@ export default function CreatorPage() {
               );
 
       setProjectError(
-        `This draft could not be deleted: ${
+        `This experience could not be removed: ${
           detail ||
           "Unknown error"
         }`
@@ -3335,19 +3438,19 @@ export default function CreatorPage() {
                         </>
                       )}
 
-                      {(project.status ===
-                        "draft" ||
-                        project.status ===
-                          "changes_requested") && (
+                      {project.status !== "archived" && (
                         <button
                           className="projectDelete"
                           onClick={() =>
-                            deleteProject(
-                              project.id
+                            void deleteProject(
+                              project
                             )
                           }
                         >
-                          Delete
+                          {project.status === "published" ||
+                          project.status === "paused"
+                            ? "Remove experience"
+                            : "Delete"}
                         </button>
                       )}
                     </div>
@@ -4222,7 +4325,7 @@ export default function CreatorPage() {
                 target="_blank"
                 rel="noreferrer"
               >
-                Passenger preview
+                Preview experience
               </a>
             )}
 

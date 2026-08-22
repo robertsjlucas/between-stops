@@ -94,7 +94,7 @@ export default function PreviewPage() {
   return (
     <main className="shell previewShell">
       <div className="previewBanner">
-        <strong>Private passenger preview</strong>
+        <strong>Private experience preview</strong>
         <span>Only the creator and administrators can see this page.</span>
         <a href={returnPath}>← Return</a>
       </div>
