@@ -441,6 +441,11 @@ export default function Home() {
   ] = useState(false);
 
   const [
+    shareMessage,
+    setShareMessage,
+  ] = useState("");
+
+  const [
     creatorBioExpanded,
     setCreatorBioExpanded,
   ] = useState(false);
@@ -3982,6 +3987,55 @@ export default function Home() {
     );
   }
 
+  async function shareExperience() {
+    const shareUrl =
+      `https://beyondthestops.com/tours/${selectedOption.slug}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: experience.title,
+          text: selectedOption.summary,
+          url: shareUrl,
+        });
+        return;
+      }
+
+      await navigator.clipboard.writeText(
+        shareUrl
+      );
+
+      setShareMessage("Link copied");
+
+      window.setTimeout(() => {
+        setShareMessage("");
+      }, 2200);
+    } catch (shareError) {
+      if (
+        shareError instanceof DOMException &&
+        shareError.name === "AbortError"
+      ) {
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(
+          shareUrl
+        );
+
+        setShareMessage("Link copied");
+
+        window.setTimeout(() => {
+          setShareMessage("");
+        }, 2200);
+      } catch {
+        setShareMessage(
+          "Could not copy link"
+        );
+      }
+    }
+  }
+
   /*
     EXPERIENCE OVERVIEW
   */
@@ -4035,6 +4089,23 @@ export default function Home() {
           </p>
 
           <h1>{experience.title}</h1>
+
+          <div className="overviewShareAction">
+            <button
+              type="button"
+              onClick={() => {
+                void shareExperience();
+              }}
+            >
+              Share experience
+            </button>
+
+            {shareMessage && (
+              <span>
+                {shareMessage}
+              </span>
+            )}
+          </div>
 
           <p className="lead">
             {descriptionExpanded

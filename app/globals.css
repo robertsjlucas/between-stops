@@ -724,6 +724,32 @@ img[src="/branding/between-stops-icon.png?v=2"] {
 
 .overviewHero > p,
 .overviewHero > h1,
+.overviewShareAction {
+  display: flex;
+  margin: 10px 0 16px;
+  align-items: center;
+  gap: 10px;
+}
+
+.overviewShareAction button {
+  min-height: 38px;
+  padding: 8px 14px;
+  border: 1px solid #d9d9d6;
+  border-radius: 999px;
+  background: #fff;
+  color: #373737;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.overviewShareAction span {
+  color: #66645f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 .overviewMeta {
   margin-right: 22px;
   margin-left: 22px;
