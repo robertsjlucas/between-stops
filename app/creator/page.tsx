@@ -3158,6 +3158,13 @@ export default function CreatorPage() {
               </a>
             )}
 
+            <a
+              className="headerTextButton"
+              href="/creator/help"
+            >
+              Help & guidance
+            </a>
+
             <button
               className="headerTextButton"
               onClick={() =>
@@ -3170,6 +3177,14 @@ export default function CreatorPage() {
                 ? "Your guide profile"
                 : "Create guide profile"}
             </button>
+
+            {(creatorProfile?.displayName ||
+              profileName) && (
+              <span className="creatorHeaderIdentity">
+                {creatorProfile?.displayName ||
+                  profileName}
+              </span>
+            )}
 
             <button
               className="headerTextButton"
@@ -4268,19 +4283,6 @@ export default function CreatorPage() {
                 in this tour.
               </span>
             </label>
-
-            <div className="tourAccessSummary">
-              <span>Passenger access</span>
-              <strong>
-                Free during testing
-              </strong>
-              <small>
-                Pricing will be added
-                after the journey has
-                been tested with real
-                passengers.
-              </small>
-            </div>
 
             <div className="marketplaceFormActions">
               <button
