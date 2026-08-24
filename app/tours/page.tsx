@@ -3574,6 +3574,23 @@ export default function Home() {
     );
   }
 
+  /* Sync global feedback visibility with passenger screen. */
+  useEffect(() => {
+    window.dispatchEvent(
+      new CustomEvent("platform-feedback-visibility", {
+        detail: { hidden: screen === "overview" },
+      })
+    );
+
+    return () => {
+      window.dispatchEvent(
+        new CustomEvent("platform-feedback-visibility", {
+          detail: { hidden: false },
+        })
+      );
+    };
+  }, [screen]);
+
   function renderTourCard(
     option: PublicExperienceOption
   ) {
