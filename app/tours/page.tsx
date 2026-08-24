@@ -3549,6 +3549,32 @@ export default function Home() {
               />
               {option.badge}
             </div>
+
+            <div className="priceBadge">
+              {option.accessType === "free"
+                ? "Free"
+                : completedPurchasedExperienceIds.has(
+                    option.experience.id
+                  )
+                  ? "Completed ✓"
+                  : purchasedExperienceIds.has(
+                      option.experience.id
+                    )
+                    ? "Purchased ✓"
+                    : option.pricePence !== undefined
+                      ? new Intl.NumberFormat(
+                          "en-GB",
+                          {
+                            style: "currency",
+                            currency:
+                              option.currency,
+                          }
+                        ).format(
+                          option.pricePence /
+                            100
+                        )
+                      : "Paid"}
+            </div>
           </div>
 
           <div className="experienceBody">

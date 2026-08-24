@@ -540,6 +540,24 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   letter-spacing: 0.1em;
 }
 
+.priceBadge {
+  position: absolute;
+  z-index: 4;
+  right: 18px;
+  bottom: 18px;
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: rgba(55, 55, 55, 0.92);
+  color: white;
+  backdrop-filter: blur(10px);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
 .transportIcon {
   display: inline-block;
   width: 15px;
