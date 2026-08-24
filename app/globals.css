@@ -3997,3 +3997,113 @@ img[src*="between-stops-logo-dark.png"] {
     max-width: calc(100% - 108px);
   }
 }
+
+
+/* === DISCOVERY BADGE STACK REFINEMENT === */
+
+/*
+  Stack route, journey length and price down
+  the left edge of discovery photography.
+*/
+
+.imageBadge {
+  top: 16px;
+  left: 16px;
+  right: auto;
+  bottom: auto;
+}
+
+.imageJourneyMeta {
+  top: 58px;
+  bottom: auto;
+  left: 16px;
+  right: auto;
+  max-width: calc(100% - 32px);
+}
+
+.priceBadge {
+  top: 100px;
+  bottom: auto;
+  left: 16px;
+  right: auto;
+}
+
+/*
+  Favourite becomes the only control occupying
+  the opposite side of the photograph.
+*/
+
+.favouriteButton {
+  top: auto;
+  right: 16px;
+  bottom: 16px;
+  left: auto;
+}
+
+/*
+  Tighten the editorial content beneath the image.
+*/
+
+.experienceBody {
+  padding-top: 0;
+}
+
+.experienceBody > h3 {
+  margin-top: 16px;
+  margin-bottom: 7px;
+}
+
+.cardCreator {
+  margin-top: 0;
+  margin-bottom: 9px;
+}
+
+.tourCardSummary {
+  margin-top: 8px;
+  margin-bottom: 0;
+  -webkit-line-clamp: 2;
+}
+
+.cardFooter {
+  min-height: 34px;
+  margin-top: 16px;
+  padding-top: 13px;
+}
+
+.cardFooter strong {
+  padding: 8px 12px;
+}
+
+/*
+  Keep the stacked badges comfortable on
+  narrower phones.
+*/
+
+@media (max-width: 390px) {
+  .imageBadge,
+  .imageJourneyMeta,
+  .priceBadge {
+    left: 13px;
+  }
+
+  .imageBadge {
+    top: 13px;
+  }
+
+  .imageJourneyMeta {
+    top: 54px;
+  }
+
+  .priceBadge {
+    top: 95px;
+  }
+
+  .favouriteButton {
+    right: 13px;
+    bottom: 13px;
+  }
+
+  .experienceBody > h3 {
+    margin-top: 14px;
+  }
+}
