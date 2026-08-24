@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { cache } from "react";
+
 import { loadPublishedExperienceBySlug } from "@/lib/public-experiences";
 import { createPublicServerClient } from "@/lib/supabase/public-server";
 
@@ -11,6 +11,7 @@ type TourPageProps = {
   searchParams: Promise<{
     checkout?: string;
     session_id?: string;
+    tip?: string;
   }>;
 };
 
@@ -22,35 +23,6 @@ const getTour = cache(
     )
 );
 
-export async function generateMetadata({ params }: TourPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  let tour = null;
-
-  try {
-    tour = await getTour(slug);
-  } catch {
-    return {
-      title: "Tour temporarily unavailable",
-      robots: { index: false },
-    };
-  }
-
-  if (!tour) return { title: "Tour not found" };
-  const description = tour.summary || tour.fullDescription;
-
-  return {
-    title: tour.experience.title,
-    description,
-    alternates: { canonical: `/tours?tour=${tour.experience.id}` },
-    openGraph: {
-      title: tour.experience.title,
-      description,
-      type: "website",
-      images: tour.coverImageUrl ? [{ url: tour.coverImageUrl }] : undefined,
-    },
-  };
-}
-
 export default async function TourPage({
   params,
   searchParams,
@@ -61,26 +33,27 @@ export default async function TourPage({
 
   if (!tour) notFound();
 
-  const destination =
-    new URLSearchParams({
-      tour: tour.experience.id,
-    });
+  const country = tour.countrySlug ?? "uk";
+  const city = tour.citySlug ?? "edinburgh";
+  const canonicalSlug = tour.slug ?? slug;
+
+  const destination = new URL(
+    `https://www.beyondthestops.com/${country}/${city}/experiences/${canonicalSlug}`
+  );
 
   if (query.checkout) {
-    destination.set(
-      "checkout",
-      query.checkout
-    );
+    destination.searchParams.set("checkout", query.checkout);
   }
 
   if (query.session_id) {
-    destination.set(
-      "session_id",
-      query.session_id
-    );
+    destination.searchParams.set("session_id", query.session_id);
   }
 
-  redirect(
-    `/tours?${destination.toString()}`
+  if (query.tip) {
+    destination.searchParams.set("tip", query.tip);
+  }
+
+  permanentRedirect(
+    `${destination.pathname}${destination.search}`
   );
 }

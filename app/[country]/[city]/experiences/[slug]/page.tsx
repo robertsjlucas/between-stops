@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import {
@@ -17,6 +17,11 @@ type ExperiencePageProps = {
     country: string;
     city: string;
     slug: string;
+  }>;
+  searchParams: Promise<{
+    checkout?: string;
+    session_id?: string;
+    tip?: string;
   }>;
 };
 
@@ -81,7 +86,6 @@ export async function generateMetadata({
   const cityName = tour.city ?? city;
   const description =
     tour.summary || tour.fullDescription;
-
   const canonical = getCanonicalPath(
     country,
     city,
@@ -117,8 +121,10 @@ export async function generateMetadata({
 
 export default async function ExperiencePage({
   params,
+  searchParams,
 }: ExperiencePageProps) {
   const { country, city, slug } = await params;
+  const query = await searchParams;
   const tour = await getExperience(
     country,
     city,
@@ -127,12 +133,84 @@ export default async function ExperiencePage({
 
   if (!tour) notFound();
 
+  if (query.checkout || query.session_id || query.tip) {
+    const destination = new URLSearchParams({
+      tour: tour.experience.id,
+    });
+
+    if (query.checkout) {
+      destination.set("checkout", query.checkout);
+    }
+
+    if (query.session_id) {
+      destination.set("session_id", query.session_id);
+    }
+
+    if (query.tip) {
+      destination.set("tip", query.tip);
+    }
+
+    redirect(`/tours?${destination.toString()}`);
+  }
+
   const cityName = tour.city ?? city;
+  const canonicalPath = getCanonicalPath(
+    country,
+    city,
+    slug
+  );
+  const canonicalUrl =
+    `https://www.beyondthestops.com${canonicalPath}`;
   const passengerHref =
-    `/htours?tour=${tour.experience.id}`;
+    `/tours?tour=${tour.experience.id}`;
+
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "TouristTrip",
+    name: tour.experience.title,
+    description:
+      tour.summary || tour.fullDescription,
+    url: canonicalUrl,
+    touristType: "Visitors and local passengers",
+    itinerary: {
+      "@type": "ItemList",
+      itemListElement:
+        tour.experience.stories.map(
+          (story, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            name: story.title,
+          })
+        ),
+    },
+    provider: {
+      "@type": "Organization",
+      name: "Beyond the Stops",
+      url: "https://www.beyondthestops.com/",
+    },
+    offers: {
+      "@type": "Offer",
+      price:
+        tour.accessType === "free"
+          ? "0"
+          : tour.pricePence !== undefined
+            ? (tour.pricePence / 100).toFixed(2)
+            : undefined,
+      priceCurrency: tour.currency,
+      availability: "https://schema.org/InStock",
+      url: canonicalUrl,
+    },
+  };
 
   return (
-    <main className="seoExperienceXPage">
+    <main className="seoExperiencePage">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(structuredData),
+        }}
+      />
+
       <header className="seoExperienceHeader">
         <Link
           className="seoExperienceBrand"
