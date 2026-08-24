@@ -402,7 +402,7 @@ export async function loadCreatorProjects(
         .from("story-media")
         .createSignedUrls(
           mediaPaths,
-          60 * 60
+          60 * 60 * 24
         );
 
     if (signedError) {
@@ -448,7 +448,7 @@ export async function loadCreatorProjects(
       .from("tour-media")
       .createSignedUrls(
         coverPaths,
-        60 * 60
+        60 * 60 * 24
       );
 
     if (coverSignedError) {
@@ -1216,7 +1216,7 @@ export async function uploadStoryMedia(
       .from("story-media")
       .createSignedUrl(
         path,
-        60 * 60
+        60 * 60 * 24
       );
 
   if (signedError) {
@@ -1364,7 +1364,7 @@ export async function uploadTourCover(
     .from("tour-media")
     .createSignedUrl(
       path,
-      60 * 60
+      60 * 60 * 24
     );
 
   if (signedError) {
@@ -1408,7 +1408,7 @@ export async function uploadTourGalleryImage(
 
   const { data, error } = await supabase.storage
     .from("tour-media")
-    .createSignedUrl(path, 60 * 60);
+    .createSignedUrl(path, 60 * 60 * 24);
 
   if (error) {
     throw new Error(error.message);
@@ -1485,7 +1485,7 @@ export async function loadCreatorProfile(
       .from("profile-media")
       .createSignedUrls(
         profileMediaPaths,
-        60 * 60
+        60 * 60 * 24
       );
 
     if (signedError) {
@@ -1598,7 +1598,7 @@ export async function uploadProfileAvatar(
     .from("profile-media")
     .createSignedUrl(
       path,
-      60 * 60
+      60 * 60 * 24
     );
 
   if (signedError) {
@@ -1657,7 +1657,7 @@ export async function uploadProfileDirectionPrompt(
   const { data: signedData, error: signedError } =
     await supabase.storage
       .from("profile-media")
-      .createSignedUrl(path, 60 * 60);
+      .createSignedUrl(path, 60 * 60 * 24);
 
   if (signedError) {
     throw new Error(signedError.message);
