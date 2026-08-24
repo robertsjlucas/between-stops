@@ -10,6 +10,11 @@ export type SectionMode =
   | "whole"
   | "section";
 
+export type JourneyDirectionAvailability =
+  | "either"
+  | "forward"
+  | "reverse";
+
 export type CreatorStoryType =
   | "audio"
   | "look";
@@ -64,6 +69,7 @@ export type SavedProject = {
   city: string;
   selectedRouteId: string;
   sectionMode: SectionMode;
+  journeyDirectionAvailability: JourneyDirectionAvailability;
   startStopId: string;
   endStopId: string;
   summary: string;
@@ -126,6 +132,7 @@ type DatabaseExperience = {
   city: string;
   route_id: string;
   section_mode: SectionMode;
+  journey_direction_availability: JourneyDirectionAvailability;
   start_stop_id: string;
   end_stop_id: string;
   summary: string;
@@ -250,6 +257,7 @@ export async function loadCreatorProjects(
         city,
         route_id,
         section_mode,
+        journey_direction_availability,
         start_stop_id,
         end_stop_id,
         summary,
@@ -472,6 +480,9 @@ export async function loadCreatorProjects(
         ] ?? experience.route_id,
       sectionMode:
         experience.section_mode,
+      journeyDirectionAvailability:
+        experience.journey_direction_availability ??
+        "either",
       startStopId:
         experience.start_stop_id,
       endStopId:
@@ -743,6 +754,8 @@ export async function saveCreatorProject(
             databaseRouteId,
           section_mode:
             project.sectionMode,
+          journey_direction_availability:
+            project.journeyDirectionAvailability,
           start_stop_id:
             project.startStopId,
           end_stop_id:

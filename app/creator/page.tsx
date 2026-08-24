@@ -67,6 +67,7 @@ import type {
   ProjectStatus,
   SavedProject,
   SectionMode,
+  JourneyDirectionAvailability,
 } from "@/lib/creator-projects";
 
 import type {
@@ -366,6 +367,14 @@ export default function CreatorPage() {
     setSectionMode,
   ] =
     useState<SectionMode>("whole");
+
+  const [
+    journeyDirectionAvailability,
+    setJourneyDirectionAvailability,
+  ] =
+    useState<JourneyDirectionAvailability>(
+      "either"
+    );
 
   const [
     startStopId,
@@ -1634,6 +1643,7 @@ export default function CreatorPage() {
       city,
       selectedRouteId,
       sectionMode,
+      journeyDirectionAvailability,
       startStopId:
         selectedStartStop?.id ??
         startStopId,
@@ -1814,6 +1824,10 @@ export default function CreatorPage() {
       "whole"
     );
 
+    setJourneyDirectionAvailability(
+      "either"
+    );
+
     setStartStopId("");
     setEndStopId("");
 
@@ -1909,6 +1923,11 @@ export default function CreatorPage() {
 
     setSectionMode(
       project.sectionMode
+    );
+
+    setJourneyDirectionAvailability(
+      project.journeyDirectionAvailability ??
+      "either"
     );
 
     setStartStopId(
@@ -5272,6 +5291,42 @@ export default function CreatorPage() {
                 stop.
               </span>
             </button>
+          </div>
+
+          <div className="creatorField">
+            <label>
+              Journey direction
+            </label>
+
+            <select
+              value={
+                journeyDirectionAvailability
+              }
+              onChange={(event) =>
+                setJourneyDirectionAvailability(
+                  event.target
+                    .value as JourneyDirectionAvailability
+                )
+              }
+            >
+              <option value="either">
+                Either direction
+              </option>
+
+              <option value="forward">
+                {startLabel} → {endLabel} only
+              </option>
+
+              <option value="reverse">
+                {endLabel} → {startLabel} only
+              </option>
+            </select>
+
+            <small>
+              Choose whether passengers
+              can take this experience in
+              both directions or only one.
+            </small>
           </div>
 
           {sectionMode ===
