@@ -55,6 +55,7 @@ export type PublicExperienceOption = {
   pricePence?: number;
   currency: string;
   startCoordinates: Coordinates;
+  endCoordinates: Coordinates;
   startStopId?: string;
   endStopId?: string;
   journeyDirectionAvailability?:
@@ -709,6 +710,12 @@ async function hydrateExperienceRows(
         currency:
           row.currency,
         startCoordinates,
+        endCoordinates:
+          selectedEnd?.coordinates ??
+          end?.coordinates ??
+          route.coordinates[
+            route.coordinates.length - 1
+          ],
         startStopId: selectedStart?.id,
         endStopId: selectedEnd?.id,
         journeyDirectionAvailability:

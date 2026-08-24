@@ -246,6 +246,10 @@ const fallbackExperienceOptions: PublicExperienceOption[] = [
     ageGuidance: "all_ages",
     startCoordinates:
       edinburghTramRoute.coordinates[0],
+    endCoordinates:
+      edinburghTramRoute.coordinates[
+        edinburghTramRoute.coordinates.length - 1
+      ],
   },
   {
     experience: royalMileToShoreExperience,
@@ -264,6 +268,11 @@ const fallbackExperienceOptions: PublicExperienceOption[] = [
     startCoordinates:
       route35MuseumToOceanTerminal
         .coordinates[0],
+    endCoordinates:
+      route35MuseumToOceanTerminal
+        .coordinates[
+          route35MuseumToOceanTerminal.coordinates.length - 1
+        ],
   },
 ];
 
@@ -4241,6 +4250,50 @@ export default function Home() {
                 ? "We'll detect which way you're travelling when the journey starts."
                 : "This experience runs in this direction only."}
             </p>
+          </div>
+
+          <div className="startDirectionsCard">
+            <div>
+              <strong>
+                Get to the start
+              </strong>
+              <p>
+                Open directions to the stop where
+                this journey begins.
+              </p>
+            </div>
+
+            <div className="startDirectionActions">
+              {(selectedOption.journeyDirectionAvailability ??
+                "either") !== "reverse" && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${
+                    selectedOption.startCoordinates[1]
+                  },${
+                    selectedOption.startCoordinates[0]
+                  }`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Directions to {experience.startLabel}
+                </a>
+              )}
+
+              {(selectedOption.journeyDirectionAvailability ??
+                "either") !== "forward" && (
+                <a
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${
+                    selectedOption.endCoordinates[1]
+                  },${
+                    selectedOption.endCoordinates[0]
+                  }`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Directions to {experience.endLabel}
+                </a>
+              )}
+            </div>
           </div>
 
           <div className="offlineDownloadCard">
