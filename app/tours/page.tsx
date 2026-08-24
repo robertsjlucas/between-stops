@@ -485,6 +485,11 @@ export default function Home() {
   const [completedJourneys, setCompletedJourneys] =
     useState<CompletedJourney[]>([]);
 
+  const [
+    completedJourneysOpen,
+    setCompletedJourneysOpen,
+  ] = useState(false);
+
   const [publicPassengerReviews, setPublicPassengerReviews] =
     useState<PublicPassengerReview[]>([]);
 
@@ -2106,15 +2111,39 @@ export default function Home() {
         experience.id
     );
 
-  const featuredOptions =
+  const completedExperienceIds =
+    new Set(
+      completedJourneys.map(
+        (completion) =>
+          completion.experienceId
+      )
+    );
+
+  const completedOptions =
     experienceOptions.filter(
+      (option) =>
+        completedExperienceIds.has(
+          option.experience.id
+        )
+    );
+
+  const availableExperienceOptions =
+    experienceOptions.filter(
+      (option) =>
+        !completedExperienceIds.has(
+          option.experience.id
+        )
+    );
+
+  const featuredOptions =
+    availableExperienceOptions.filter(
       (option) =>
         option.featuredRank !==
         undefined
     );
 
   const favouriteOptions =
-    experienceOptions.filter(
+    availableExperienceOptions.filter(
       (option) =>
         favouriteIds.has(
           option.experience.id
@@ -2124,7 +2153,7 @@ export default function Home() {
   const nearbyOptions =
     useMemo(() => {
       if (!location) {
-        return experienceOptions;
+        return availableExperienceOptions;
       }
 
       const passengerCoordinates:
@@ -2134,7 +2163,7 @@ export default function Home() {
         ];
 
       return [
-        ...experienceOptions,
+        ...availableExperienceOptions,
       ].sort(
         (first, second) =>
           getDistanceKilometres(
@@ -3849,6 +3878,46 @@ export default function Home() {
           </section>
         )}
 
+        {completedOptions.length > 0 && (
+          <section className="completedJourneysPanel">
+            <button
+              type="button"
+              className="completedJourneysToggle"
+              onClick={() =>
+                setCompletedJourneysOpen(
+                  (current) => !current
+                )
+              }
+              aria-expanded={
+                completedJourneysOpen
+              }
+            >
+              <span>
+                <strong>
+                  Completed journeys
+                </strong>
+                <small>
+                  {completedOptions.length} on this device
+                </small>
+              </span>
+
+              <span aria-hidden="true">
+                {completedJourneysOpen
+                  ? "−"
+                  : "+"}
+              </span>
+            </button>
+
+            {completedJourneysOpen && (
+              <div className="completedJourneysList">
+                {completedOptions.map(
+                  renderTourCard
+                )}
+              </div>
+            )}
+          </section>
+        )}
+
         <section className="nearbyPrompt">
           <div>
             <p className="kicker">
@@ -3953,7 +4022,7 @@ export default function Home() {
           </section>
         )}
 
-        {experienceOptions.length > 0 && (
+        {availableExperienceOptions.length > 0 && (
           <section className="discoverSection catalogueSection">
             <div className="sectionHeading">
               <div>

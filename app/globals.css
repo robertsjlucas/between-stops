@@ -313,6 +313,51 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   padding-top: 10px;
 }
 
+.completedJourneysPanel {
+  padding: 0 14px 24px;
+}
+
+.completedJourneysToggle {
+  display: flex;
+  width: 100%;
+  min-height: 58px;
+  padding: 13px 16px;
+  border: 1px solid #e1e3e6;
+  border-radius: 16px;
+  background: #fff;
+  color: #373737;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+
+.completedJourneysToggle > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.completedJourneysToggle strong {
+  font-size: 13px;
+}
+
+.completedJourneysToggle small {
+  color: #74716a;
+  font-size: 11px;
+}
+
+.completedJourneysToggle > span:last-child {
+  font-size: 20px;
+  font-weight: 500;
+}
+
+.completedJourneysList {
+  display: grid;
+  margin-top: 12px;
+  gap: 14px;
+}
+
 .nearbyPrompt {
   display: flex;
   margin: 0 14px 34px;
