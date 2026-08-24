@@ -1545,7 +1545,8 @@ export default function Home() {
       !journeyCompleted &&
       journeyStartedNearOrigin.current &&
       progress >= 85 &&
-      destinationDistance <= endpointThreshold
+      destinationDistance <= endpointThreshold &&
+      finalAnnouncementPlayedRef.current
     ) {
       const completion: CompletedJourney = {
         id: crypto.randomUUID(),
