@@ -13,7 +13,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
   try {
     const tours = await loadPublishedExperiences(createPublicServerClient());
+    const cityPaths = new Set(
+      tours
+        .filter(
+          (tour) =>
+            tour.countrySlug &&
+            tour.citySlug
+        )
+        .map(
+          (tour) =>
+            `/${tour.countrySlug}/${tour.citySlug}`
+        )
+    );
+
     entries.push(
+      ...Array.from(cityPaths).map(
+        (path) => ({
+          url: `${baseUrl}${path}`,
+          changeFrequency: "weekly" as const,
+          priority: 0.9,
+        })
+      ),
       ...tours
         .filter(
           (tour) =>

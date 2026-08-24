@@ -1,0 +1,362 @@
+:root {
+  --city-dark: #373737;
+  --city-blue-light: #7caded;
+  --city-blue-mid: #2657af;
+  --city-blue-deep: #1d3d75;
+  --city-orange: #ff8b25;
+  --city-white: #ffffff;
+  --city-soft: #f7f8fa;
+  --city-line: #e2e4e7;
+  --city-muted: #6d7075;
+}
+
+.cityPage {
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--city-white);
+  color: var(--city-dark);
+}
+
+.cityHeader {
+  display: flex;
+  width: min(1280px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 24px 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.cityBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  text-decoration: none;
+}
+
+.cityBrand img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+}
+
+.cityHeader nav,
+.cityFooter nav {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+
+.cityHeader nav a,
+.cityFooter nav a {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.cityHero {
+  display: grid;
+  width: min(1280px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 92px 0 110px;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  align-items: end;
+  gap: clamp(60px, 8vw, 130px);
+}
+
+.cityKicker {
+  margin: 0 0 18px;
+  color: var(--city-blue-mid);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 0.17em;
+}
+
+.cityHero h1 {
+  max-width: 1020px;
+  margin: 0;
+  font-size: clamp(60px, 7vw, 108px);
+  line-height: 0.88;
+  letter-spacing: -0.072em;
+}
+
+.cityIntro {
+  max-width: 690px;
+  margin: 34px 0 0;
+  color: var(--city-muted);
+  font-size: 20px;
+  line-height: 1.55;
+}
+
+.cityHeroPanel {
+  padding: 28px;
+  border-radius: 24px 110px 24px 24px;
+  background: var(--city-blue-deep);
+  color: white;
+}
+
+.cityHeroPanel > span {
+  display: block;
+  font-size: 74px;
+  font-weight: 850;
+  line-height: 0.9;
+  letter-spacing: -0.07em;
+}
+
+.cityHeroPanel p {
+  margin: 18px 0;
+  color: #d8e3f2;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.cityHeroPanel strong {
+  display: inline-flex;
+  padding: 8px 11px;
+  border-radius: 999px;
+  background: var(--city-orange);
+  color: var(--city-dark);
+  font-size: 11px;
+}
+
+.cityStatement {
+  display: grid;
+  width: min(1280px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 100px 0;
+  grid-template-columns: 0.42fr 1.58fr;
+  gap: 70px;
+  border-top: 1px solid var(--city-line);
+}
+
+.cityStatement h2,
+.cityJourneys h2,
+.citySearchIntent h2 {
+  margin: 0;
+  font-size: clamp(44px, 5vw, 74px);
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+}
+
+.cityStatement div > p {
+  max-width: 690px;
+  margin: 30px 0 0;
+  color: var(--city-muted);
+  font-size: 17px;
+  line-height: 1.7;
+}
+
+.cityJourneys {
+  width: min(1280px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 50px 0 120px;
+}
+
+.cityJourneys > header {
+  display: flex;
+  padding-bottom: 40px;
+  align-items: end;
+  justify-content: space-between;
+  gap: 40px;
+}
+
+.cityJourneys > header > a {
+  display: inline-flex;
+  padding-bottom: 7px;
+  align-items: center;
+  gap: 16px;
+  border-bottom: 1px solid var(--city-dark);
+  color: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.cityJourneyList {
+  border-top: 1px solid var(--city-dark);
+}
+
+.cityJourney {
+  display: grid;
+  padding: 28px 4px;
+  grid-template-columns: 70px minmax(0, 1fr) 160px 28px;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid var(--city-line);
+  color: inherit;
+  text-decoration: none;
+  transition: padding 0.18s ease, background 0.18s ease;
+}
+
+.cityJourney:hover {
+  padding-right: 14px;
+  padding-left: 14px;
+  background: var(--city-soft);
+}
+
+.cityJourneyNumber {
+  color: var(--city-blue-mid);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.cityJourneyMain p {
+  margin: 0 0 7px;
+  color: var(--city-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.cityJourneyMain h3 {
+  margin: 0;
+  font-size: clamp(25px, 3vw, 39px);
+  line-height: 1;
+  letter-spacing: -0.055em;
+}
+
+.cityJourneyMain > span {
+  display: block;
+  margin-top: 8px;
+  color: var(--city-muted);
+  font-size: 11px;
+}
+
+.cityJourneyMeta {
+  display: grid;
+  gap: 5px;
+  justify-items: end;
+}
+
+.cityJourneyMeta span {
+  color: var(--city-muted);
+  font-size: 11px;
+}
+
+.cityJourneyMeta strong {
+  font-size: 13px;
+}
+
+.cityJourneyArrow {
+  font-size: 21px;
+}
+
+.citySearchIntent {
+  display: grid;
+  padding: 105px max(32px, calc((100vw - 1280px) / 2));
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: clamp(60px, 8vw, 130px);
+  background: var(--city-blue-light);
+}
+
+.citySearchIntent > div:last-child {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.citySearchIntent > div:last-child p {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.cityFooter {
+  display: grid;
+  padding: 48px max(32px, calc((100vw - 1280px) / 2));
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 40px;
+  background: var(--city-dark);
+  color: white;
+}
+
+.cityFooter .cityBrand img {
+  width: 42px;
+  height: 42px;
+}
+
+.cityFooter p {
+  margin: 0;
+  color: #cfd0d2;
+  font-size: 11px;
+}
+
+@media (max-width: 900px) {
+  .cityHeader,
+  .cityHero,
+  .cityStatement,
+  .cityJourneys {
+    width: min(100% - 36px, 1280px);
+  }
+
+  .cityHero {
+    grid-template-columns: 1fr;
+    padding: 60px 0 80px;
+  }
+
+  .cityHeroPanel {
+    max-width: 260px;
+  }
+
+  .cityStatement,
+  .citySearchIntent {
+    grid-template-columns: 1fr;
+    gap: 36px;
+  }
+
+  .cityJourney {
+    grid-template-columns: 50px minmax(0, 1fr) 28px;
+  }
+
+  .cityJourneyMeta {
+    display: none;
+  }
+
+  .cityFooter {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .cityHeader {
+    align-items: flex-start;
+  }
+
+  .cityHeader nav {
+    gap: 12px;
+  }
+
+  .cityHeader nav a:last-child {
+    display: none;
+  }
+
+  .cityBrand span {
+    display: none;
+  }
+
+  .cityHero h1 {
+    font-size: clamp(54px, 16vw, 76px);
+  }
+
+  .cityJourneys > header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .cityJourney {
+    grid-template-columns: 36px minmax(0, 1fr) 20px;
+    gap: 12px;
+  }
+
+  .citySearchIntent {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+}
