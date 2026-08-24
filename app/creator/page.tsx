@@ -821,7 +821,25 @@ export default function CreatorPage() {
       return;
     }
 
-    void refreshPayoutStatus();
+    const stripeReturn =
+      new URLSearchParams(
+        window.location.search
+      ).get("stripe");
+
+    void refreshPayoutStatus().finally(
+      () => {
+        if (
+          stripeReturn === "return" ||
+          stripeReturn === "refresh"
+        ) {
+          window.history.replaceState(
+            {},
+            "",
+            window.location.pathname
+          );
+        }
+      }
+    );
   }, [
     stage,
     projectsLoading,
