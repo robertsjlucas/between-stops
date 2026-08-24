@@ -2527,7 +2527,7 @@ export default function CreatorPage() {
       )
     ) {
       missing.push(
-        "a paid tour price of at least £2.99"
+        "a paid experience price of at least £2.99"
       );
     }
 
@@ -2687,7 +2687,7 @@ export default function CreatorPage() {
   async function restorePausedProject(project: SavedProject) {
     if (
       !window.confirm(
-        "Put the unchanged approved tour live again?"
+        "Put the unchanged approved experience live again?"
       )
     ) {
       return;
@@ -3488,7 +3488,7 @@ export default function CreatorPage() {
                     )}
 
                     {!project.coverImage?.url && (
-                      <div className="projectCardPlaceholder" aria-label="Tour image placeholder">
+                      <div className="projectCardPlaceholder" aria-label="Experience image placeholder">
                         <img src="/branding/between-stops-logo-light.png?v=1" alt="" />
                         <div>
                           <small>BEYOND THE STOPS</small>
@@ -3551,7 +3551,7 @@ export default function CreatorPage() {
                         }
                       >
                         {project.status === "published"
-                          ? "Open tour"
+                          ? "Open experience"
                           : project.status === "paused"
                             ? "View details"
                             : "Open draft"}
@@ -3562,7 +3562,7 @@ export default function CreatorPage() {
                           className="projectPause"
                           onClick={() => pausePublishedProject(project)}
                         >
-                          Pause tour
+                          Pause experience
                         </button>
                       )}
 
@@ -3819,7 +3819,7 @@ export default function CreatorPage() {
 
               <p className="marketplaceFormHint">
                 Each clip can be up to 25 MB. They are only
-                required when you submit a tour containing a
+                required when you submit an experience containing a
                 Something to spot Story.
               </p>
             </div>
