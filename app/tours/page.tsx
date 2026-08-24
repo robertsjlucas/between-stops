@@ -4044,13 +4044,6 @@ export default function Home() {
     return (
       <main className="shell">
         <header className="topBar">
-          <button
-            className="textButton homeBubbleButton"
-            onClick={goHome}
-          >
-            ← Tours
-          </button>
-
           <span className="miniBrand">
             <img
               src="/branding/between-stops-logo-light.png?v=1"
@@ -4058,6 +4051,13 @@ export default function Home() {
             />
             <span>Beyond the Stops</span>
           </span>
+
+          <button
+            className="textButton homeBubbleButton"
+            onClick={goHome}
+          >
+            ← Journeys
+          </button>
         </header>
 
         <section className="overviewHero">
@@ -4618,10 +4618,10 @@ export default function Home() {
           </span>
 
           <button
-            className="textButton"
+            className="textButton homeBubbleButton"
             onClick={() => setScreen("overview")}
           >
-            Back
+            ← Experience
           </button>
         </header>
 
@@ -4767,20 +4767,17 @@ export default function Home() {
           }}
         >
           <button
-            className="textButton"
+            className="textButton homeBubbleButton"
             onClick={goToExperienceOverview}
-            style={{
-              padding: "8px",
-            }}
           >
-            Tour
+            Experience
           </button>
 
           <button
             className="textButton homeBubbleButton"
             onClick={goHome}
           >
-            Tours
+            Journeys
           </button>
 
           <button
