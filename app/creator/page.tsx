@@ -4579,15 +4579,18 @@ export default function CreatorPage() {
                     <aside className="timingWarningPanel">
                       <strong>
                         {storyTimingWarnings.length === 1
-                          ? "1 possible timing overlap"
-                          : `${storyTimingWarnings.length} possible timing overlaps`}
+                          ? "Stories may be too close together"
+                          : "Some Stories may be too close together"}
                       </strong>
+
                       <p>
-                        These Stories are close enough that the
-                        second may have to wait in the audio queue.
-                        Shorten the recordings or move the subject
-                        pins farther apart if the order feels wrong.
+                        As a rough guide, allow around 20 seconds
+                        for each stop, plus the travel time between
+                        stops, so one Story has time to finish before
+                        the next begins. If needed, shorten the audio
+                        or move one of the Story points.
                       </p>
+
                       <ul>
                         {storyTimingWarnings.slice(0, 4).map((warning) => {
                           const first = stories.find(
