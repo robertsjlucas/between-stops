@@ -17,11 +17,26 @@ import "./home.css";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Audio tours for journeys through the city",
+  title: "Audio guides for public transport journeys",
   description:
-    "Stories, sights and sounds that unfold as you travel by bus or tram.",
+    "Discover stories, places and people as you travel by bus, tram or train. Location-aware audio experiences for journeys you are already making.",
   alternates: {
     canonical: "/",
+  },
+  openGraph: {
+    title:
+      "Audio guides for public transport journeys",
+    description:
+      "Discover stories, places and people as you travel by bus, tram or train.",
+    type: "website",
+    url: "/",
+  },
+  twitter: {
+    card: "summary",
+    title:
+      "Audio guides for public transport journeys",
+    description:
+      "Discover stories, places and people as you travel by bus, tram or train.",
   },
 };
 

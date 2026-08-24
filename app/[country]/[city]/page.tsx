@@ -95,9 +95,9 @@ export async function generateMetadata({
     );
 
   return {
-    title: `${cityName} Audio Guides for Bus & Tram Journeys`,
+    title: `${cityName} Bus & Tram Audio Guides`,
     description:
-      `Discover ${cityName} through location-aware audio experiences that unfold as you travel by public transport. Find free and paid journeys, stories and places along the way.`,
+      `Discover ${cityName} through location-aware audio guides for bus and tram journeys. Hear stories and explore places while you travel.`,
     alternates: {
       canonical,
     },
@@ -107,18 +107,18 @@ export async function generateMetadata({
     },
     openGraph: {
       title:
-        `${cityName} Audio Guides for Bus & Tram Journeys`,
+        `${cityName} Bus & Tram Audio Guides`,
       description:
-        `Discover ${cityName} through audio experiences made for journeys you are already taking.`,
+        `Discover ${cityName} through audio guides made for journeys you are already taking.`,
       type: "website",
       url: canonical,
     },
     twitter: {
       card: "summary",
       title:
-        `${cityName} Audio Guides for Bus & Tram Journeys`,
+        `${cityName} Bus & Tram Audio Guides`,
       description:
-        `Discover ${cityName} through audio experiences made for journeys you are already taking.`,
+        `Discover ${cityName} through audio guides made for journeys you are already taking.`,
     },
   };
 }
