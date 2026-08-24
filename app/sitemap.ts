@@ -26,12 +26,64 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         )
     );
 
+    const intentPaths = new Set<string>();
+
+    for (const tour of tours) {
+      if (
+        !tour.countrySlug ||
+        !tour.citySlug
+      ) {
+        continue;
+      }
+
+      const cityBase =
+        `/${tour.countrySlug}/${tour.citySlug}`;
+
+      if (tour.route.mode === "tram") {
+        intentPaths.add(
+          `${cityBase}/tram`
+        );
+      }
+
+      if (tour.accessType === "free") {
+        intentPaths.add(
+          `${cityBase}/free`
+        );
+      }
+
+      const airportText = [
+        tour.experience.title,
+        tour.summary,
+        tour.fullDescription,
+        tour.experience.startLabel,
+        tour.experience.endLabel,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+
+      if (
+        airportText.includes("airport")
+      ) {
+        intentPaths.add(
+          `${cityBase}/airport`
+        );
+      }
+    }
+
     entries.push(
       ...Array.from(cityPaths).map(
         (path) => ({
           url: `${baseUrl}${path}`,
           changeFrequency: "weekly" as const,
           priority: 0.9,
+        })
+      ),
+      ...Array.from(intentPaths).map(
+        (path) => ({
+          url: `${baseUrl}${path}`,
+          changeFrequency: "weekly" as const,
+          priority: 0.75,
         })
       ),
       ...tours

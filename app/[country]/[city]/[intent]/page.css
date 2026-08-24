@@ -1,0 +1,286 @@
+:root {
+  --intent-dark: #373737;
+  --intent-blue-light: #7caded;
+  --intent-blue-mid: #2657af;
+  --intent-blue-deep: #1d3d75;
+  --intent-orange: #ff8b25;
+  --intent-soft: #f7f8fa;
+  --intent-line: #e2e4e7;
+  --intent-muted: #6d7075;
+}
+
+.intentPage {
+  min-height: 100vh;
+  background: #fff;
+  color: var(--intent-dark);
+}
+
+.intentHeader {
+  display: flex;
+  width: min(1180px, calc(100% - 64px));
+  margin: 0 auto;
+  padding: 24px 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 30px;
+}
+
+.intentBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: inherit;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  text-decoration: none;
+}
+
+.intentBrand img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+}
+
+.intentHeader nav {
+  display: flex;
+  gap: 24px;
+}
+
+.intentHeader nav a {
+  color: inherit;
+  font-size: 12px;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.intentContent {
+  width: min(1180px, calc(100% - 64px));
+  margin: 0 auto;
+  padding-bottom: 100px;
+}
+
+.intentBreadcrumb {
+  display: flex;
+  gap: 8px;
+  padding: 40px 0 28px;
+  color: var(--intent-muted);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.intentBreadcrumb a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.intentHero {
+  max-width: 950px;
+  padding: 44px 0 100px;
+}
+
+.intentKicker {
+  margin: 0 0 18px;
+  color: var(--intent-blue-mid);
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .17em;
+}
+
+.intentHero h1,
+.intentJourneys h2,
+.intentExplanation h2 {
+  margin: 0;
+  letter-spacing: -.06em;
+}
+
+.intentHero h1 {
+  font-size: clamp(54px, 7vw, 96px);
+  line-height: .93;
+}
+
+.intentIntro {
+  max-width: 720px;
+  margin: 32px 0 0;
+  color: var(--intent-muted);
+  font-size: 19px;
+  line-height: 1.6;
+}
+
+.intentJourneys {
+  padding: 84px 0;
+  border-top: 1px solid var(--intent-line);
+}
+
+.intentJourneys > header {
+  display: grid;
+  margin-bottom: 46px;
+  grid-template-columns: .55fr 1.45fr;
+  gap: 40px;
+}
+
+.intentJourneys h2,
+.intentExplanation h2 {
+  font-size: clamp(42px, 5vw, 72px);
+  line-height: .95;
+}
+
+.intentJourneyList {
+  border-top: 1px solid var(--intent-dark);
+}
+
+.intentJourney {
+  display: grid;
+  padding: 28px 4px;
+  grid-template-columns:
+    70px
+    minmax(0, 1fr)
+    160px
+    28px;
+  align-items: center;
+  gap: 24px;
+  border-bottom: 1px solid var(--intent-line);
+  color: inherit;
+  text-decoration: none;
+  transition:
+    padding .18s ease,
+    background .18s ease;
+}
+
+.intentJourney:hover {
+  padding-right: 14px;
+  padding-left: 14px;
+  background: var(--intent-soft);
+}
+
+.intentJourneyNumber {
+  color: var(--intent-blue-mid);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.intentJourneyMain p {
+  margin: 0 0 7px;
+  color: var(--intent-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.intentJourneyMain h3 {
+  margin: 0;
+  font-size: clamp(25px, 3vw, 39px);
+  line-height: 1;
+  letter-spacing: -.055em;
+}
+
+.intentJourneyMain span {
+  display: block;
+  margin-top: 8px;
+  color: var(--intent-muted);
+  font-size: 11px;
+}
+
+.intentJourneyMeta {
+  display: grid;
+  gap: 5px;
+  justify-items: end;
+}
+
+.intentJourneyMeta span {
+  color: var(--intent-muted);
+  font-size: 11px;
+}
+
+.intentJourneyMeta strong {
+  font-size: 13px;
+}
+
+.intentJourneyArrow {
+  font-size: 21px;
+}
+
+.intentExplanation {
+  max-width: 850px;
+  margin-top: 26px;
+  padding: 84px 0 0;
+  border-top: 1px solid var(--intent-line);
+}
+
+.intentExplanation > p:last-child {
+  max-width: 650px;
+  margin: 28px 0 0;
+  color: var(--intent-muted);
+  font-size: 17px;
+  line-height: 1.65;
+}
+
+.intentFooter {
+  display: flex;
+  padding: 42px max(
+    32px,
+    calc((100vw - 1180px) / 2)
+  );
+  justify-content: space-between;
+  gap: 24px;
+  background: var(--intent-dark);
+  color: white;
+  font-size: 12px;
+}
+
+.intentFooter span {
+  color: #cfd0d2;
+}
+
+@media (max-width: 760px) {
+  .intentHeader,
+  .intentContent {
+    width: min(100% - 28px, 1180px);
+  }
+
+  .intentBrand span {
+    display: none;
+  }
+
+  .intentHeader nav a:first-child {
+    display: none;
+  }
+
+  .intentBreadcrumb {
+    padding-top: 24px;
+  }
+
+  .intentHero {
+    padding: 28px 0 70px;
+  }
+
+  .intentJourneys > header {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .intentJourney {
+    grid-template-columns:
+      38px
+      minmax(0, 1fr)
+      22px;
+    gap: 12px;
+  }
+
+  .intentJourneyMeta {
+    grid-column: 2;
+    justify-items: start;
+  }
+
+  .intentJourneyArrow {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+  }
+
+  .intentFooter {
+    flex-direction: column;
+  }
+}
