@@ -4251,3 +4251,10 @@ img[src*="between-stops-logo-dark.png"] {
 .priceBadge {
   border: 1px solid rgba(255, 255, 255, 0.9);
 }
+
+
+/* === HIDE FEEDBACK ON EXPERIENCE OVERVIEW === */
+
+body[data-hide-platform-feedback="true"] .platformFeedback {
+  display: none;
+}

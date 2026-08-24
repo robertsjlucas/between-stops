@@ -3576,18 +3576,14 @@ export default function Home() {
 
   /* Sync global feedback visibility with passenger screen. */
   useEffect(() => {
-    window.dispatchEvent(
-      new CustomEvent("platform-feedback-visibility", {
-        detail: { hidden: screen === "overview" },
-      })
-    );
+    if (screen === "overview") {
+      document.body.dataset.hidePlatformFeedback = "true";
+    } else {
+      delete document.body.dataset.hidePlatformFeedback;
+    }
 
     return () => {
-      window.dispatchEvent(
-        new CustomEvent("platform-feedback-visibility", {
-          detail: { hidden: false },
-        })
-      );
+      delete document.body.dataset.hidePlatformFeedback;
     };
   }, [screen]);
 
