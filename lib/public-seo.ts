@@ -39,6 +39,12 @@ export function publicIntentPath(
   )}/${intent}`;
 }
 
+export function publicExperienceCoverPath(
+  experienceId: string
+) {
+  return `/media/experiences/${experienceId}/cover`;
+}
+
 export function publicExperiencePath(
   option: PublicExperienceOption
 ) {

@@ -11,6 +11,7 @@ import {
   getAvailablePublicIntents,
   getPublicIntentConfig,
   publicCityPath,
+  publicExperienceCoverPath,
   publicExperiencePath,
   publicIntentPath,
 } from "@/lib/public-seo";
@@ -101,6 +102,15 @@ export async function generateMetadata({
   const canonical =
     publicExperiencePath(tour);
 
+  const socialImage =
+    tour.coverImageUrl
+      ? absolutePublicUrl(
+          publicExperienceCoverPath(
+            tour.experience.id
+          )
+        )
+      : undefined;
+
   return {
     title,
     description,
@@ -116,23 +126,24 @@ export async function generateMetadata({
       description,
       type: "website",
       url: canonical,
-      images: tour.coverImageUrl
+      images: socialImage
         ? [
             {
-              url: tour.coverImageUrl,
-              alt: tour.experience.title,
+              url: socialImage,
+              alt:
+                `${tour.experience.title} in ${cityName}`,
             },
           ]
         : undefined,
     },
     twitter: {
-      card: tour.coverImageUrl
+      card: socialImage
         ? "summary_large_image"
         : "summary",
       title,
       description,
-      images: tour.coverImageUrl
-        ? [tour.coverImageUrl]
+      images: socialImage
+        ? [socialImage]
         : undefined,
     },
   };
@@ -191,6 +202,15 @@ export default async function ExperiencePage({
   const passengerHref =
     `/tours?tour=${tour.experience.id}`;
 
+  const stableCoverUrl =
+    tour.coverImageUrl
+      ? absolutePublicUrl(
+          publicExperienceCoverPath(
+            tour.experience.id
+          )
+        )
+      : undefined;
+
   const relatedIntents =
     getAvailablePublicIntents([
       tour,
@@ -219,6 +239,7 @@ export default async function ExperiencePage({
     description:
       tour.summary || tour.fullDescription,
     url: canonicalUrl,
+    image: stableCoverUrl,
     touristType: "Visitors and local passengers",
     itinerary: {
       "@type": "ItemList",
