@@ -22,10 +22,6 @@ import type {
   PlatformAudioKey,
 } from "@/lib/platform-audio";
 
-import {
-  loadPublishedExperiences,
-} from "@/lib/public-experiences";
-
 import type {
   PublicExperienceOption,
 } from "@/lib/public-experiences";
@@ -949,10 +945,24 @@ export default function Home() {
       }
 
       try {
-        const options =
-          await loadPublishedExperiences(
-            createClient()
+        const response = await fetch(
+          "/api/public-experiences",
+          { cache: "no-store" }
+        );
+
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+
+          throw new Error(
+            payload?.error ??
+              "Published experiences could not be loaded."
           );
+        }
+
+        const options =
+          (await response.json()) as PublicExperienceOption[];
 
         if (!isActive) {
           return;
