@@ -204,15 +204,9 @@ export function truncateSeoText(
 
 export function experienceSeoTitle(
   option: PublicExperienceOption,
-  cityName: string
+  _cityName: string
 ) {
-  const baseTitle =
-    `${option.experience.title} | ${cityName} ${option.transportLabel} Audio Guide`;
-
-  return truncateSeoText(
-    baseTitle,
-    41
-  );
+  return `${option.experience.title} | ${option.transportLabel} Audio Guide`;
 }
 
 export function experienceSeoDescription(
