@@ -1470,6 +1470,36 @@
   font-size: 9px;
 }
 
+.storyTriggerEstimate {
+  display: grid;
+  margin: 14px 0 18px;
+  padding: 14px 16px;
+  gap: 4px;
+  border: 1px solid rgba(38, 87, 175, 0.18);
+  border-radius: 14px;
+  background: rgba(124, 173, 237, 0.1);
+}
+
+.storyTriggerEstimate span {
+  color: #2657AF;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.storyTriggerEstimate strong {
+  color: #373737;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.storyTriggerEstimate small {
+  color: #696969;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
 .editorHelp {
   color: #77736b;
   font-size: 11px;

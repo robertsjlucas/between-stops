@@ -35,6 +35,7 @@ import {
 } from "@/lib/supabase/client";
 
 import {
+  getStoryTiming,
   getStoryTimingWarnings,
 } from "@/lib/experience";
 
@@ -1187,6 +1188,70 @@ export default function CreatorPage() {
       ),
     [route, storyTimingExperience]
   );
+
+  const storyTriggerEstimate = useMemo(() => {
+    if (!draftCoordinates) {
+      return null;
+    }
+
+    const routeProgress =
+      getRouteProgress(
+        route,
+        draftCoordinates
+      );
+
+    const timingStory = {
+      routeProgress,
+      audioDurationSeconds:
+        storyAudio?.durationSeconds,
+      directionalPrompt:
+        storyType === "look",
+    };
+
+    const directions =
+      journeyDirectionAvailability === "forward"
+        ? (["forward"] as const)
+        : journeyDirectionAvailability === "reverse"
+          ? (["reverse"] as const)
+          : (["forward", "reverse"] as const);
+
+    const timings = directions.map(
+      (direction) =>
+        getStoryTiming(
+          route,
+          storyTimingExperience,
+          timingStory,
+          direction
+        )
+    );
+
+    const distances = timings.map(
+      (timing) =>
+        Math.round(
+          timing.leadDistanceMetres /
+            10
+        ) * 10
+    );
+
+    return {
+      minimumMetres:
+        Math.min(...distances),
+      maximumMetres:
+        Math.max(...distances),
+      durationIsEstimated:
+        timings.some(
+          (timing) =>
+            timing.durationIsEstimated
+        ),
+    };
+  }, [
+    draftCoordinates,
+    journeyDirectionAvailability,
+    route,
+    storyAudio?.durationSeconds,
+    storyTimingExperience,
+    storyType,
+  ]);
 
   /*
     MAP
@@ -4722,6 +4787,27 @@ export default function CreatorPage() {
                   handles left/right
                   direction automatically.
                 </p>
+
+                {storyTriggerEstimate && (
+                  <div className="storyTriggerEstimate">
+                    <span>
+                      Estimated playback trigger
+                    </span>
+
+                    <strong>
+                      {storyTriggerEstimate.minimumMetres ===
+                      storyTriggerEstimate.maximumMetres
+                        ? `About ${storyTriggerEstimate.minimumMetres} m before this Story point`
+                        : `About ${storyTriggerEstimate.minimumMetres}–${storyTriggerEstimate.maximumMetres} m before this Story point`}
+                    </strong>
+
+                    <small>
+                      {storyTriggerEstimate.durationIsEstimated
+                        ? "Using a 45-second audio estimate until a measured recording duration is available. The actual playback point can vary during travel."
+                        : "Based on this audio length, the route and expected transport speed. The actual playback point can vary during travel."}
+                    </small>
+                  </div>
+                )}
 
                 {editingStoryId && (
                   <button
