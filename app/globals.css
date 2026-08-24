@@ -3948,3 +3948,52 @@ img[src*="between-stops-logo-dark.png"] {
     font-size: 14px;
   }
 }
+
+
+/* === PASSENGER HEADER ROUNDING CORRECTION === */
+
+/*
+  Same large passenger logo everywhere, with
+  modest rounding rather than an almost circular tile.
+*/
+
+.brandMark,
+.miniBrand img {
+  border-radius: 10px;
+}
+
+/*
+  The home-page guide action matches the pill
+  treatment used by passenger navigation.
+*/
+
+.passengerHeaderActions .homeBubbleButton {
+  display: inline-flex;
+  min-height: 42px;
+  padding: 10px 15px;
+  align-items: center;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #373737;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+/*
+  The card now contains only useful editorial
+  information beneath the photograph.
+*/
+
+.experienceBody > h3 {
+  margin-top: 22px;
+}
+
+.imageJourneyMeta {
+  max-width: calc(100% - 125px);
+}
+
+@media (max-width: 390px) {
+  .imageJourneyMeta {
+    max-width: calc(100% - 108px);
+  }
+}

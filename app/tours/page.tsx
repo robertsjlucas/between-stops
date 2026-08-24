@@ -3582,24 +3582,8 @@ export default function Home() {
         option.experience.id
       );
 
-    const distance =
-      location
-        ? getDistanceKilometres(
-            [
-              location.longitude,
-              location.latitude,
-            ],
-            option.startCoordinates
-          )
-        : null;
-
     const tourDistance =
       getTourDistanceKm(option);
-
-    const transcriptAvailability =
-      getTranscriptAvailability(
-        option.experience.stories
-      );
 
     return (
       <article
@@ -3658,6 +3642,12 @@ export default function Home() {
               {option.badge}
             </div>
 
+            <div className="imageJourneyMeta">
+              <span>{option.experience.durationMinutes} mins</span>
+              <span aria-hidden="true">·</span>
+              <span>{formatTourDistance(tourDistance)}</span>
+            </div>
+
             <div className="priceBadge">
               {option.accessType === "free"
                 ? "Free"
@@ -3686,38 +3676,17 @@ export default function Home() {
           </div>
 
           <div className="experienceBody">
-            <p className="routeLabel">
-              {
-                option.experience
-                  .startLabel
-              }{" "}
-              <span>⇄</span>{" "}
-              {
-                option.experience
-                  .endLabel
-              }
-            </p>
-
-            <h3>
-              {option.experience.title}
-            </h3>
+            <h3>{option.experience.title}</h3>
 
             {option.creator && (
               <div className="cardCreator">
-                {option.creator
-                  .avatarUrl && (
+                {option.creator.avatarUrl && (
                   <img
-                    src={
-                      option.creator
-                        .avatarUrl
-                    }
+                    src={option.creator.avatarUrl}
                     alt=""
                   />
                 )}
-
-                <span>
-                  By {option.creator.displayName}
-                </span>
+                <span>By {option.creator.displayName}</span>
               </div>
             )}
 
@@ -3725,7 +3694,7 @@ export default function Home() {
               {option.summary}
             </p>
 
-            <div className="metaRow">
+            <div className="cardFooter">
               {(option.reviewCount ?? 0) > 0 && (
                 <span className="ratingMeta">
                   ★ {option.averageRating?.toFixed(1)} ·{" "}
@@ -3733,86 +3702,7 @@ export default function Home() {
                   {option.reviewCount === 1 ? "rating" : "ratings"}
                 </span>
               )}
-
-              <span>
-                {option.transportLabel}
-              </span>
-
-              <span>
-                {option.experience.stories.length}{" "}
-                {option.experience.stories.length === 1
-                  ? "Story"
-                  : "Stories"}
-              </span>
-
-              {transcriptAvailability !== "none" && (
-                <span>
-                  {transcriptAvailability === "full"
-                    ? "Full transcript"
-                    : "Some transcripts"}
-                </span>
-              )}
-
-              <span>
-                About{" "}
-                {option.experience.durationMinutes}{" "}
-                mins
-              </span>
-
-              <span>
-                Approx. {formatTourDistance(
-                  tourDistance
-                )}
-              </span>
-
-              <span>
-                {option.accessType === "free"
-                  ? "Free"
-                  : completedPurchasedExperienceIds.has(
-                      option.experience.id
-                    )
-                    ? "Completed ✓"
-                    : purchasedExperienceIds.has(
-                        option.experience.id
-                      )
-                      ? startedPurchasedExperienceIds.has(
-                          option.experience.id
-                        )
-                        ? "Paid ✓ · In progress"
-                        : "Paid ✓"
-                      : option.pricePence !== undefined
-                        ? new Intl.NumberFormat(
-                            "en-GB",
-                            {
-                              style: "currency",
-                              currency:
-                                option.currency,
-                            }
-                          ).format(
-                            option.pricePence / 100
-                          )
-                        : "Paid"}
-              </span>
-            </div>
-
-            <div className="cardFooter">
-              <span>
-                {distance !== null
-                  ? `${
-                      distance < 10
-                        ? distance.toFixed(
-                            1
-                          )
-                        : Math.round(
-                            distance
-                          )
-                    } km to start`
-                  : `Approx. ${option.experience.durationMinutes} mins`}
-              </span>
-
-              <strong>
-                Explore
-              </strong>
+              <strong>Explore</strong>
             </div>
           </div>
         </Link>
@@ -3859,7 +3749,9 @@ export default function Home() {
           <span>Beyond the Stops</span>
 
           <div className="passengerHeaderActions">
-            <a href="/guides">For guides</a>
+            <a className="homeBubbleButton" href="/guides">
+              For guides
+            </a>
           </div>
         </header>
 
@@ -4175,6 +4067,55 @@ export default function Home() {
   */
 
   if (screen === "overview") {
+
+    const overviewDirectionAvailability =
+      selectedOption.journeyDirectionAvailability ?? "either";
+
+    const closestJourneyStart = (() => {
+      if (overviewDirectionAvailability === "forward") {
+        return {
+          label: experience.startLabel,
+          coordinates: selectedOption.startCoordinates,
+        };
+      }
+
+      if (overviewDirectionAvailability === "reverse") {
+        return {
+          label: experience.endLabel,
+          coordinates: selectedOption.endCoordinates,
+        };
+      }
+
+      if (!location) {
+        return null;
+      }
+
+      const passengerCoordinates: [number, number] = [
+        location.longitude,
+        location.latitude,
+      ];
+
+      const distanceToStart = getDistanceKilometres(
+        passengerCoordinates,
+        selectedOption.startCoordinates
+      );
+
+      const distanceToEnd = getDistanceKilometres(
+        passengerCoordinates,
+        selectedOption.endCoordinates
+      );
+
+      return distanceToStart <= distanceToEnd
+        ? {
+            label: experience.startLabel,
+            coordinates: selectedOption.startCoordinates,
+          }
+        : {
+            label: experience.endLabel,
+            coordinates: selectedOption.endCoordinates,
+          };
+    })();
+
     return (
       <main className="shell">
         <header className="topBar">
@@ -4190,7 +4131,7 @@ export default function Home() {
             className="textButton homeBubbleButton"
             onClick={goHome}
           >
-            ← Journeys
+            All journeys
           </button>
         </header>
 
@@ -4368,7 +4309,7 @@ export default function Home() {
             )}
 
             <span>
-              Approx. {formatTourDistance(
+              {formatTourDistance(
                 getTourDistanceKm(
                   selectedOption
                 )
@@ -4460,43 +4401,32 @@ export default function Home() {
           <div className="startDirectionsCard">
             <div>
               <strong>
-                Get to the start
+                {overviewDirectionAvailability === "either"
+                  ? "Get to the closest start"
+                  : "Get to the start"}
               </strong>
               <p>
-                Open directions to the stop where
-                this journey begins.
+                {overviewDirectionAvailability === "either"
+                  ? closestJourneyStart
+                    ? `${closestJourneyStart.label} is the closest place to begin from your current location.`
+                    : "Allow location on the Journeys page and we will show the closest place to begin."
+                  : "Open directions to the stop where this journey begins."}
               </p>
             </div>
 
             <div className="startDirectionActions">
-              {(selectedOption.journeyDirectionAvailability ??
-                "either") !== "reverse" && (
+              {closestJourneyStart ? (
                 <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${
-                    selectedOption.startCoordinates[1]
-                  },${
-                    selectedOption.startCoordinates[0]
-                  }`}
+                  href={`https://www.google.com/maps/dir/?api=1&destination=${closestJourneyStart.coordinates[1]},${closestJourneyStart.coordinates[0]}`}
                   target="_blank"
                   rel="noreferrer"
                 >
-                  Directions to {experience.startLabel}
+                  Directions to {closestJourneyStart.label}
                 </a>
-              )}
-
-              {(selectedOption.journeyDirectionAvailability ??
-                "either") !== "forward" && (
-                <a
-                  href={`https://www.google.com/maps/dir/?api=1&destination=${
-                    selectedOption.endCoordinates[1]
-                  },${
-                    selectedOption.endCoordinates[0]
-                  }`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Directions to {experience.endLabel}
-                </a>
+              ) : (
+                <span className="startDirectionLocationNotice">
+                  Location needed
+                </span>
               )}
             </div>
           </div>
