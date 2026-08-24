@@ -341,6 +341,9 @@ export default function CreatorPage() {
   const placementModeRef =
     useRef(false);
 
+  const editingStoryIdRef =
+    useRef<string | null>(null);
+
   const mapViewRef = useRef<{
     routeId: string;
     stage: CreatorStage;
@@ -1194,6 +1197,11 @@ export default function CreatorPage() {
   }, [placementMode]);
 
   useEffect(() => {
+    editingStoryIdRef.current =
+      editingStoryId;
+  }, [editingStoryId]);
+
+  useEffect(() => {
     const shouldShowMap =
       stage === "route" ||
       stage === "studio";
@@ -1465,15 +1473,21 @@ export default function CreatorPage() {
             coordinates
           );
 
-          setEditingStoryId(
-            null
-          );
+          if (
+            !editingStoryIdRef.current
+          ) {
+            setEditingStoryId(
+              null
+            );
 
-          setStoryTitle("");
-          setStoryText("");
-          setStoryType(
-            "audio"
-          );
+            setStoryTitle("");
+
+            setStoryText("");
+
+            setStoryType(
+              "audio"
+            );
+          }
 
           setPlacementMode(
             false
@@ -2912,6 +2926,17 @@ export default function CreatorPage() {
     setStoryImage(undefined);
     setPendingAudioFile(null);
     setPendingImageFile(null);
+  }
+
+  function startMovingStory() {
+    if (
+      !editingStoryId ||
+      !canEditActiveProject
+    ) {
+      return;
+    }
+
+    setPlacementMode(true);
   }
 
   function openStoryForEditing(
@@ -4694,6 +4719,24 @@ export default function CreatorPage() {
                   handles left/right
                   direction automatically.
                 </p>
+
+                {editingStoryId && (
+                  <button
+                    type="button"
+                    className="creatorBackButton"
+                    onClick={
+                      startMovingStory
+                    }
+                    disabled={
+                      !canEditActiveProject ||
+                      placementMode
+                    }
+                  >
+                    {placementMode
+                      ? "Choose the new point on the map…"
+                      : "Move Story point"}
+                  </button>
+                )}
 
                 <div className="storyField">
                   <label>
