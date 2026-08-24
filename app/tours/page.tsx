@@ -3725,12 +3725,7 @@ export default function Home() {
           <span>Beyond the Stops</span>
 
           <div className="passengerHeaderActions">
-            {passengerSignedIn ? (
-              <button onClick={signOutPassenger}>Sign out</button>
-            ) : (
-              <a href="/login?next=/tours&mode=passenger">Sign in</a>
-            )}
-            <a href="/login?next=/creator&mode=creator">For guides</a>
+            <a href="/guides">For guides</a>
           </div>
         </header>
 
@@ -3885,9 +3880,6 @@ export default function Home() {
                 </h2>
               </div>
 
-              <span className="countPill">
-                {favouriteOptions.length}
-              </span>
             </div>
 
             <div className="experienceList">
@@ -3911,9 +3903,6 @@ export default function Home() {
                 </h2>
               </div>
 
-              <span className="countPill">
-                {featuredOptions.length}
-              </span>
             </div>
 
             <div className="experienceList">
@@ -3939,9 +3928,6 @@ export default function Home() {
                 </h2>
               </div>
 
-              <span className="countPill">
-                {experienceOptions.length}
-              </span>
             </div>
 
             <div className="experienceList">
@@ -3951,6 +3937,12 @@ export default function Home() {
             </div>
           </section>
         )}
+
+        <footer className="passengerFooter">
+          <strong>Beyond the Stops</strong>
+          <span>There’s more to the journey.</span>
+          <a href="/guides">For guides</a>
+        </footer>
       </main>
     );
   }

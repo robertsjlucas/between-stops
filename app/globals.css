@@ -398,6 +398,30 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   font-size: 12px;
 }
 
+.passengerFooter {
+  display: flex;
+  margin: 36px 22px 0;
+  padding: 24px 0 32px;
+  border-top: 1px solid #e6e6e2;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 7px 14px;
+  color: #66645f;
+  font-size: 11px;
+}
+
+.passengerFooter strong {
+  color: #373737;
+  font-size: 13px;
+}
+
+.passengerFooter a {
+  margin-left: auto;
+  color: #2657af;
+  font-weight: 700;
+  text-decoration: none;
+}
+
 .experienceCard {
   position: relative;
   width: 100%;
