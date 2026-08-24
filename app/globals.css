@@ -4244,3 +4244,10 @@ img[src*="between-stops-logo-dark.png"] {
     bottom: 13px;
   }
 }
+
+
+/* === PRICE BADGE BORDER === */
+
+.priceBadge {
+  border: 1px solid rgba(255, 255, 255, 0.9);
+}
