@@ -134,7 +134,7 @@ export async function POST(
       session.metadata
         ?.between_stops_payment_type;
 
-    if (!userId || !experienceId) {
+    if (!experienceId) {
       throw new Error(
         "Stripe Checkout metadata is incomplete."
       );
@@ -176,7 +176,7 @@ export async function POST(
         .upsert(
           {
             user_id:
-              userId,
+              userId ?? null,
             experience_id:
               experienceId,
             creator_id:
@@ -210,6 +210,12 @@ export async function POST(
       return NextResponse.json({
         received: true,
       });
+    }
+
+    if (!userId) {
+      throw new Error(
+        "Stripe Checkout user metadata is incomplete."
+      );
     }
 
     const {

@@ -29,18 +29,7 @@ export async function POST(
 
     const {
       data: { user },
-      error: userError,
     } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return NextResponse.json(
-        {
-          error:
-            "Sign in before leaving a tip.",
-        },
-        { status: 401 }
-      );
-    }
 
     const body =
       await request.json();
@@ -143,7 +132,7 @@ export async function POST(
         mode: "payment",
 
         customer_email:
-          user.email ?? undefined,
+          user?.email ?? undefined,
 
         line_items: [
           {
@@ -176,8 +165,12 @@ export async function POST(
           metadata: {
             between_stops_payment_type:
               "tip",
-            between_stops_user_id:
-              user.id,
+            ...(user
+              ? {
+                  between_stops_user_id:
+                    user.id,
+                }
+              : {}),
             between_stops_experience_id:
               experience.id,
             between_stops_creator_id:
@@ -190,8 +183,12 @@ export async function POST(
         metadata: {
           between_stops_payment_type:
             "tip",
-          between_stops_user_id:
-            user.id,
+          ...(user
+            ? {
+                between_stops_user_id:
+                  user.id,
+              }
+            : {}),
           between_stops_experience_id:
             experience.id,
           between_stops_creator_id:
