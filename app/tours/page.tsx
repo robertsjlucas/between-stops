@@ -1558,6 +1558,7 @@ export default function Home() {
       completionOccurredThisSessionRef.current = true;
       setJourneyCompleted(true);
       setJourneyProgress(100);
+      setActiveJourneyExperienceId(null);
       recordDiagnostic(
         "journey_completed",
         `Journey completed in the ${resolvedDirection} direction.`,
@@ -1626,6 +1627,7 @@ export default function Home() {
     completionOccurredThisSessionRef.current = true;
     setJourneyCompleted(true);
     setJourneyProgress(100);
+    setActiveJourneyExperienceId(null);
 
     recordDiagnostic(
       "journey_completed",
@@ -2823,6 +2825,7 @@ export default function Home() {
         completionOccurredThisSessionRef.current = true;
         setJourneyCompleted(true);
         setJourneyProgress(100);
+        setActiveJourneyExperienceId(null);
 
         recordDiagnostic(
           "journey_completed",
