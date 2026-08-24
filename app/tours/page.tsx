@@ -567,6 +567,9 @@ export default function Home() {
   const audioTestTimerRef = useRef<number | null>(null);
   const wakeLockRef = useRef<{ release: () => Promise<void> } | null>(null);
   const resumeAfterTimestampRef = useRef<number | null>(null);
+  const interruptedStoryIdRef = useRef<string | null>(null);
+  const activeAudioStoryIdRef = useRef<string | null>(null);
+  const brandAnnouncementRef = useRef<PlatformAudioKey | null>(null);
   const finalAnnouncementPlayedRef = useRef(false);
   const endAnnouncementPlayedRef = useRef(false);
   const completionOccurredThisSessionRef = useRef(false);
@@ -588,6 +591,16 @@ export default function Home() {
 
   const [markedSpots, setMarkedSpots] =
     useState<MarkedSpot[]>([]);
+
+  useEffect(() => {
+    activeAudioStoryIdRef.current =
+      activeAudioStoryId;
+  }, [activeAudioStoryId]);
+
+  useEffect(() => {
+    brandAnnouncementRef.current =
+      brandAnnouncement;
+  }, [brandAnnouncement]);
 
   const recordDiagnostic = useCallback(
     (
@@ -912,10 +925,30 @@ export default function Home() {
 
       if (hidden) {
         const audio = audioElementRef.current;
+        const interruptedStoryId =
+          activeAudioStoryIdRef.current;
+        const interruptedAnnouncement =
+          brandAnnouncementRef.current;
+
+        if (interruptedStoryId) {
+          interruptedStoryIdRef.current =
+            interruptedStoryId;
+        }
+
+        if (interruptedAnnouncement === "next_stop") {
+          finalAnnouncementPlayedRef.current = false;
+        }
+
+        if (interruptedAnnouncement === "tour_end") {
+          endAnnouncementPlayedRef.current = false;
+        }
+
         audio?.pause();
+
         if (audio) {
           audio.currentTime = 0;
         }
+
         setBrandAnnouncement(null);
         setAudioQueueIds([]);
         setActiveAudioStoryId(null);
@@ -1932,24 +1965,56 @@ export default function Home() {
         return;
       }
 
+      const interruptedStoryId =
+        interruptedStoryIdRef.current;
+
       const passedStoryIds = journeyStories
         .filter(
           (story) =>
-            journeyProgress >= story.triggerJourneyProgress
+            journeyProgress >=
+              story.triggerJourneyProgress
         )
         .map((story) => story.id);
 
       setTriggeredStoryIds((current) => [
         ...current,
-        ...passedStoryIds.filter((storyId) => !current.includes(storyId)),
+        ...passedStoryIds.filter(
+          (storyId) =>
+            !current.includes(storyId)
+        ),
       ]);
-      setAudioQueueIds([]);
-      resumeAfterTimestampRef.current = null;
-      recordDiagnostic(
-        "story_skipped",
-        "Returned to the tour after using another screen. Passed Stories were skipped to prevent an audio backlog.",
-        { journeyProgress, routeProgress: routeMatch.routeProgress }
+
+      const interruptedStoryStillExists =
+        interruptedStoryId !== null &&
+        journeyStories.some(
+          (story) =>
+            story.id === interruptedStoryId &&
+            Boolean(story.audioUrl)
+        );
+
+      setAudioQueueIds(
+        interruptedStoryStillExists
+          ? [interruptedStoryId]
+          : []
       );
+
+      interruptedStoryIdRef.current = null;
+      resumeAfterTimestampRef.current = null;
+
+      recordDiagnostic(
+        interruptedStoryStillExists
+          ? "audio_queued"
+          : "story_skipped",
+        interruptedStoryStillExists
+          ? "Returned to the journey after using another screen. The interrupted Story will restart from the beginning; other passed Stories were skipped."
+          : "Returned to the journey after using another screen. Passed Stories were skipped to prevent an audio backlog.",
+        {
+          journeyProgress,
+          routeProgress:
+            routeMatch.routeProgress,
+        }
+      );
+
       return;
     }
 
