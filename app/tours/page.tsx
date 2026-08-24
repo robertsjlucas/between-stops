@@ -5083,55 +5083,87 @@ export default function Home() {
 
               <div className="destinationRecommendationCards">
                 {destinationRecommendations.map((recommendation) => {
-                  const recommendationContent = (
-                    <>
-                    <RecommendationArt
-                      category={recommendation.category}
-                      imageUrl={recommendation.imageUrl}
-                      title={recommendation.title}
-                    />
-                    <div>
-                      <span>
-                        {getRecommendationCategoryLabel(
-                          recommendation.category
-                        )}
-                      </span>
-                      {recommendation.placementType === "sponsored" && (
-                        <small>Sponsored</small>
-                      )}
-                    </div>
-                    <h3>{recommendation.title}</h3>
-                    <p>{recommendation.summary}</p>
-                    {recommendation.url && <strong>View details</strong>}
-                    </>
-                  );
-
-                  return recommendation.url ? (
-                    <a
-                      href={recommendation.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="destinationRecommendationCard"
-                      key={recommendation.id}
-                      onClick={() => {
-                        if (!simulatorEnabled) {
-                          void recordTourAnalyticsEvent(createClient(), {
-                            eventType: "recommendation_clicked",
-                            experienceId: experience.id,
-                            journeyId: analyticsJourneyIdRef.current ?? undefined,
-                            recommendationId: recommendation.id,
-                          }).catch(() => undefined);
+                  const recordRecommendationClick = () => {
+                    if (!simulatorEnabled) {
+                      void recordTourAnalyticsEvent(
+                        createClient(),
+                        {
+                          eventType:
+                            "recommendation_clicked",
+                          experienceId:
+                            experience.id,
+                          journeyId:
+                            analyticsJourneyIdRef.current ??
+                            undefined,
+                          recommendationId:
+                            recommendation.id,
                         }
-                      }}
-                    >
-                      {recommendationContent}
-                    </a>
-                  ) : (
+                      ).catch(() => undefined);
+                    }
+                  };
+
+                  const mapsUrl =
+                    `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+                      `${recommendation.title}, ${directionEnd}`
+                    )}`;
+
+                  return (
                     <article
                       className="destinationRecommendationCard"
                       key={recommendation.id}
                     >
-                      {recommendationContent}
+                      <RecommendationArt
+                        category={recommendation.category}
+                        imageUrl={recommendation.imageUrl}
+                        title={recommendation.title}
+                      />
+
+                      <div>
+                        <span>
+                          {getRecommendationCategoryLabel(
+                            recommendation.category
+                          )}
+                        </span>
+
+                        {recommendation.placementType ===
+                          "sponsored" && (
+                          <small>Sponsored</small>
+                        )}
+                      </div>
+
+                      <h3>
+                        {recommendation.title}
+                      </h3>
+
+                      <p>
+                        {recommendation.summary}
+                      </p>
+
+                      <div className="recommendationActions">
+                        {recommendation.url && (
+                          <a
+                            href={recommendation.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={
+                              recordRecommendationClick
+                            }
+                          >
+                            Website
+                          </a>
+                        )}
+
+                        <a
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          onClick={
+                            recordRecommendationClick
+                          }
+                        >
+                          Maps
+                        </a>
+                      </div>
                     </article>
                   );
                 })}

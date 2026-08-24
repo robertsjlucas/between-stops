@@ -2405,6 +2405,32 @@ img[src="/branding/between-stops-icon.png?v=2"] {
   gap: 10px;
 }
 
+.recommendationActions {
+  display: flex;
+  margin-top: auto;
+  padding-top: 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.recommendationActions a {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 13px;
+  border-radius: 999px;
+  background: #2657af;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.recommendationActions a + a {
+  background: #373737;
+}
+
 .destinationRecommendationCard {
   display: block;
   padding: 17px;
