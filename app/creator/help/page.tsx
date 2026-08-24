@@ -9,7 +9,7 @@ const steps = [
   },
   {
     number: "02",
-    title: "Present the tour",
+    title: "Present the experience",
     text: "Add a clear title, a short summary, an approximate duration and a strong landscape cover image.",
   },
   {
@@ -30,7 +30,7 @@ const steps = [
   {
     number: "06",
     title: "Prepare to publish",
-    text: "Check your profile, tour details, media permissions and every Story before submitting the finished experience.",
+    text: "Check your profile, experience details, media permissions and every Story before submitting.",
   },
 ];
 

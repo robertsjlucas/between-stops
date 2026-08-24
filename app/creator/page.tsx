@@ -2235,7 +2235,7 @@ export default function CreatorPage() {
 
       setSaveMessage("");
       setProjectError(
-        `The tour details could not be saved: ${detail}`
+        `The experience details could not be saved: ${detail}`
       );
     } finally {
       setDetailsSaving(false);
@@ -2416,7 +2416,7 @@ export default function CreatorPage() {
 
     if (!coverImage) {
       missing.push(
-        "a tour cover image"
+        "an experience cover image"
       );
     }
 
@@ -2614,7 +2614,7 @@ export default function CreatorPage() {
       );
     } catch (error) {
       setProjectError(
-        `The tour could not be paused: ${getActionErrorMessage(error)}`
+        `The experience could not be paused: ${getActionErrorMessage(error)}`
       );
     }
   }
@@ -2640,7 +2640,7 @@ export default function CreatorPage() {
       );
     } catch (error) {
       setProjectError(
-        `The tour could not be restored: ${getActionErrorMessage(error)}`
+        `The experience could not be restored: ${getActionErrorMessage(error)}`
       );
     }
   }
@@ -2671,7 +2671,7 @@ export default function CreatorPage() {
       openProject(draftProject);
     } catch (error) {
       setProjectError(
-        `The tour could not be returned to draft: ${getActionErrorMessage(error)}`
+        `The experience could not be returned to draft: ${getActionErrorMessage(error)}`
       );
     }
   }
@@ -3272,7 +3272,7 @@ export default function CreatorPage() {
                     <p>
                       Your Stripe account is
                       ready to receive earnings
-                      from paid tours.
+                      from paid experiences.
                     </p>
                   </>
                 ) : payoutStatus?.connected ? (
@@ -3284,7 +3284,7 @@ export default function CreatorPage() {
                       Stripe still needs some
                       information before you can
                       receive earnings from paid
-                      tours.
+                      experiences.
                     </p>
                   </>
                 ) : (
@@ -3294,9 +3294,9 @@ export default function CreatorPage() {
                     </h2>
                     <p>
                       You only need Stripe if you
-                      plan to sell paid tours.
+                      plan to sell paid experiences.
                       Set it up now or come back
-                      before your first paid tour
+                      before your first paid experience
                       goes on sale.
                     </p>
                   </>
@@ -3382,7 +3382,7 @@ export default function CreatorPage() {
                 <strong>
                   {projects.length === 0
                     ? "No saved drafts yet"
-                    : "No tours match this filter"}
+                    : "No experiences match this filter"}
                 </strong>
 
                 <p>
@@ -3586,7 +3586,7 @@ export default function CreatorPage() {
 
             <p>
               Your name will appear on
-              published tours. A photo
+              published experiences. A photo
               and short biography are
               optional.
             </p>
@@ -3628,7 +3628,7 @@ export default function CreatorPage() {
                   event.target.value
                 )
               }
-              placeholder="Tell passengers why you made these tours."
+              placeholder="Tell passengers why you make these experiences."
               maxLength={500}
               rows={5}
             />
@@ -3937,12 +3937,12 @@ export default function CreatorPage() {
             </p>
 
             <h1>
-              Present your tour
+              Present your experience
             </h1>
 
             <p>
               This information will
-              become the public tour
+              become the public experience
               card and overview. It
               remains private while the
               experience is a draft.
@@ -3958,7 +3958,7 @@ export default function CreatorPage() {
             )}
 
             <label htmlFor="tour-title">
-              Tour title
+              Experience title
             </label>
 
             <input
@@ -4102,7 +4102,7 @@ export default function CreatorPage() {
                       className="marketplaceFormError"
                       role="alert"
                     >
-                      Paid tours must cost at least £2.99.
+                      Paid experiences must cost at least £2.99.
                     </p>
                   )}
 
@@ -4114,7 +4114,7 @@ export default function CreatorPage() {
                       {(Number(tourPrice) * 0.75).toFixed(2)}
                     </strong>
                     <small>
-                      Beyond the Stops retains 25% of the tour price.
+                      Beyond the Stops retains 25% of the experience price.
                       Ordinary payment processing is covered from
                       the Beyond the Stops share.
                     </small>
@@ -4173,7 +4173,7 @@ export default function CreatorPage() {
             )}
 
             <label htmlFor="tour-cover">
-              Tour cover image
+              Experience cover image
               <span>Optional for drafts</span>
             </label>
 
@@ -4181,7 +4181,7 @@ export default function CreatorPage() {
               <img
                 className="tourCoverPreview"
                 src={coverImage.url}
-                alt="Current tour cover"
+                alt="Current experience cover"
               />
             )}
 
@@ -4212,7 +4212,7 @@ export default function CreatorPage() {
             </p>
 
             <label htmlFor="tour-gallery">
-              Additional tour images
+              Additional experience images
               <span>Optional, up to four</span>
             </label>
 
@@ -4305,7 +4305,7 @@ export default function CreatorPage() {
                 I confirm that I own or
                 have permission to use
                 the text, audio and images
-                in this tour.
+                in this experience.
               </span>
             </label>
 
@@ -4988,7 +4988,7 @@ export default function CreatorPage() {
                   )}
 
                 <small className="mediaHelpNote">
-                  You can save this Story without audio while planning the route. Every Story must have audio before the tour can be submitted. A transcript and image are optional. Draft media is private. Maximum file size: 25 MB.
+                  You can save this Story without audio while planning the route. Every Story must have audio before the experience can be submitted. A transcript and image are optional. Draft media is private. Maximum file size: 25 MB.
                 </small>
 
                 <div className="editorActions">

@@ -228,7 +228,7 @@ export default async function GuidesPage() {
           </p>
 
           <h2>
-            Good tours notice
+            Good experiences notice
             what others miss.
           </h2>
         </div>
