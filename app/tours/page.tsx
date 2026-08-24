@@ -3590,6 +3590,7 @@ export default function Home() {
         className="experienceCard"
         key={option.experience.id}
       >
+        <div className="experienceImageWrap">
         <Link
           className="experienceCardMain"
           href={`/tours?tour=${option.experience.id}`}
@@ -3675,6 +3676,50 @@ export default function Home() {
             </div>
           </div>
 
+        </Link>
+
+        <button
+          className={
+            isFavourite
+              ? "favouriteButton active"
+              : "favouriteButton"
+          }
+          onClick={() =>
+            toggleFavourite(option.experience.id)
+          }
+          aria-label={
+            isFavourite
+              ? "Remove from favourites"
+              : "Add to favourites"
+          }
+          aria-pressed={isFavourite}
+        >
+          {isFavourite ? "♥" : "♡"}
+        </button>
+        </div>
+
+        <Link
+          className="experienceCardMain"
+          href={`/tours?tour=${option.experience.id}`}
+          onClick={(event) => {
+            if (
+              event.button !== 0 ||
+              event.metaKey ||
+              event.ctrlKey ||
+              event.shiftKey ||
+              event.altKey
+            ) {
+              return;
+            }
+            event.preventDefault();
+            setSelectedExperienceId(option.experience.id);
+            setDescriptionExpanded(false);
+            setCreatorBioExpanded(false);
+            setScreen("overview");
+            window.history.pushState({}, "", `/tours?tour=${option.experience.id}`);
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
+        >
           <div className="experienceBody">
             <h3>{option.experience.title}</h3>
 
@@ -3707,26 +3752,6 @@ export default function Home() {
           </div>
         </Link>
 
-        <button
-          className={
-            isFavourite
-              ? "favouriteButton active"
-              : "favouriteButton"
-          }
-          onClick={() =>
-            toggleFavourite(
-              option.experience.id
-            )
-          }
-          aria-label={
-            isFavourite
-              ? "Remove from favourites"
-              : "Add to favourites"
-          }
-          aria-pressed={isFavourite}
-        >
-          {isFavourite ? "♥" : "♡"}
-        </button>
       </article>
     );
   }

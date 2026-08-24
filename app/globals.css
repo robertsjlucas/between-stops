@@ -4107,3 +4107,140 @@ img[src*="between-stops-logo-dark.png"] {
     margin-top: 14px;
   }
 }
+
+
+/* === DISCOVERY CARD FINAL POSITIONING === */
+
+/*
+  Discovery image is 250px high on standard screens.
+  Favourite remains outside the link for correct
+  interactive HTML, but visually sits in the
+  bottom-right of the photograph.
+*/
+
+.favouriteButton {
+  top: 195px;
+  right: 16px;
+  bottom: auto;
+}
+
+/*
+  Keep all three information pills as one visual
+  column down the left side of the photograph.
+*/
+
+.imageBadge,
+.imageJourneyMeta,
+.priceBadge {
+  right: auto;
+  left: 16px;
+}
+
+.imageBadge {
+  top: 16px;
+}
+
+.imageJourneyMeta {
+  top: 58px;
+  bottom: auto;
+}
+
+.priceBadge {
+  top: 100px;
+  bottom: auto;
+}
+
+/*
+  Reduce the amount of white card beneath the image.
+*/
+
+.experienceBody {
+  padding-top: 14px;
+  padding-bottom: 15px;
+}
+
+.experienceBody > h3 {
+  margin-top: 0;
+  margin-bottom: 6px;
+}
+
+.cardCreator {
+  margin: 0 0 8px;
+}
+
+.tourCardSummary {
+  margin: 0;
+  line-height: 1.4;
+  -webkit-line-clamp: 2;
+}
+
+.cardFooter {
+  min-height: 32px;
+  margin-top: 13px;
+  padding-top: 11px;
+}
+
+.cardFooter strong {
+  padding: 7px 11px;
+}
+
+
+/*
+  Mobile image is 235px high.
+*/
+
+@media (max-width: 520px) {
+  .favouriteButton {
+    top: 180px;
+    right: 13px;
+  }
+
+  .imageBadge,
+  .imageJourneyMeta,
+  .priceBadge {
+    left: 13px;
+  }
+
+  .imageBadge {
+    top: 13px;
+  }
+
+  .imageJourneyMeta {
+    top: 54px;
+  }
+
+  .priceBadge {
+    top: 95px;
+  }
+
+  .experienceBody {
+    padding-top: 12px;
+    padding-bottom: 13px;
+  }
+}
+
+
+/* === FAVOURITE IMAGE ANCHOR === */
+
+.experienceImageWrap {
+  position: relative;
+}
+
+.experienceImageWrap .experienceImage {
+  position: relative;
+}
+
+.experienceImageWrap .favouriteButton {
+  top: auto;
+  right: 16px;
+  bottom: 16px;
+  left: auto;
+}
+
+@media (max-width: 520px) {
+  .experienceImageWrap .favouriteButton {
+    top: auto;
+    right: 13px;
+    bottom: 13px;
+  }
+}
