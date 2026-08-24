@@ -4612,7 +4612,7 @@ export default function CreatorPage() {
 
                         <p>
                           Add your first
-                          subject pin to
+                          Story point to
                           begin.
                         </p>
                       </div>
@@ -4685,12 +4685,14 @@ export default function CreatorPage() {
                 </h2>
 
                 <p className="editorHelp">
-                  Place the pin on the
-                  actual subject. Trigger
-                  timing and left/right
-                  behaviour will be worked
-                  out separately by the
-                  journey engine.
+                  Place the Story point
+                  where this subject makes
+                  most sense from the route.
+                  Beyond the Stops uses that
+                  location to work out when
+                  the Story should play and
+                  handles left/right
+                  direction automatically.
                 </p>
 
                 <div className="storyField">

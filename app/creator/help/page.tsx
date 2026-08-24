@@ -15,17 +15,17 @@ const steps = [
   {
     number: "03",
     title: "Place each Story",
-    text: "Put the pin on the actual building, view or object the Story is about. Story order follows the route automatically.",
+    text: "Place the Story point where its subject makes most sense from the route. Beyond the Stops uses that location to work out when the Story should play.",
   },
   {
     number: "04",
-    title: "Keep it focused",
-    text: "Use short audio, one useful image or one clear thing to spot. Each Story should earn its place in the journey.",
+    title: "Give Stories room",
+    text: "Keep audio focused and leave enough distance between Stories for one to finish before the next begins. Add an image or something to spot only when it improves the journey.",
   },
   {
     number: "05",
     title: "Test the route",
-    text: "Travel the journey in both directions. Check timing, GPS triggers, audio levels and whether the subject is genuinely visible.",
+    text: "Travel every direction you intend to offer passengers. Check timing, Story triggers, audio levels and whether each subject appears at the right moment.",
   },
   {
     number: "06",
@@ -105,7 +105,17 @@ export default function CreatorHelpPage() {
           <p>
             <strong>Avoid:</strong> saying
             “look left” or “look right”. The
-            app will handle direction.
+            app works out direction and adds
+            the appropriate prompt.
+          </p>
+
+          <p>
+            <strong>Remember:</strong> the
+            Story point is not an exact
+            playback button. It gives the
+            journey engine the location it
+            needs to trigger the Story at
+            the right time.
           </p>
 
           <p>
