@@ -33,6 +33,11 @@ export type PublicCreator = {
 
 export type PublicExperienceOption = {
   slug?: string;
+  countryCode?: string;
+  countrySlug?: string;
+  city?: string;
+  citySlug?: string;
+  languageCode?: string;
   experience: ExperienceDefinition;
   summary: string;
   fullDescription: string;
@@ -85,6 +90,11 @@ type DatabaseStory = {
 type DatabaseExperience = {
   id: string;
   slug: string | null;
+  country_code: string | null;
+  country_slug: string | null;
+  city: string;
+  city_slug: string | null;
+  language_code: string;
   owner_id: string;
   title: string;
   summary: string;
@@ -272,6 +282,11 @@ export async function loadPublishedExperiences(
       .select(`
         id,
         slug,
+        country_code,
+        country_slug,
+        city,
+        city_slug,
+        language_code,
         owner_id,
         title,
         summary,
@@ -551,6 +566,16 @@ async function hydrateExperienceRows(
       return {
         slug:
           row.slug ?? undefined,
+        countryCode:
+          row.country_code ?? undefined,
+        countrySlug:
+          row.country_slug ?? undefined,
+        city:
+          row.city,
+        citySlug:
+          row.city_slug ?? undefined,
+        languageCode:
+          row.language_code ?? undefined,
         experience: {
           id: row.id,
           title: row.title,
@@ -742,6 +767,28 @@ async function hydrateExperienceRows(
   );
 }
 
+export async function loadPublishedExperienceByLocationSlug(
+  supabase: SupabaseClient,
+  countrySlug: string,
+  citySlug: string,
+  slug: string
+): Promise<PublicExperienceOption | null> {
+  const options =
+    await loadPublishedExperiences(supabase);
+
+  return (
+    options.find(
+      (option) =>
+        option.countrySlug?.toLowerCase() ===
+          countrySlug.toLowerCase() &&
+        option.citySlug?.toLowerCase() ===
+          citySlug.toLowerCase() &&
+        option.slug?.toLowerCase() ===
+          slug.toLowerCase()
+    ) ?? null
+  );
+}
+
 export async function loadPublishedExperienceBySlug(
   supabase: SupabaseClient,
   slug: string
@@ -751,6 +798,11 @@ export async function loadPublishedExperienceBySlug(
     .select(`
       id,
       slug,
+      country_code,
+      country_slug,
+      city,
+      city_slug,
+      language_code,
       owner_id,
       title,
       summary,
@@ -842,6 +894,11 @@ export async function loadExperiencePreview(
     .select(`
       id,
       slug,
+      country_code,
+      country_slug,
+      city,
+      city_slug,
+      language_code,
       owner_id,
       title,
       summary,

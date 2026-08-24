@@ -4053,7 +4053,11 @@ export default function Home() {
 
   async function shareExperience() {
     const shareUrl =
-      `https://beyondthestops.com/tours/${selectedOption.slug}`;
+      selectedOption.countrySlug &&
+      selectedOption.citySlug &&
+      selectedOption.slug
+        ? `https://www.beyondthestops.com/${selectedOption.countrySlug}/${selectedOption.citySlug}/experiences/${selectedOption.slug}`
+        : `https://www.beyondthestops.com/tours/${selectedOption.slug}`;
 
     try {
       if (navigator.share) {

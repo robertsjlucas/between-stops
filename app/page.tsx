@@ -30,6 +30,14 @@ const CURRENT_CITY = "Edinburgh";
 function tourHref(
   option: PublicExperienceOption
 ) {
+  if (
+    option.countrySlug &&
+    option.citySlug &&
+    option.slug
+  ) {
+    return `/${option.countrySlug}/${option.citySlug}/experiences/${option.slug}`;
+  }
+
   return `/tours?tour=${option.experience.id}`;
 }
 

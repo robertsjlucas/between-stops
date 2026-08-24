@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://beyondthestops.com"),
+  metadataBase: new URL("https://www.beyondthestops.com"),
   title: {
     default: "Beyond the Stops",
     template: "%s · Beyond the Stops",
