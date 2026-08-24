@@ -1,6 +1,11 @@
 import {
   absolutePublicUrl,
+  breadcrumbStructuredData,
+  getAvailablePublicIntents,
+  getPublicIntentConfig,
+  publicCityPath,
   publicExperiencePath,
+  publicIntentPath,
 } from "@/lib/public-seo";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -84,7 +89,10 @@ export async function generateMetadata({
   const cityName =
     tours[0].city ?? city;
   const canonical =
-    `/${country}/${city}`;
+    publicCityPath(
+      country,
+      city
+    );
 
   return {
     title: `${cityName} Audio Guides for Bus & Tram Journeys`,
@@ -105,6 +113,13 @@ export async function generateMetadata({
       type: "website",
       url: canonical,
     },
+    twitter: {
+      card: "summary",
+      title:
+        `${cityName} Audio Guides for Bus & Tram Journeys`,
+      description:
+        `Discover ${cityName} through audio experiences made for journeys you are already taking.`,
+    },
   };
 }
 
@@ -123,8 +138,30 @@ export default async function CityPage({
 
   const cityName =
     tours[0].city ?? city;
+
+  const cityPath =
+    publicCityPath(
+      country,
+      city
+    );
+
   const canonicalUrl =
-    `https://www.beyondthestops.com/${country}/${city}`;
+    absolutePublicUrl(cityPath);
+
+  const availableIntents =
+    getAvailablePublicIntents(tours);
+
+  const breadcrumbData =
+    breadcrumbStructuredData([
+      {
+        name: "Beyond the Stops",
+        path: "/",
+      },
+      {
+        name: cityName,
+        path: cityPath,
+      },
+    ]);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -168,6 +205,16 @@ export default async function CityPage({
           __html:
             JSON.stringify(
               structuredData
+            ),
+        }}
+      />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html:
+            JSON.stringify(
+              breadcrumbData
             ),
         }}
       />
@@ -409,6 +456,48 @@ export default async function CityPage({
           </p>
         </div>
       </section>
+
+      {availableIntents.length > 0 && (
+        <section className="cityStatement">
+          <p className="cityKicker">
+            EXPLORE {cityName.toUpperCase()}
+          </p>
+
+          <div>
+            <h2>
+              Find the journey that
+              fits how you&apos;re
+              travelling.
+            </h2>
+
+            <p>
+              {availableIntents.map(
+                (intent, index) => {
+                  const config =
+                    getPublicIntentConfig(
+                      intent
+                    );
+
+                  return (
+                    <span key={intent}>
+                      {index > 0 && " · "}
+                      <Link
+                        href={publicIntentPath(
+                          country,
+                          city,
+                          intent
+                        )}
+                      >
+                        {config.label} audio guides
+                      </Link>
+                    </span>
+                  );
+                }
+              )}
+            </p>
+          </div>
+        </section>
+      )}
 
       <footer className="cityFooter">
         <Link

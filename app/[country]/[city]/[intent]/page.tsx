@@ -1,6 +1,8 @@
 import {
   absolutePublicUrl,
+  breadcrumbStructuredData,
   formatCitySlug,
+  getAvailablePublicIntents,
   getPublicIntentConfig,
   publicCityPath,
   publicExperiencePath,
@@ -87,6 +89,7 @@ async function loadIntentPage(
   return {
     config,
     cityName,
+    cityTours,
     matchingTours,
   };
 }
@@ -146,6 +149,16 @@ export async function generateMetadata({
       type: "website",
       url: canonical,
     },
+    twitter: {
+      card: "summary",
+      title: page.config.title(
+        page.cityName
+      ),
+      description:
+        page.config.description(
+          page.cityName
+        ),
+    },
   };
 }
 
@@ -165,14 +178,47 @@ export default async function IntentPage({
     notFound();
   }
 
+  const cityPath =
+    publicCityPath(
+      country,
+      city
+    );
+
+  const intentPath =
+    publicIntentPath(
+      country,
+      city,
+      intent
+    );
+
   const canonicalUrl =
     absolutePublicUrl(
-      publicIntentPath(
-        country,
-        city,
-        intent
-      )
+      intentPath
     );
+
+  const relatedIntents =
+    getAvailablePublicIntents(
+      page.cityTours
+    ).filter(
+      (availableIntent) =>
+        availableIntent !== intent
+    );
+
+  const breadcrumbData =
+    breadcrumbStructuredData([
+      {
+        name: "Beyond the Stops",
+        path: "/",
+      },
+      {
+        name: page.cityName,
+        path: cityPath,
+      },
+      {
+        name: page.config.label,
+        path: intentPath,
+      },
+    ]);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -214,6 +260,16 @@ export default async function IntentPage({
           __html:
             JSON.stringify(
               structuredData
+            ),
+        }}
+      />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html:
+            JSON.stringify(
+              breadcrumbData
             ),
         }}
       />
@@ -348,6 +404,39 @@ export default async function IntentPage({
             )}
           </div>
         </section>
+
+        {relatedIntents.length > 0 && (
+          <div
+            className="intentBreadcrumb"
+            aria-label={`More ${page.cityName} audio guides`}
+          >
+            <span>
+              More in {page.cityName}:
+            </span>
+
+            {relatedIntents.map(
+              (relatedIntent) => {
+                const config =
+                  getPublicIntentConfig(
+                    relatedIntent
+                  );
+
+                return (
+                  <Link
+                    href={publicIntentPath(
+                      country,
+                      city,
+                      relatedIntent
+                    )}
+                    key={relatedIntent}
+                  >
+                    {config.label}
+                  </Link>
+                );
+              }
+            )}
+          </div>
+        )}
 
         <section className="intentExplanation">
           <p className="intentKicker">

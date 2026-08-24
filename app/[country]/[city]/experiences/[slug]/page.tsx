@@ -4,6 +4,18 @@ import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 
 import {
+  absolutePublicUrl,
+  breadcrumbStructuredData,
+  experienceSeoDescription,
+  experienceSeoTitle,
+  getAvailablePublicIntents,
+  getPublicIntentConfig,
+  publicCityPath,
+  publicExperiencePath,
+  publicIntentPath,
+} from "@/lib/public-seo";
+
+import {
   loadPublishedExperienceByLocationSlug,
 } from "@/lib/public-experiences";
 import { createPublicServerClient } from "@/lib/supabase/public-server";
@@ -38,14 +50,6 @@ const getExperience = cache(
       slug
     )
 );
-
-function getCanonicalPath(
-  country: string,
-  city: string,
-  slug: string
-) {
-  return `/${country}/${city}/experiences/${slug}`;
-}
 
 function formatPrice(
   accessType: "free" | "paid" | "sponsored",
@@ -84,16 +88,21 @@ export async function generateMetadata({
   }
 
   const cityName = tour.city ?? city;
+  const title =
+    experienceSeoTitle(
+      tour,
+      cityName
+    );
   const description =
-    tour.summary || tour.fullDescription;
-  const canonical = getCanonicalPath(
-    country,
-    city,
-    slug
-  );
+    experienceSeoDescription(
+      tour,
+      cityName
+    );
+  const canonical =
+    publicExperiencePath(tour);
 
   return {
-    title: `${tour.experience.title} | ${cityName} Audio Guide`,
+    title,
     description,
     alternates: {
       canonical,
@@ -103,7 +112,7 @@ export async function generateMetadata({
       follow: true,
     },
     openGraph: {
-      title: `${tour.experience.title} | ${cityName} Audio Guide`,
+      title,
       description,
       type: "website",
       url: canonical,
@@ -114,6 +123,16 @@ export async function generateMetadata({
               alt: tour.experience.title,
             },
           ]
+        : undefined,
+    },
+    twitter: {
+      card: tour.coverImageUrl
+        ? "summary_large_image"
+        : "summary",
+      title,
+      description,
+      images: tour.coverImageUrl
+        ? [tour.coverImageUrl]
         : undefined,
     },
   };
@@ -154,15 +173,44 @@ export default async function ExperiencePage({
   }
 
   const cityName = tour.city ?? city;
-  const canonicalPath = getCanonicalPath(
-    country,
-    city,
-    slug
-  );
+
+  const cityPath =
+    publicCityPath(
+      country,
+      city
+    );
+
+  const canonicalPath =
+    publicExperiencePath(tour);
+
   const canonicalUrl =
-    `https://www.beyondthestops.com${canonicalPath}`;
+    absolutePublicUrl(
+      canonicalPath
+    );
+
   const passengerHref =
     `/tours?tour=${tour.experience.id}`;
+
+  const relatedIntents =
+    getAvailablePublicIntents([
+      tour,
+    ]);
+
+  const breadcrumbData =
+    breadcrumbStructuredData([
+      {
+        name: "Beyond the Stops",
+        path: "/",
+      },
+      {
+        name: cityName,
+        path: cityPath,
+      },
+      {
+        name: tour.experience.title,
+        path: canonicalPath,
+      },
+    ]);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -211,6 +259,16 @@ export default async function ExperiencePage({
         }}
       />
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html:
+            JSON.stringify(
+              breadcrumbData
+            ),
+        }}
+      />
+
       <header className="seoExperienceHeader">
         <Link
           className="seoExperienceBrand"
@@ -233,11 +291,17 @@ export default async function ExperiencePage({
 
       <article>
         <div className="seoExperienceBreadcrumb">
-          <span>{country.toUpperCase()}</span>
+          <Link href="/">
+            Beyond the Stops
+          </Link>
           <span aria-hidden="true">/</span>
-          <span>{cityName}</span>
+          <Link href={cityPath}>
+            {cityName}
+          </Link>
           <span aria-hidden="true">/</span>
-          <span>Experience</span>
+          <span>
+            {tour.experience.title}
+          </span>
         </div>
 
         {tour.coverImageUrl && (
@@ -332,6 +396,45 @@ export default async function ExperiencePage({
                     {story.title}
                   </li>
                 )
+              )}
+            </ul>
+          </section>
+        )}
+
+        {relatedIntents.length > 0 && (
+          <section className="seoExperienceSection">
+            <p className="seoExperienceKicker">
+              EXPLORE MORE
+            </p>
+
+            <h2>
+              More ways to discover {cityName}
+            </h2>
+
+            <ul className="seoStoryList">
+              {relatedIntents.map(
+                (intent) => {
+                  const config =
+                    getPublicIntentConfig(
+                      intent
+                    );
+
+                  return (
+                    <li key={intent}>
+                      <Link
+                        href={publicIntentPath(
+                          country,
+                          city,
+                          intent
+                        )}
+                      >
+                        {config.title(
+                          cityName
+                        )}
+                      </Link>
+                    </li>
+                  );
+                }
               )}
             </ul>
           </section>

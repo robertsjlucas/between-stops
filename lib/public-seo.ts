@@ -171,6 +171,59 @@ export function getAvailablePublicIntents(
   );
 }
 
+export function truncateSeoText(
+  value: string,
+  maxLength: number
+) {
+  const clean = value
+    .replace(/\\s+/g, " ")
+    .trim();
+
+  if (clean.length <= maxLength) {
+    return clean;
+  }
+
+  const shortened =
+    clean.slice(0, maxLength - 1);
+
+  const lastSpace =
+    shortened.lastIndexOf(" ");
+
+  return `${
+    lastSpace > 0
+      ? shortened.slice(0, lastSpace)
+      : shortened
+  }…`;
+}
+
+export function experienceSeoTitle(
+  option: PublicExperienceOption,
+  cityName: string
+) {
+  return truncateSeoText(
+    `${option.experience.title} | ${cityName} ${option.transportLabel} Audio Guide`,
+    60
+  );
+}
+
+export function experienceSeoDescription(
+  option: PublicExperienceOption,
+  cityName: string
+) {
+  const route =
+    `${option.transportLabel} audio guide from ${option.experience.startLabel} to ${option.experience.endLabel} in ${cityName}.`;
+
+  const summary =
+    option.summary?.trim();
+
+  return truncateSeoText(
+    summary
+      ? `${route} ${summary}`
+      : route,
+    160
+  );
+}
+
 export function breadcrumbStructuredData(
   items: Array<{
     name: string;
