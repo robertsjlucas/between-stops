@@ -1,3 +1,7 @@
+import {
+  absolutePublicUrl,
+  publicExperiencePath,
+} from "@/lib/public-seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -38,20 +42,6 @@ const getCityExperiences = cache(
     );
   }
 );
-
-function experienceHref(
-  option: PublicExperienceOption
-) {
-  if (
-    option.countrySlug &&
-    option.citySlug &&
-    option.slug
-  ) {
-    return `/${option.countrySlug}/${option.citySlug}/experiences/${option.slug}`;
-  }
-
-  return `/tours?tour=${option.experience.id}`;
-}
 
 function formatPrice(
   option: PublicExperienceOption
@@ -158,7 +148,7 @@ export default async function CityPage({
             position: index + 1,
             name: tour.experience.title,
             url:
-              `https://www.beyondthestops.com${experienceHref(tour)}`,
+              absolutePublicUrl(publicExperiencePath(tour)),
           })
         ),
     },
@@ -309,7 +299,7 @@ export default async function CityPage({
             (tour, index) => (
               <Link
                 className="cityJourney"
-                href={experienceHref(
+                href={publicExperiencePath(
                   tour
                 )}
                 key={

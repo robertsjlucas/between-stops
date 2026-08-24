@@ -1,3 +1,10 @@
+import {
+  PUBLIC_SITE_URL,
+  getAvailablePublicIntents,
+  publicCityPath,
+  publicExperiencePath,
+  publicIntentPath,
+} from "@/lib/public-seo";
 import type { MetadataRoute } from "next";
 import { loadPublishedExperiences } from "@/lib/public-experiences";
 import { createPublicServerClient } from "@/lib/supabase/public-server";
@@ -5,7 +12,7 @@ import { createPublicServerClient } from "@/lib/supabase/public-server";
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.beyondthestops.com";
+  const baseUrl = PUBLIC_SITE_URL;
   const entries: MetadataRoute.Sitemap = [
     { url: baseUrl, changeFrequency: "weekly", priority: 1 },
     { url: `${baseUrl}/tours`, changeFrequency: "daily", priority: 0.9 },
@@ -22,7 +29,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         )
         .map(
           (tour) =>
-            `/${tour.countrySlug}/${tour.citySlug}`
+            publicCityPath(
+              tour.countrySlug!,
+              tour.citySlug!
+            )
         )
     );
 
@@ -36,37 +46,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         continue;
       }
 
-      const cityBase =
-        `/${tour.countrySlug}/${tour.citySlug}`;
-
-      if (tour.route.mode === "tram") {
-        intentPaths.add(
-          `${cityBase}/tram`
-        );
-      }
-
-      if (tour.accessType === "free") {
-        intentPaths.add(
-          `${cityBase}/free`
-        );
-      }
-
-      const airportText = [
-        tour.experience.title,
-        tour.summary,
-        tour.fullDescription,
-        tour.experience.startLabel,
-        tour.experience.endLabel,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      if (
-        airportText.includes("airport")
+      for (
+        const intent of
+        getAvailablePublicIntents([tour])
       ) {
         intentPaths.add(
-          `${cityBase}/airport`
+          publicIntentPath(
+            tour.countrySlug,
+            tour.citySlug,
+            intent
+          )
         );
       }
     }
@@ -95,7 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         )
         .map((tour) => ({
           url:
-            `${baseUrl}/${tour.countrySlug}/${tour.citySlug}/experiences/${tour.slug}`,
+            `${baseUrl}${publicExperiencePath(tour)}`,
           changeFrequency: "weekly" as const,
           priority: 0.8,
         }))

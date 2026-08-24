@@ -1,3 +1,11 @@
+import {
+  absolutePublicUrl,
+  formatCitySlug,
+  getPublicIntentConfig,
+  publicCityPath,
+  publicExperiencePath,
+  publicIntentPath,
+} from "@/lib/public-seo";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -19,86 +27,6 @@ type IntentPageProps = {
     intent: string;
   }>;
 };
-
-type IntentConfig = {
-  label: string;
-  kicker: string;
-  heading: (city: string) => string;
-  intro: (city: string) => string;
-  title: (city: string) => string;
-  description: (city: string) => string;
-  matches: (option: PublicExperienceOption) => boolean;
-};
-
-function includesAirport(option: PublicExperienceOption) {
-  const values = [
-    option.experience.title,
-    option.summary,
-    option.fullDescription,
-    option.experience.startLabel,
-    option.experience.endLabel,
-  ];
-
-  return values.some((value) =>
-    value?.toLowerCase().includes("airport")
-  );
-}
-
-const intentConfigs: Record<string, IntentConfig> = {
-  tram: {
-    label: "Tram",
-    kicker: "EDINBURGH BY TRAM",
-    heading: (city) =>
-      `Audio experiences for tram journeys through ${city}.`,
-    intro: (city) =>
-      `Discover what is outside the window while you travel by tram through ${city}. These location-aware audio experiences follow the journey and play stories as the places they belong to come into view.`,
-    title: (city) =>
-      `${city} Tram Audio Guides`,
-    description: (city) =>
-      `Location-aware audio guides for tram journeys through ${city}. Listen to stories and discover places as you travel.`,
-    matches: (option) =>
-      option.route.mode === "tram",
-  },
-  free: {
-    label: "Free",
-    kicker: "FREE TO LISTEN",
-    heading: (city) =>
-      `Free audio experiences for journeys through ${city}.`,
-    intro: (city) =>
-      `Explore ${city} from the public transport journey you are already making. These experiences are free to open and use, with stories triggered along the route as you travel.`,
-    title: (city) =>
-      `Free ${city} Audio Guides`,
-    description: (city) =>
-      `Free location-aware audio guides for public transport journeys through ${city}. Discover stories and places while you travel.`,
-    matches: (option) =>
-      option.accessType === "free",
-  },
-  airport: {
-    label: "Airport",
-    kicker: "START AT THE AIRPORT",
-    heading: (city) =>
-      `Make the journey from the airport part of your visit to ${city}.`,
-    intro: (city) =>
-      `Your introduction to ${city} can start before you reach the centre. These audio experiences follow public transport journeys connected with the airport, turning the transfer into part of the trip.`,
-    title: (city) =>
-      `${city} Airport Audio Guide`,
-    description: (city) =>
-      `Audio experiences for public transport journeys between the airport and ${city}. Start discovering the city while you travel.`,
-    matches: includesAirport,
-  },
-};
-
-function experienceHref(option: PublicExperienceOption) {
-  if (
-    option.countrySlug &&
-    option.citySlug &&
-    option.slug
-  ) {
-    return `/${option.countrySlug}/${option.citySlug}/experiences/${option.slug}`;
-  }
-
-  return `/tours?tour=${option.experience.id}`;
-}
 
 function formatPrice(option: PublicExperienceOption) {
   if (option.accessType === "free") {
@@ -122,7 +50,7 @@ async function loadIntentPage(
   city: string,
   intent: string
 ) {
-  const config = intentConfigs[intent];
+  const config = getPublicIntentConfig(intent);
 
   if (!config) {
     return null;
@@ -154,14 +82,7 @@ async function loadIntentPage(
 
   const cityName =
     cityTours[0]?.city ??
-    city
-      .split("-")
-      .map(
-        (part) =>
-          part.charAt(0).toUpperCase() +
-          part.slice(1)
-      )
-      .join(" ");
+    formatCitySlug(city);
 
   return {
     config,
@@ -193,7 +114,11 @@ export async function generateMetadata({
   }
 
   const canonical =
-    `/${country}/${city}/${intent}`;
+    publicIntentPath(
+      country,
+      city,
+      intent
+    );
 
   return {
     title: page.config.title(
@@ -241,7 +166,13 @@ export default async function IntentPage({
   }
 
   const canonicalUrl =
-    `https://www.beyondthestops.com/${country}/${city}/${intent}`;
+    absolutePublicUrl(
+      publicIntentPath(
+        country,
+        city,
+        intent
+      )
+    );
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -269,7 +200,7 @@ export default async function IntentPage({
             position: index + 1,
             name: tour.experience.title,
             url:
-              `https://www.beyondthestops.com${experienceHref(tour)}`,
+              absolutePublicUrl(publicExperiencePath(tour)),
           })
         ),
     },
@@ -302,7 +233,7 @@ export default async function IntentPage({
 
         <nav aria-label="Page navigation">
           <Link
-            href={`/${country}/${city}`}
+            href={publicCityPath(country, city)}
           >
             {page.cityName}
           </Link>
@@ -314,7 +245,7 @@ export default async function IntentPage({
 
       <article className="intentContent">
         <div className="intentBreadcrumb">
-          <Link href={`/${country}/${city}`}>
+          <Link href={publicCityPath(country, city)}>
             {page.cityName}
           </Link>
           <span aria-hidden="true">/</span>
@@ -325,7 +256,7 @@ export default async function IntentPage({
 
         <section className="intentHero">
           <p className="intentKicker">
-            {page.config.kicker}
+            {page.config.kicker(page.cityName)}
           </p>
 
           <h1>
@@ -357,7 +288,7 @@ export default async function IntentPage({
                 <Link
                   className="intentJourney"
                   href={
-                    experienceHref(tour)
+                    publicExperiencePath(tour)
                   }
                   key={
                     tour.experience.id
