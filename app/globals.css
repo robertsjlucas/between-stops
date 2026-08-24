@@ -3503,3 +3503,306 @@ img[src*="between-stops-logo-dark.png"] {
     margin-right: 5px;
   }
 }
+
+
+/* === BEYOND THE STOPS: DISCOVERY P2 POLISH === */
+
+/*
+  Passenger discovery and experience overview.
+  Visual treatment only.
+*/
+
+
+/* --------------------------------------------------
+   DISCOVERY CARDS
+   -------------------------------------------------- */
+
+.experienceCard {
+  overflow: hidden;
+  border: 1px solid rgba(55, 55, 55, 0.055);
+  border-radius: 22px 78px 22px 22px;
+  box-shadow:
+    0 18px 46px rgba(29, 61, 117, 0.075),
+    0 3px 10px rgba(55, 55, 55, 0.035);
+}
+
+.experienceImage {
+  min-height: 250px;
+}
+
+/*
+  The image itself carries the window geometry,
+  rather than relying on generic card decoration.
+*/
+
+.experienceCoverImage {
+  transition: transform 300ms ease;
+}
+
+.experienceCard:hover .experienceCoverImage {
+  transform: scale(1.015);
+}
+
+.imageBadge {
+  top: 16px;
+  left: 16px;
+  padding: 7px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.88);
+  color: #373737;
+  box-shadow: 0 4px 14px rgba(55, 55, 55, 0.08);
+}
+
+.priceBadge {
+  right: 16px;
+  bottom: 16px;
+  min-height: 34px;
+  padding: 8px 13px;
+  background: rgba(29, 61, 117, 0.94);
+  box-shadow: 0 5px 16px rgba(29, 61, 117, 0.18);
+  font-size: 12px;
+}
+
+.favouriteButton {
+  top: 15px;
+  right: 15px;
+  width: 39px;
+  height: 39px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 5px 16px rgba(55, 55, 55, 0.10);
+  font-size: 20px;
+}
+
+.favouriteButton.active {
+  background: #1D3D75;
+}
+
+/*
+  If price and favourite coexist, the different
+  corners stop the card feeling badge-heavy.
+*/
+
+.cardCreator {
+  color: #6b7078;
+}
+
+.metaRow {
+  gap: 8px 12px;
+  color: #62666d;
+}
+
+.cardFooter {
+  border-top-color: #eef0f3;
+}
+
+.cardFooter strong {
+  background: #1D3D75;
+}
+
+
+/* --------------------------------------------------
+   DISCOVERY SUPPORTING UI
+   -------------------------------------------------- */
+
+.nearbyPrompt {
+  border-color: rgba(38, 87, 175, 0.10);
+  border-radius: 18px 54px 18px 18px;
+  background: rgba(124, 173, 237, 0.075);
+}
+
+.nearbyPrompt button {
+  background: #1D3D75;
+}
+
+.completedJourneysToggle {
+  border-color: #e8eaed;
+  border-radius: 17px 46px 17px 17px;
+  background: #fafbfc;
+}
+
+
+/* --------------------------------------------------
+   EXPERIENCE OVERVIEW HERO
+   -------------------------------------------------- */
+
+/*
+  Correct the earlier selector grouping:
+  headings and copy should not be flex containers.
+*/
+
+.overviewHero > p,
+.overviewHero > h1 {
+  display: block;
+}
+
+.overviewShareAction {
+  display: flex;
+  margin: 14px 22px 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.overviewHero > h1 {
+  margin: 10px 22px 0;
+  max-width: 445px;
+  color: #373737;
+  font-size: clamp(42px, 11vw, 60px);
+  line-height: 0.94;
+  letter-spacing: -0.06em;
+}
+
+.overviewHero > p {
+  margin-right: 22px;
+  margin-left: 22px;
+}
+
+.overviewArt {
+  min-height: 270px;
+  margin-bottom: 28px;
+  border-radius: 0 0 28px 88px;
+  box-shadow: 0 16px 40px rgba(29, 61, 117, 0.08);
+}
+
+.overviewShareAction button {
+  min-height: 39px;
+  padding: 9px 14px;
+  border-color: rgba(38, 87, 175, 0.16);
+  background: rgba(124, 173, 237, 0.07);
+  color: #1D3D75;
+}
+
+.overviewShareAction span {
+  color: #6c7178;
+}
+
+
+/* --------------------------------------------------
+   OVERVIEW INFORMATION
+   -------------------------------------------------- */
+
+.overviewMeta {
+  gap: 7px;
+  margin-top: 22px;
+}
+
+.overviewMeta span {
+  padding: 7px 10px;
+  border: 1px solid #eceef1;
+  background: #fafbfc;
+  color: #5e6268;
+  font-size: 11px;
+}
+
+.overviewMeta .ratingMeta {
+  border-color: rgba(255, 139, 37, 0.18);
+  background: rgba(255, 139, 37, 0.08);
+  color: #80501e;
+}
+
+.overviewMeta .completedMeta {
+  border-color: rgba(38, 87, 175, 0.14);
+  background: rgba(124, 173, 237, 0.10);
+  color: #1D3D75;
+  font-weight: 800;
+}
+
+.overviewCreator {
+  border: 1px solid rgba(38, 87, 175, 0.08);
+  border-radius: 18px 52px 18px 18px;
+  background: rgba(124, 173, 237, 0.06);
+}
+
+.tourGallery {
+  gap: 9px;
+}
+
+.tourGallery img {
+  border-radius: 15px 38px 15px 15px;
+}
+
+
+/* --------------------------------------------------
+   REVIEWS / JOURNEY OUTLINE
+   -------------------------------------------------- */
+
+.publicReviewsSection {
+  border-color: #e9ebee;
+  border-radius: 22px 62px 22px 22px;
+  box-shadow: 0 10px 28px rgba(29, 61, 117, 0.045);
+}
+
+.journeyOutline {
+  padding-top: 34px;
+}
+
+.timeline::before {
+  background: #dfe6ef;
+}
+
+.timelineDot {
+  border-color: #1D3D75;
+}
+
+.timelineDot.small {
+  border-color: #7CADED;
+}
+
+
+/* --------------------------------------------------
+   PRIMARY START ACTION
+   -------------------------------------------------- */
+
+.stickyAction {
+  padding-top: 24px;
+  background:
+    linear-gradient(
+      to top,
+      #ffffff 70%,
+      rgba(255, 255, 255, 0)
+    );
+}
+
+.stickyAction .primaryButton {
+  min-height: 54px;
+  background: #1D3D75;
+  box-shadow: 0 8px 24px rgba(29, 61, 117, 0.20);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.stickyAction p {
+  color: #71757b;
+}
+
+
+/* --------------------------------------------------
+   MOBILE
+   -------------------------------------------------- */
+
+@media (max-width: 520px) {
+  .experienceCard {
+    border-radius: 20px 64px 20px 20px;
+  }
+
+  .experienceImage {
+    min-height: 235px;
+  }
+
+  .overviewArt {
+    min-height: 245px;
+    border-radius: 0 0 24px 70px;
+  }
+
+  .overviewHero > h1 {
+    font-size: clamp(40px, 12.5vw, 56px);
+  }
+
+  .overviewCreator {
+    border-radius: 17px 44px 17px 17px;
+  }
+
+  .publicReviewsSection {
+    border-radius: 20px 52px 20px 20px;
+  }
+}
