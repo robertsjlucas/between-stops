@@ -2570,7 +2570,22 @@ export default function Home() {
       return;
     }
 
-    setDirectionMode("automatic");
+    const allowedDirection =
+      selectedOption.journeyDirectionAvailability ??
+      "either";
+
+    if (allowedDirection === "forward") {
+      setDirection("forward");
+      setDirectionMode("manual");
+    } else if (
+      allowedDirection === "reverse"
+    ) {
+      setDirection("reverse");
+      setDirectionMode("manual");
+    } else {
+      setDirectionMode("automatic");
+    }
+
     setDirectionDetecting(false);
     detectionStartProgress.current = null;
     setLocationCheckStatus(
@@ -2988,7 +3003,11 @@ export default function Home() {
     completionOccurredThisSessionRef.current = false;
     setPageHidden(false);
     setDirectionDetecting(
-      directionMode === "automatic"
+      directionMode === "automatic" &&
+      (
+        selectedOption.journeyDirectionAvailability ??
+        "either"
+      ) === "either"
     );
 
     setActiveJourneyExperienceId(
@@ -4154,20 +4173,55 @@ export default function Home() {
               <div>
                 <strong>Journey direction</strong>
                 <span>
-                  Automatic
+                  {(selectedOption.journeyDirectionAvailability ??
+                    "either") === "either"
+                    ? "Automatic"
+                    : "Fixed"}
                 </span>
               </div>
-              <span className="automaticDirectionStatus" aria-hidden="true">
-                ↔
+              <span
+                className="automaticDirectionStatus"
+                aria-hidden="true"
+              >
+                {(selectedOption.journeyDirectionAvailability ??
+                  "either") === "either"
+                  ? "↔"
+                  : "→"}
               </span>
             </div>
             <p className="automaticDirectionRoute">
-              <span>{experience.startLabel}</span>
-              <strong aria-label="both directions">⇄</strong>
-              <span>{experience.endLabel}</span>
+              {(selectedOption.journeyDirectionAvailability ??
+                "either") === "reverse" ? (
+                <>
+                  <span>{experience.endLabel}</span>
+                  <strong aria-label="one direction">→</strong>
+                  <span>{experience.startLabel}</span>
+                </>
+              ) : (
+                <>
+                  <span>{experience.startLabel}</span>
+                  <strong
+                    aria-label={
+                      (selectedOption.journeyDirectionAvailability ??
+                        "either") === "either"
+                        ? "both directions"
+                        : "one direction"
+                    }
+                  >
+                    {(selectedOption.journeyDirectionAvailability ??
+                      "either") === "either"
+                      ? "⇄"
+                      : "→"}
+                  </strong>
+                  <span>{experience.endLabel}</span>
+                </>
+              )}
             </p>
             <p className="automaticDirectionNote">
-              We&apos;ll detect which way you&apos;re travelling when the journey starts.
+              {(selectedOption.journeyDirectionAvailability ??
+                "either") === "either"
+                ? "We'll detect which way you're travelling when the journey starts."
+                : "This experience runs in this direction only."}
             </p>
           </div>
 

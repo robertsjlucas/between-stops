@@ -57,6 +57,10 @@ export type PublicExperienceOption = {
   startCoordinates: Coordinates;
   startStopId?: string;
   endStopId?: string;
+  journeyDirectionAvailability?:
+    | "either"
+    | "forward"
+    | "reverse";
   downloadSizeBytes?: number;
   averageRating?: number;
   reviewCount?: number;
@@ -85,6 +89,10 @@ type DatabaseExperience = {
   summary: string;
   description: string;
   route_id: string;
+  journey_direction_availability:
+    | "either"
+    | "forward"
+    | "reverse";
   start_stop_id: string;
   end_stop_id: string;
   cover_image_path: string | null;
@@ -268,6 +276,7 @@ export async function loadPublishedExperiences(
         summary,
         description,
         route_id,
+        journey_direction_availability,
         start_stop_id,
         end_stop_id,
         cover_image_path,
@@ -702,6 +711,9 @@ async function hydrateExperienceRows(
         startCoordinates,
         startStopId: selectedStart?.id,
         endStopId: selectedEnd?.id,
+        journeyDirectionAvailability:
+          row.journey_direction_availability ??
+          "either",
         downloadSizeBytes:
           (row.cover_image_size_bytes ?? 0) +
           (row.experience_gallery_images ?? []).reduce(
@@ -737,6 +749,7 @@ export async function loadPublishedExperienceBySlug(
       summary,
       description,
       route_id,
+      journey_direction_availability,
       start_stop_id,
       end_stop_id,
       cover_image_path,
@@ -827,6 +840,7 @@ export async function loadExperiencePreview(
       summary,
       description,
       route_id,
+      journey_direction_availability,
       start_stop_id,
       end_stop_id,
       cover_image_path,
