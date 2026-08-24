@@ -1947,3 +1947,313 @@
 .projectsIntro + .payoutPanel {
   margin-top: 24px;
 }
+
+
+/* === BEYOND THE STOPS: CREATOR P2 POLISH === */
+
+/*
+  Creator Studio visual refinement only.
+  No workflow or layout architecture changes.
+*/
+
+
+/* --------------------------------------------------
+   HEADER / NAVIGATION
+   -------------------------------------------------- */
+
+.creatorBrandHeader {
+  border-bottom-color: #292929;
+}
+
+.headerTextButton {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 700;
+}
+
+.headerTextButton:hover {
+  border-color: rgba(124, 173, 237, 0.38);
+  background: rgba(124, 173, 237, 0.10);
+}
+
+.creatorHeaderIdentity {
+  border: 1px solid rgba(124, 173, 237, 0.16);
+  background: rgba(124, 173, 237, 0.08);
+  color: #dce9f9;
+}
+
+
+/* --------------------------------------------------
+   PROJECTS LANDING
+   -------------------------------------------------- */
+
+.projectsPage {
+  background:
+    linear-gradient(
+      180deg,
+      #ffffff 0,
+      #ffffff 260px,
+      #f8f9fb 620px
+    );
+}
+
+.projectsIntro h1 {
+  max-width: 700px;
+  font-size: clamp(48px, 6vw, 64px);
+}
+
+.newProjectButton,
+.creatorContinueButton,
+.addStoryButton,
+.reviewButton,
+.saveDraftButton {
+  background: #1D3D75;
+  box-shadow: 0 7px 20px rgba(29, 61, 117, 0.13);
+}
+
+.projectStatusFilters button.active {
+  border-color: #1D3D75;
+  background: #1D3D75;
+}
+
+.projectStatusFilters button.active span {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+
+/* --------------------------------------------------
+   PROJECT CARDS
+   -------------------------------------------------- */
+
+.projectCard {
+  overflow: hidden;
+  border: 1px solid rgba(55, 55, 55, 0.055);
+  border-radius: 20px 62px 20px 20px;
+  box-shadow:
+    0 15px 38px rgba(29, 61, 117, 0.055),
+    0 2px 8px rgba(55, 55, 55, 0.025);
+}
+
+.projectCardCover {
+  height: 185px;
+  border-radius: 0 62px 0 0;
+}
+
+.projectCardPlaceholder {
+  height: 185px;
+  border-radius: 0 62px 0 0;
+  background:
+    linear-gradient(
+      140deg,
+      #1D3D75 0%,
+      #2657AF 58%,
+      #7CADED 100%
+    );
+}
+
+.projectCard h2 {
+  margin-top: 23px;
+  color: #373737;
+  font-size: 27px;
+  line-height: 1.03;
+}
+
+.projectRouteMeta {
+  color: #686d74;
+}
+
+.projectCardActions {
+  padding-top: 18px;
+  border-top: 1px solid #eef0f3;
+}
+
+.projectCardActions .projectOpen,
+.projectCardActions .projectRestore {
+  border-color: #1D3D75;
+  background: #1D3D75;
+}
+
+.projectCardActions .projectPause,
+.projectCardActions .projectEdit {
+  border-color: rgba(38, 87, 175, 0.15);
+  background: rgba(124, 173, 237, 0.08);
+  color: #1D3D75;
+}
+
+/*
+  Keep destructive action visually separate from
+  ordinary secondary actions.
+*/
+
+.projectCardActions .projectDelete {
+  border-color: #e3bdb5;
+  background: #fff1ed;
+  color: #84392c;
+}
+
+
+/* --------------------------------------------------
+   PAYOUT PANEL
+   -------------------------------------------------- */
+
+.payoutPanel {
+  border-color: rgba(38, 87, 175, 0.10);
+  border-radius: 20px 64px 20px 20px;
+  background: rgba(124, 173, 237, 0.055);
+}
+
+.payoutReadyBadge {
+  background: rgba(124, 173, 237, 0.13);
+  color: #1D3D75;
+}
+
+
+/* --------------------------------------------------
+   STUDIO WORKSPACE
+   -------------------------------------------------- */
+
+.studioWorkspace {
+  background: #f8f9fb;
+}
+
+.studioSidebar {
+  border-right-color: #e5e8ec;
+  background: #ffffff;
+}
+
+.experienceHeader {
+  border-bottom-color: #e7e9ec;
+  background: rgba(255, 255, 255, 0.97);
+}
+
+.draftStatus {
+  border: 1px solid #e7e9ec;
+  background: #fafbfc;
+}
+
+.studioMapPanel {
+  background: #e8edf3;
+}
+
+.studioMapTopbar {
+  border-bottom: 1px solid #e6e9ed;
+  background: #ffffff;
+}
+
+.studioMapTopbar > span {
+  background: rgba(124, 173, 237, 0.11);
+  color: #1D3D75;
+}
+
+.mapFootnote {
+  border-top: 1px solid #e6e9ed;
+  background: #ffffff;
+}
+
+.routeLegend i {
+  background: #2657AF;
+}
+
+
+/* --------------------------------------------------
+   FIELDS / STORY EDITING
+   -------------------------------------------------- */
+
+.creatorField select,
+.sectionSelector select,
+.storyField select,
+.storyField input,
+.storyField textarea,
+.nameExperiencePanel input {
+  border-color: #dfe3e8;
+  background: #ffffff;
+}
+
+.creatorField select:focus,
+.sectionSelector select:focus,
+.storyField select:focus,
+.storyField input:focus,
+.storyField textarea:focus,
+.nameExperiencePanel input:focus {
+  outline: 2px solid rgba(124, 173, 237, 0.32);
+  outline-offset: 1px;
+  border-color: #7CADED;
+}
+
+.creatorSectionChoice button {
+  border-color: #e1e4e8;
+  background: #ffffff;
+}
+
+.creatorSectionChoice button.active {
+  border-color: #1D3D75;
+  background: #1D3D75;
+}
+
+.routeDistanceSummary {
+  border-color: rgba(38, 87, 175, 0.09);
+  border-radius: 16px 44px 16px 16px;
+  background: rgba(124, 173, 237, 0.055);
+}
+
+
+/* --------------------------------------------------
+   SINGLE-PAGE CREATOR FORMS
+   -------------------------------------------------- */
+
+.nameExperiencePanel {
+  border: 1px solid rgba(38, 87, 175, 0.06);
+  border-radius: 24px 74px 24px 24px;
+  box-shadow:
+    0 20px 58px rgba(29, 61, 117, 0.07);
+}
+
+.marketplaceFormCard {
+  border-color: rgba(38, 87, 175, 0.07);
+  border-radius: 22px 68px 22px 22px;
+  box-shadow:
+    0 18px 50px rgba(29, 61, 117, 0.055);
+}
+
+.voicePromptCard {
+  border-color: rgba(38, 87, 175, 0.08);
+  background: #fafbfd;
+}
+
+
+/* --------------------------------------------------
+   SECONDARY BUTTONS
+   -------------------------------------------------- */
+
+.creatorBackButton {
+  border-color: rgba(38, 87, 175, 0.18);
+  background: rgba(124, 173, 237, 0.055);
+  color: #1D3D75;
+}
+
+
+/* --------------------------------------------------
+   MOBILE
+   -------------------------------------------------- */
+
+@media (max-width: 760px) {
+  .projectsPage {
+    padding-right: 18px;
+    padding-left: 18px;
+  }
+
+  .projectCard {
+    border-radius: 19px 54px 19px 19px;
+  }
+
+  .projectCardCover,
+  .projectCardPlaceholder {
+    border-radius: 0 54px 0 0;
+  }
+
+  .nameExperiencePanel,
+  .marketplaceFormCard {
+    border-radius: 20px 56px 20px 20px;
+  }
+}
