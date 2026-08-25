@@ -397,6 +397,14 @@ export default function CreatorPage() {
   ] = useState<string | null>(null);
 
   const [
+    handoverDraft,
+    setHandoverDraft,
+  ] =
+    useState<CreatorExperienceHandover | null>(
+      null
+    );
+
+  const [
     sectionMode,
     setSectionMode,
   ] =
@@ -2005,6 +2013,7 @@ export default function CreatorPage() {
     setLegs([]);
     setHandovers([]);
     setActiveLegId(null);
+    setHandoverDraft(null);
 
     setSectionMode(
       "whole"
@@ -2128,6 +2137,8 @@ export default function CreatorPage() {
     setHandovers(
       project.handovers ?? []
     );
+
+    setHandoverDraft(null);
 
     setActiveLegId(
       firstLeg?.id ?? null
@@ -2641,6 +2652,46 @@ export default function CreatorPage() {
       missing.push(
         "at least two journey legs"
       );
+    }
+
+    if (
+      journeyStructure ===
+        "multi_leg" &&
+      legs.length >= 2
+    ) {
+      const missingHandovers =
+        getRequiredHandoverPairs()
+          .some(
+            ({
+              fromLeg,
+              toLeg,
+            }) => {
+              const handover =
+                handovers.find(
+                  (item) =>
+                    item.fromLegId ===
+                      fromLeg.id &&
+                    item.toLegId ===
+                      toLeg.id
+                );
+
+              return (
+                !handover ||
+                !handover.instructions.trim() ||
+                (
+                  handover.handoverType ===
+                    "explore" &&
+                  !handover.explorationText.trim()
+                )
+              );
+            }
+          );
+
+      if (missingHandovers) {
+        missing.push(
+          "handover instructions between every journey leg"
+        );
+      }
     }
 
     if (stories.length === 0) {
@@ -3334,6 +3385,18 @@ export default function CreatorPage() {
     );
 
     if (
+      handoverDraft &&
+      (
+        handoverDraft.fromLegId ===
+          legId ||
+        handoverDraft.toLegId ===
+          legId
+      )
+    ) {
+      setHandoverDraft(null);
+    }
+
+    if (
       activeLegId === legId
     ) {
       const nextLeg =
@@ -3346,6 +3409,135 @@ export default function CreatorPage() {
       } else {
         setActiveLegId(null);
       }
+    }
+  }
+
+  function getRequiredHandoverPairs() {
+    const ordered =
+      legs
+        .slice()
+        .sort(
+          (first, second) =>
+            first.position -
+            second.position
+        );
+
+    if (ordered.length < 2) {
+      return [];
+    }
+
+    const pairs =
+      ordered
+        .slice(0, -1)
+        .map(
+          (fromLeg, index) => ({
+            fromLeg,
+            toLeg:
+              ordered[index + 1],
+          })
+        );
+
+    if (isLoop) {
+      pairs.push({
+        fromLeg:
+          ordered[
+            ordered.length - 1
+          ],
+        toLeg:
+          ordered[0],
+      });
+    }
+
+    return pairs;
+  }
+
+  function openHandoverEditor(
+    fromLeg: CreatorExperienceLeg,
+    toLeg: CreatorExperienceLeg
+  ) {
+    const existing =
+      handovers.find(
+        (handover) =>
+          handover.fromLegId ===
+            fromLeg.id &&
+          handover.toLegId ===
+            toLeg.id
+      );
+
+    setHandoverDraft(
+      existing ?? {
+        id: crypto.randomUUID(),
+        fromLegId: fromLeg.id,
+        toLegId: toLeg.id,
+        handoverType: "transfer",
+        title: "",
+        instructions: "",
+        explorationText: "",
+        walkMinutes: undefined,
+        stopReference: "",
+        towardsLabel: "",
+      }
+    );
+  }
+
+  function saveHandoverDraft() {
+    if (!handoverDraft) {
+      return;
+    }
+
+    setHandovers(
+      (current) => {
+        const exists =
+          current.some(
+            (handover) =>
+              handover.id ===
+              handoverDraft.id
+          );
+
+        return exists
+          ? current.map(
+              (handover) =>
+                handover.id ===
+                handoverDraft.id
+                  ? handoverDraft
+                  : handover
+            )
+          : [
+              ...current,
+              handoverDraft,
+            ];
+      }
+    );
+
+    setHandoverDraft(null);
+  }
+
+  function removeHandover(
+    handoverId: string
+  ) {
+    const confirmed =
+      window.confirm(
+        "Remove these handover instructions?"
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setHandovers(
+      (current) =>
+        current.filter(
+          (handover) =>
+            handover.id !==
+            handoverId
+        )
+    );
+
+    if (
+      handoverDraft?.id ===
+      handoverId
+    ) {
+      setHandoverDraft(null);
     }
   }
 
@@ -3389,11 +3581,13 @@ export default function CreatorPage() {
       firstLeg
     );
 
-    setExperienceName(
-      (current) =>
-        current ||
-        `${firstSummary.startLabel} to ${lastSummary.endLabel}`
-    );
+    if (!isLoop) {
+      setExperienceName(
+        (current) =>
+          current ||
+          `${firstSummary.startLabel} to ${lastSummary.endLabel}`
+      );
+    }
 
     setStage("name");
   }
@@ -6050,6 +6244,389 @@ export default function CreatorPage() {
                   )}
               </div>
 
+              {legs.length >= 2 && (
+                <div className="handoverSequence">
+                  <div className="handoverSequenceHeading">
+                    <span>
+                      HANDOVERS
+                    </span>
+                    <small>
+                      What happens between
+                      each leg?
+                    </small>
+                  </div>
+
+                  {getRequiredHandoverPairs()
+                    .map(
+                      (
+                        {
+                          fromLeg,
+                          toLeg,
+                        },
+                        index
+                      ) => {
+
+                        const fromSummary =
+                          getLegSummary(
+                            fromLeg
+                          );
+
+                        const toSummary =
+                          getLegSummary(
+                            toLeg
+                          );
+
+                        const handover =
+                          handovers.find(
+                            (item) =>
+                              item.fromLegId ===
+                                fromLeg.id &&
+                              item.toLegId ===
+                                toLeg.id
+                          );
+
+                        return (
+                          <div
+                            className="handoverCard"
+                            key={`${fromLeg.id}-${toLeg.id}`}
+                          >
+                            <div className="handoverConnector">
+                              <span>
+                                Leg{" "}
+                                {
+                                  legs.findIndex(
+                                    (leg) =>
+                                      leg.id ===
+                                      fromLeg.id
+                                  ) + 1
+                                }
+                              </span>
+                              <strong>↓</strong>
+                              <span>
+                                Leg{" "}
+                                {
+                                  legs.findIndex(
+                                    (leg) =>
+                                      leg.id ===
+                                      toLeg.id
+                                  ) + 1
+                                }
+                              </span>
+                            </div>
+
+                            <div className="handoverCardCopy">
+                              <span>
+                                {handover
+                                  ? handover.handoverType ===
+                                      "explore"
+                                    ? "EXPLORE & CONTINUE"
+                                    : "TRANSFER"
+                                  : "HANDOVER NOT SET"}
+                              </span>
+
+                              <strong>
+                                {fromSummary.endLabel}
+                                {" → "}
+                                {toSummary.startLabel}
+                              </strong>
+
+                              <small>
+                                {handover
+                                  ? handover.title ||
+                                    handover.instructions ||
+                                    "Handover instructions saved"
+                                  : `From ${fromSummary.routeLabel} to ${toSummary.routeLabel}`}
+                              </small>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() =>
+                                openHandoverEditor(
+                                  fromLeg,
+                                  toLeg
+                                )
+                              }
+                            >
+                              {handover
+                                ? "Edit"
+                                : "Set up"}
+                            </button>
+                          </div>
+                        );
+                      }
+                    )}
+                </div>
+              )}
+
+              {handoverDraft && (
+                <div className="handoverEditor">
+                  <div className="handoverEditorHeading">
+                    <div>
+                      <p className="creatorKicker">
+                        HANDOVER
+                      </p>
+                      <h3>
+                        Between journey legs
+                      </h3>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="creatorBackButton"
+                      onClick={() =>
+                        setHandoverDraft(
+                          null
+                        )
+                      }
+                    >
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="handoverTypeChoice">
+                    <button
+                      type="button"
+                      className={
+                        handoverDraft.handoverType ===
+                          "transfer"
+                          ? "active"
+                          : ""
+                      }
+                      onClick={() =>
+                        setHandoverDraft(
+                          {
+                            ...handoverDraft,
+                            handoverType:
+                              "transfer",
+                          }
+                        )
+                      }
+                    >
+                      <strong>
+                        Transfer
+                      </strong>
+                      <span>
+                        Leave one service
+                        and continue to the
+                        next.
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      className={
+                        handoverDraft.handoverType ===
+                          "explore"
+                          ? "active"
+                          : ""
+                      }
+                      onClick={() =>
+                        setHandoverDraft(
+                          {
+                            ...handoverDraft,
+                            handoverType:
+                              "explore",
+                          }
+                        )
+                      }
+                    >
+                      <strong>
+                        Explore
+                      </strong>
+                      <span>
+                        Pause here before
+                        continuing the
+                        journey.
+                      </span>
+                    </button>
+                  </div>
+
+                  <div className="creatorField">
+                    <label>
+                      Handover title
+                    </label>
+
+                    <input
+                      value={
+                        handoverDraft.title
+                      }
+                      onChange={(event) =>
+                        setHandoverDraft({
+                          ...handoverDraft,
+                          title:
+                            event.target.value,
+                        })
+                      }
+                      placeholder="e.g. Change here for the next bus"
+                    />
+                  </div>
+
+                  <div className="creatorField handoverTextField">
+                    <label>
+                      Instructions
+                    </label>
+
+                    <textarea
+                      value={
+                        handoverDraft.instructions
+                      }
+                      onChange={(event) =>
+                        setHandoverDraft({
+                          ...handoverDraft,
+                          instructions:
+                            event.target.value,
+                        })
+                      }
+                      placeholder="Tell the passenger what to do when they leave this service."
+                    />
+                  </div>
+
+                  {handoverDraft.handoverType ===
+                    "explore" && (
+                    <div className="creatorField handoverTextField">
+                      <label>
+                        Explore before continuing
+                      </label>
+
+                      <textarea
+                        value={
+                          handoverDraft.explorationText
+                        }
+                        onChange={(event) =>
+                          setHandoverDraft({
+                            ...handoverDraft,
+                            explorationText:
+                              event.target.value,
+                          })
+                        }
+                        placeholder="What can they do or see here before continuing?"
+                      />
+                    </div>
+                  )}
+
+                  <div className="handoverFieldGrid">
+                    <div className="creatorField">
+                      <label>
+                        Walking time (optional)
+                      </label>
+
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={
+                          handoverDraft.walkMinutes ??
+                          ""
+                        }
+                        onChange={(event) =>
+                          setHandoverDraft({
+                            ...handoverDraft,
+                            walkMinutes:
+                              event.target.value
+                                ? Math.max(
+                                    0,
+                                    Number(
+                                      event.target.value
+                                    )
+                                  )
+                                : undefined,
+                          })
+                        }
+                        placeholder="Minutes"
+                      />
+                    </div>
+
+                    <div className="creatorField">
+                      <label>
+                        Stop / platform reference (optional)
+                      </label>
+
+                      <input
+                        value={
+                          handoverDraft.stopReference
+                        }
+                        onChange={(event) =>
+                          setHandoverDraft({
+                            ...handoverDraft,
+                            stopReference:
+                              event.target.value,
+                          })
+                        }
+                        placeholder="e.g. Stop HB"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="creatorField">
+                    <label>
+                      Next service towards (optional)
+                    </label>
+
+                    <input
+                      value={
+                        handoverDraft.towardsLabel
+                      }
+                      onChange={(event) =>
+                        setHandoverDraft({
+                          ...handoverDraft,
+                          towardsLabel:
+                            event.target.value,
+                        })
+                      }
+                      placeholder="e.g. towards Leith"
+                    />
+
+                    <small>
+                      Only add stop, platform or
+                      direction details when you
+                      are confident they are
+                      correct. The main handover
+                      instructions work without
+                      them.
+                    </small>
+                  </div>
+
+                  <div className="handoverEditorActions">
+                    <button
+                      type="button"
+                      className="creatorContinueButton"
+                      disabled={
+                        !handoverDraft.instructions.trim() ||
+                        (
+                          handoverDraft.handoverType ===
+                            "explore" &&
+                          !handoverDraft.explorationText.trim()
+                        )
+                      }
+                      onClick={
+                        saveHandoverDraft
+                      }
+                    >
+                      Save handover
+                    </button>
+
+                    {handovers.some(
+                      (handover) =>
+                        handover.id ===
+                        handoverDraft.id
+                    ) && (
+                      <button
+                        type="button"
+                        className="removeHandoverButton"
+                        onClick={() =>
+                          removeHandover(
+                            handoverDraft.id
+                          )
+                        }
+                      >
+                        Remove handover
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
               <div className="currentLegNotice">
                 <span>
                   {activeLegId
@@ -6082,9 +6659,11 @@ export default function CreatorPage() {
                     This journey forms a loop
                   </strong>
                   <small>
-                    The final leg returns
-                    passengers towards the
-                    starting area.
+                    Passengers can join the
+                    circuit at different points.
+                    Every leg connects to the
+                    next, including the last
+                    leg back to the first.
                   </small>
                 </span>
               </label>
