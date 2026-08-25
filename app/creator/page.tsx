@@ -69,6 +69,7 @@ import type {
   SavedProject,
   SectionMode,
   JourneyDirectionAvailability,
+  JourneyStructure,
 } from "@/lib/creator-projects";
 
 import type {
@@ -365,6 +366,18 @@ export default function CreatorPage() {
     selectedRouteId,
     setSelectedRouteId,
   ] = useState("tram");
+
+  const [
+    journeyStructure,
+    setJourneyStructure,
+  ] = useState<JourneyStructure>(
+    "single"
+  );
+
+  const [
+    isLoop,
+    setIsLoop,
+  ] = useState(false);
 
   const [
     sectionMode,
@@ -1720,6 +1733,12 @@ export default function CreatorPage() {
       name:
         experienceName.trim(),
       city,
+      journeyStructure,
+      isLoop,
+      legs:
+        existing?.legs ?? [],
+      handovers:
+        existing?.handovers ?? [],
       selectedRouteId,
       sectionMode,
       journeyDirectionAvailability,
@@ -1899,6 +1918,12 @@ export default function CreatorPage() {
       "tram"
     );
 
+    setJourneyStructure(
+      "single"
+    );
+
+    setIsLoop(false);
+
     setSectionMode(
       "whole"
     );
@@ -1989,6 +2014,15 @@ export default function CreatorPage() {
     );
 
     setPendingCoverFile(null);
+
+    setJourneyStructure(
+      project.journeyStructure ??
+      "single"
+    );
+
+    setIsLoop(
+      project.isLoop ?? false
+    );
 
     setSelectedRouteId(
       project.selectedRouteId

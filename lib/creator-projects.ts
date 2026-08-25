@@ -897,6 +897,11 @@ export async function saveCreatorProject(
           id: project.id,
           title: project.name,
           city: project.city,
+          journey_structure:
+            project.journeyStructure ??
+            "single",
+          is_loop:
+            project.isLoop ?? false,
           route_id:
             databaseRouteId,
           section_mode:
