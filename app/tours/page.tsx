@@ -726,6 +726,53 @@ export default function Home() {
     activeJourneyLeg?.route ??
     selectedOption.route;
 
+  const orderedJourneyLegs =
+    useMemo(
+      () =>
+        (selectedOption.legs ?? [])
+          .slice()
+          .sort(
+            (first, second) =>
+              first.position -
+              second.position
+          ),
+      [selectedOption.legs]
+    );
+
+  const activeJourneyLegIndex =
+    activeJourneyLeg
+      ? orderedJourneyLegs.findIndex(
+          (leg) =>
+            leg.id ===
+            activeJourneyLeg.id
+        )
+      : -1;
+
+  const nextJourneyLeg =
+    activeJourneyLegIndex >= 0
+      ? orderedJourneyLegs[
+          activeJourneyLegIndex + 1
+        ] ??
+        (
+          selectedOption.isLoop
+            ? orderedJourneyLegs[0] ??
+              null
+            : null
+        )
+      : null;
+
+  const activeHandover =
+    activeJourneyLeg &&
+    nextJourneyLeg
+      ? (selectedOption.handovers ?? []).find(
+          (handover) =>
+            handover.fromLegId ===
+              activeJourneyLeg.id &&
+            handover.toLegId ===
+              nextJourneyLeg.id
+        ) ?? null
+      : null;
+
   const activeOption =
     experienceOptions.find(
       (option) =>
@@ -1740,7 +1787,34 @@ export default function Home() {
 
     if (
       activeJourneyStructure ===
-        "single" &&
+        "multi_leg" &&
+      nextJourneyLeg &&
+      !simulatorEnabled &&
+      !journeyCompleted &&
+      journeyStartedNearOrigin.current &&
+      progress >= 85 &&
+      destinationDistance <= endpointThreshold &&
+      finalAnnouncementPlayedRef.current
+    ) {
+      setJourneyProgress(100);
+      setJourneyPhase("handover");
+      setWatching(false);
+      setVehicleMoving(false);
+      previousMotionReadingRef.current =
+        null;
+      return;
+    }
+
+    if (
+      (
+        activeJourneyStructure ===
+          "single" ||
+        (
+          activeJourneyStructure ===
+            "multi_leg" &&
+          !nextJourneyLeg
+        )
+      ) &&
       !simulatorEnabled &&
       !journeyCompleted &&
       journeyStartedNearOrigin.current &&
@@ -1815,14 +1889,27 @@ export default function Home() {
 
   useEffect(() => {
     if (
-      activeJourneyStructure !==
-        "single" ||
       !simulatorEnabled ||
       screen !== "journey" ||
       journeyCompleted ||
       journeyProgress < 100 ||
       !finalAnnouncementPlayedRef.current
     ) {
+      return;
+    }
+
+    if (
+      activeJourneyStructure ===
+        "multi_leg" &&
+      nextJourneyLeg
+    ) {
+      if (
+        journeyPhase === "travelling"
+      ) {
+        setJourneyPhase("handover");
+        setWatching(false);
+        setVehicleMoving(false);
+      }
       return;
     }
 
@@ -1839,8 +1926,11 @@ export default function Home() {
       }
     );
   }, [
+    activeJourneyStructure,
     journeyCompleted,
+    journeyPhase,
     journeyProgress,
+    nextJourneyLeg,
     recordDiagnostic,
     screen,
     simulatorEnabled,
@@ -3379,6 +3469,67 @@ export default function Home() {
     setWatching(!simulatorEnabled);
     setScreen("journey");
     void playBrandAnnouncement("welcome");
+  }
+
+  function continueFromHandover() {
+    if (
+      activeJourneyStructure !==
+        "multi_leg" ||
+      !nextJourneyLeg
+    ) {
+      return;
+    }
+
+    const audio =
+      audioElementRef.current;
+
+    audio?.pause();
+
+    if (audio) {
+      audio.currentTime = 0;
+    }
+
+    setActiveJourneyLegId(
+      nextJourneyLeg.id
+    );
+
+    setDirection(
+      nextJourneyLeg.journeyDirection
+    );
+
+    setActiveJourneyDirection(
+      nextJourneyLeg.journeyDirection
+    );
+
+    setDirectionMode("manual");
+    setDirectionDetecting(false);
+
+    setJourneyProgress(0);
+    setSimulatorProgress(0);
+
+    setTriggeredStoryIds([]);
+    setAudioQueueIds([]);
+    setActiveAudioStoryId(null);
+    setAudioPlaybackStatus("idle");
+    setBrandAnnouncement(null);
+
+    journeyStartedNearOrigin.current =
+      false;
+    detectionStartProgress.current =
+      null;
+    previousRouteStatus.current =
+      null;
+    previousStoryId.current =
+      null;
+    previousMotionReadingRef.current =
+      null;
+    resumeAfterTimestampRef.current =
+      null;
+    finalAnnouncementPlayedRef.current =
+      false;
+
+    setJourneyPhase("travelling");
+    setWatching(!simulatorEnabled);
   }
 
   function pauseJourneyAudioForNavigation() {
@@ -5171,7 +5322,109 @@ export default function Home() {
         </div>
       )}
 
-      {!journeyCompleted && (
+      {!journeyCompleted &&
+        journeyPhase === "handover" &&
+        activeJourneyLeg &&
+        nextJourneyLeg && (
+        <section className="liveJourneyTimeline">
+          <div className="liveJourneyHeading">
+            <div>
+              <p className="kicker">
+                {activeHandover?.handoverType ===
+                  "explore"
+                  ? "EXPLORE & CONTINUE"
+                  : "CHANGE HERE"}
+              </p>
+
+              <strong>
+                {activeHandover?.title ||
+                  `Continue from ${activeJourneyLeg.endLabel}`}
+              </strong>
+            </div>
+
+            <span>✓</span>
+          </div>
+
+          <div className="routeNotice">
+            <strong>
+              Next: {nextJourneyLeg.startLabel}
+              {" → "}
+              {nextJourneyLeg.endLabel}
+            </strong>
+
+            <span>
+              {activeHandover?.instructions ||
+                "Follow the handover instructions and continue when you are ready."}
+            </span>
+          </div>
+
+          {activeHandover?.handoverType ===
+            "explore" &&
+            activeHandover.explorationText && (
+            <div className="routeNotice">
+              <strong>
+                Take some time here
+              </strong>
+
+              <span>
+                {
+                  activeHandover.explorationText
+                }
+              </span>
+            </div>
+          )}
+
+          {(activeHandover?.walkMinutes !==
+            undefined ||
+            activeHandover?.stopReference ||
+            activeHandover?.towardsLabel) && (
+            <div className="routeNotice">
+              <strong>
+                Useful details
+              </strong>
+
+              <span>
+                {[
+                  activeHandover
+                    ?.walkMinutes !==
+                  undefined
+                    ? `${activeHandover.walkMinutes} min walk`
+                    : "",
+                  activeHandover
+                    ?.stopReference
+                    ? activeHandover.stopReference
+                    : "",
+                  activeHandover
+                    ?.towardsLabel
+                    ? activeHandover.towardsLabel
+                    : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="primaryButton"
+            onClick={
+              continueFromHandover
+            }
+          >
+            I&apos;m ready — continue
+          </button>
+
+          <small className="journeyScreenStatus">
+            Continue once you are ready
+            for the next part of the
+            experience.
+          </small>
+        </section>
+      )}
+
+      {!journeyCompleted &&
+        journeyPhase === "travelling" && (
         <section className="liveJourneyTimeline">
           <div className="liveJourneyHeading">
             <div>
