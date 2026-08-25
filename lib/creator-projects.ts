@@ -878,6 +878,23 @@ export async function editPausedCreatorProject(
   }
 }
 
+export async function archiveCreatorProject(
+  supabase: SupabaseClient,
+  experienceId: string
+) {
+  const { error } = await supabase.rpc(
+    "creator_archive_experience",
+    {
+      p_experience_id:
+        experienceId,
+    }
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function saveCreatorProject(
   supabase: SupabaseClient,
   project: SavedProject
@@ -2207,6 +2224,24 @@ export async function deleteCreatorProject(
       )
     );
 
+  const tourMediaPaths = [
+    project?.cover_image_path,
+    ...(projectGallery ?? []).map((image) => image.path),
+  ].filter((path): path is string => Boolean(path));
+
+  const {
+    error: deleteError,
+  } = await supabase.rpc(
+    "creator_delete_experience",
+    {
+      p_experience_id: projectId,
+    }
+  );
+
+  if (deleteError) {
+    throw deleteError;
+  }
+
   if (mediaPaths.length > 0) {
     const {
       error: mediaError,
@@ -2216,16 +2251,12 @@ export async function deleteCreatorProject(
         .remove(mediaPaths);
 
     if (mediaError) {
-      throw new Error(
+      console.warn(
+        "Experience deleted but Story media cleanup failed:",
         mediaError.message
       );
     }
   }
-
-  const tourMediaPaths = [
-    project?.cover_image_path,
-    ...(projectGallery ?? []).map((image) => image.path),
-  ].filter((path): path is string => Boolean(path));
 
   if (tourMediaPaths.length > 0) {
     const {
@@ -2235,19 +2266,10 @@ export async function deleteCreatorProject(
       .remove(tourMediaPaths);
 
     if (coverError) {
-      throw new Error(
+      console.warn(
+        "Experience deleted but tour media cleanup failed:",
         coverError.message
       );
     }
-  }
-
-  const { error } =
-    await supabase
-      .from("experiences")
-      .delete()
-      .eq("id", projectId);
-
-  if (error) {
-    throw error;
   }
 }

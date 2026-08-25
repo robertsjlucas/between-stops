@@ -42,6 +42,7 @@ import {
 import {
   deleteCreatorProject,
   editPausedCreatorProject,
+  archiveCreatorProject,
   loadBrowserProjects,
   loadCreatorProfile,
   loadCreatorProjects,
@@ -3047,22 +3048,10 @@ export default function CreatorPage() {
           return;
         }
 
-        const {
-          error: retireError,
-        } = await supabase
-          .from("experiences")
-          .update({
-            status: "archived",
-            visibility: "private",
-            featured_rank: null,
-            updated_at:
-              new Date().toISOString(),
-          })
-          .eq("id", project.id);
-
-        if (retireError) {
-          throw retireError;
-        }
+        await archiveCreatorProject(
+          supabase,
+          project.id
+        );
 
         setProjects(
           (current) =>
