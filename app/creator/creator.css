@@ -297,6 +297,208 @@
   color: #bdb9b1;
 }
 
+
+.journeyTypeChoice {
+  margin-bottom: 22px;
+}
+
+.multiLegBuilder {
+  display: grid;
+  gap: 12px;
+  margin: 18px 0 24px;
+  padding: 16px;
+  border: 1px solid rgba(38, 87, 175, 0.12);
+  border-radius: 16px 42px 16px 16px;
+  background: rgba(124, 173, 237, 0.055);
+}
+
+.multiLegBuilderHeading,
+.studioLegBarHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.multiLegBuilderHeading span {
+  color: #67635c;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.multiLegBuilderHeading strong {
+  color: #1D3D75;
+  font-size: 11px;
+}
+
+.multiLegEmpty {
+  margin: 0;
+  color: #77736b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.multiLegList {
+  display: grid;
+  gap: 8px;
+}
+
+.multiLegCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid #e1e4e8;
+  border-radius: 13px;
+  background: #fff;
+}
+
+.multiLegCard.active {
+  border-color: #2657AF;
+  box-shadow: 0 0 0 2px rgba(124, 173, 237, 0.16);
+}
+
+.multiLegCardMain {
+  display: grid;
+  gap: 3px;
+  padding: 12px 13px;
+  border: 0;
+  background: transparent;
+  color: #373737;
+  text-align: left;
+  cursor: pointer;
+}
+
+.multiLegCardMain span,
+.currentLegNotice {
+  color: #2657AF;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.multiLegCardMain small {
+  color: #77736b;
+  font-size: 10px;
+}
+
+.multiLegRemove {
+  padding: 0 12px;
+  border: 0;
+  border-left: 1px solid #eceef1;
+  background: transparent;
+  color: #8a4d45;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.currentLegNotice {
+  padding-top: 2px;
+}
+
+.loopJourneyToggle {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding-top: 10px;
+  border-top: 1px solid rgba(38, 87, 175, 0.1);
+  cursor: pointer;
+}
+
+.loopJourneyToggle input {
+  margin-top: 3px;
+}
+
+.loopJourneyToggle span {
+  display: grid;
+  gap: 3px;
+}
+
+.loopJourneyToggle strong {
+  font-size: 12px;
+}
+
+.loopJourneyToggle small {
+  color: #77736b;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.multiLegActions {
+  display: grid;
+  gap: 9px;
+}
+
+.multiLegActions .creatorContinueButton {
+  margin-top: 28px;
+}
+
+.multiLegContinue {
+  width: 100%;
+}
+
+.multiLegContinue:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.studioLegBar {
+  display: grid;
+  gap: 13px;
+  padding: 15px 32px;
+  border-bottom: 1px solid #e2e4e7;
+  background: #f8fafc;
+}
+
+.studioLegBarHeading strong {
+  font-size: 13px;
+}
+
+.studioLegTabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.studioLegTab {
+  display: grid;
+  min-width: 190px;
+  gap: 2px;
+  padding: 11px 13px;
+  border: 1px solid #dde2e8;
+  border-radius: 12px;
+  background: #fff;
+  color: #373737;
+  text-align: left;
+  cursor: pointer;
+}
+
+.studioLegTab span {
+  color: #2657AF;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.studioLegTab small {
+  color: #77736b;
+  font-size: 10px;
+}
+
+.studioLegTab.active {
+  border-color: #1D3D75;
+  background: #1D3D75;
+  color: #fff;
+}
+
+.studioLegTab.active span,
+.studioLegTab.active small {
+  color: #dce8fb;
+}
+
 .sectionSelector {
   margin-top: 14px;
   padding: 17px;

@@ -70,6 +70,8 @@ import type {
   SectionMode,
   JourneyDirectionAvailability,
   JourneyStructure,
+  CreatorExperienceLeg,
+  CreatorExperienceHandover,
 } from "@/lib/creator-projects";
 
 import type {
@@ -378,6 +380,21 @@ export default function CreatorPage() {
     isLoop,
     setIsLoop,
   ] = useState(false);
+
+  const [
+    legs,
+    setLegs,
+  ] = useState<CreatorExperienceLeg[]>([]);
+
+  const [
+    handovers,
+    setHandovers,
+  ] = useState<CreatorExperienceHandover[]>([]);
+
+  const [
+    activeLegId,
+    setActiveLegId,
+  ] = useState<string | null>(null);
 
   const [
     sectionMode,
@@ -1145,6 +1162,16 @@ export default function CreatorPage() {
           sectionHighProgress
     );
 
+  const activeStories =
+    journeyStructure === "multi_leg"
+      ? activeLegId
+        ? stories.filter(
+            (story) =>
+              story.legId === activeLegId
+          )
+        : []
+      : stories;
+
   const storyTimingExperience = useMemo(
     () =>
       ({
@@ -1157,7 +1184,7 @@ export default function CreatorPage() {
         startLabel,
         endLabel,
         durationMinutes: estimatedJourneyMinutes,
-        stories: stories.map((story) => ({
+        stories: activeStories.map((story) => ({
           id: story.id,
           title: story.title,
           eyebrow:
@@ -1189,7 +1216,7 @@ export default function CreatorPage() {
       sectionHighProgress,
       sectionLowProgress,
       startLabel,
-      stories,
+      activeStories,
     ]
   );
 
@@ -1628,7 +1655,7 @@ export default function CreatorPage() {
     storyMarkerRefs.current.forEach((marker) => marker.remove());
     storyMarkerRefs.current = [];
 
-    stories.forEach((story) => {
+    activeStories.forEach((story) => {
       const wrapper = document.createElement("button");
       wrapper.type = "button";
       wrapper.className = "storyMapPinLabel";
@@ -1664,7 +1691,7 @@ export default function CreatorPage() {
       storyMarkerRefs.current.forEach((marker) => marker.remove());
       storyMarkerRefs.current = [];
     };
-  }, [stage, stories, mapReadyVersion]);
+  }, [stage, activeStories, mapReadyVersion]);
 
   useEffect(() => {
     if (
@@ -1736,18 +1763,70 @@ export default function CreatorPage() {
       journeyStructure,
       isLoop,
       legs:
-        existing?.legs ?? [],
+        journeyStructure === "multi_leg"
+          ? legs
+          : existing?.legs ?? [],
       handovers:
-        existing?.handovers ?? [],
-      selectedRouteId,
-      sectionMode,
-      journeyDirectionAvailability,
+        journeyStructure === "multi_leg"
+          ? handovers
+          : existing?.handovers ?? [],
+      selectedRouteId:
+        journeyStructure === "multi_leg" &&
+        legs.length > 0
+          ? legs
+              .slice()
+              .sort(
+                (first, second) =>
+                  first.position -
+                  second.position
+              )[0].selectedRouteId
+          : selectedRouteId,
+      sectionMode:
+        journeyStructure === "multi_leg" &&
+        legs.length > 0
+          ? legs
+              .slice()
+              .sort(
+                (first, second) =>
+                  first.position -
+                  second.position
+              )[0].sectionMode
+          : sectionMode,
+      journeyDirectionAvailability:
+        journeyStructure === "multi_leg" &&
+        legs.length > 0
+          ? legs
+              .slice()
+              .sort(
+                (first, second) =>
+                  first.position -
+                  second.position
+              )[0].journeyDirection
+          : journeyDirectionAvailability,
       startStopId:
-        selectedStartStop?.id ??
-        startStopId,
+        journeyStructure === "multi_leg" &&
+        legs.length > 0
+          ? legs
+              .slice()
+              .sort(
+                (first, second) =>
+                  first.position -
+                  second.position
+              )[0].startStopId
+          : selectedStartStop?.id ??
+            startStopId,
       endStopId:
-        selectedEndStop?.id ??
-        endStopId,
+        journeyStructure === "multi_leg" &&
+        legs.length > 0
+          ? legs
+              .slice()
+              .sort(
+                (first, second) =>
+                  first.position -
+                  second.position
+              )[0].endStopId
+          : selectedEndStop?.id ??
+            endStopId,
       summary:
         experienceSummary.trim(),
       description:
@@ -1923,6 +2002,9 @@ export default function CreatorPage() {
     );
 
     setIsLoop(false);
+    setLegs([]);
+    setHandovers([]);
+    setActiveLegId(null);
 
     setSectionMode(
       "whole"
@@ -1941,11 +2023,29 @@ export default function CreatorPage() {
   function openProject(
     project: SavedProject
   ) {
+    const projectLegs =
+      (project.legs ?? [])
+        .slice()
+        .sort(
+          (first, second) =>
+            first.position -
+            second.position
+        );
+
+    const firstLeg =
+      project.journeyStructure ===
+        "multi_leg"
+        ? projectLegs[0]
+        : undefined;
+
     const choice =
       routeChoices.find(
         (item) =>
           item.id ===
-          project.selectedRouteId
+          (
+            firstLeg?.selectedRouteId ??
+            project.selectedRouteId
+          )
       );
 
     setProjectId(
@@ -2024,7 +2124,17 @@ export default function CreatorPage() {
       project.isLoop ?? false
     );
 
+    setLegs(projectLegs);
+    setHandovers(
+      project.handovers ?? []
+    );
+
+    setActiveLegId(
+      firstLeg?.id ?? null
+    );
+
     setSelectedRouteId(
+      firstLeg?.selectedRouteId ??
       project.selectedRouteId
     );
 
@@ -2035,19 +2145,23 @@ export default function CreatorPage() {
     }
 
     setSectionMode(
+      firstLeg?.sectionMode ??
       project.sectionMode
     );
 
     setJourneyDirectionAvailability(
+      firstLeg?.journeyDirection ??
       project.journeyDirectionAvailability ??
       "either"
     );
 
     setStartStopId(
+      firstLeg?.startStopId ??
       project.startStopId
     );
 
     setEndStopId(
+      firstLeg?.endStopId ??
       project.endStopId
     );
 
@@ -2519,9 +2633,32 @@ export default function CreatorPage() {
       );
     }
 
+    if (
+      journeyStructure ===
+        "multi_leg" &&
+      legs.length < 2
+    ) {
+      missing.push(
+        "at least two journey legs"
+      );
+    }
+
     if (stories.length === 0) {
       missing.push(
         "at least one Story"
+      );
+    }
+
+    if (
+      journeyStructure ===
+        "multi_leg" &&
+      stories.some(
+        (story) =>
+          !story.legId
+      )
+    ) {
+      missing.push(
+        "a journey leg for every Story"
       );
     }
 
@@ -2946,6 +3083,328 @@ export default function CreatorPage() {
     ROUTE / NAME / STORIES
   */
 
+  function getLegSummary(
+    leg: CreatorExperienceLeg
+  ) {
+    const choice =
+      routeChoices.find(
+        (item) =>
+          item.id ===
+          leg.selectedRouteId
+      );
+
+    const legRoute =
+      choice?.route;
+
+    const start =
+      legRoute?.stops?.find(
+        (stop) =>
+          stop.id ===
+          leg.startStopId
+      );
+
+    const end =
+      legRoute?.stops?.find(
+        (stop) =>
+          stop.id ===
+          leg.endStopId
+      );
+
+    return {
+      routeLabel:
+        choice?.label ??
+        legRoute?.name ??
+        "Route",
+      mode:
+        legRoute?.mode ??
+        "bus" as TransportMode,
+      startLabel:
+        start?.name ??
+        legRoute?.canonicalStart ??
+        "Start",
+      endLabel:
+        end?.name ??
+        legRoute?.canonicalEnd ??
+        "End",
+    };
+  }
+
+  function loadLegIntoEditor(
+    leg: CreatorExperienceLeg
+  ) {
+    const choice =
+      routeChoices.find(
+        (item) =>
+          item.id ===
+          leg.selectedRouteId
+      );
+
+    setActiveLegId(leg.id);
+    setSelectedRouteId(
+      leg.selectedRouteId
+    );
+
+    if (choice) {
+      setMode(
+        choice.route.mode
+      );
+    }
+
+    setSectionMode(
+      leg.sectionMode
+    );
+
+    setJourneyDirectionAvailability(
+      leg.journeyDirection
+    );
+
+    setStartStopId(
+      leg.startStopId
+    );
+
+    setEndStopId(
+      leg.endStopId
+    );
+
+    cancelStory();
+  }
+
+  function buildCurrentLeg(
+    legId =
+      activeLegId ??
+      crypto.randomUUID()
+  ): CreatorExperienceLeg | null {
+    if (
+      sectionMode === "section" &&
+      !sectionIsValid
+    ) {
+      return null;
+    }
+
+    const existingLeg =
+      legs.find(
+        (leg) =>
+          leg.id === legId
+      );
+
+    return {
+      id: legId,
+      position:
+        existingLeg?.position ??
+        legs.length,
+      selectedRouteId,
+      sectionMode,
+      journeyDirection:
+        journeyDirectionAvailability ===
+          "reverse"
+          ? "reverse"
+          : "forward",
+      startStopId:
+        selectedStartStop?.id ??
+        startStopId,
+      endStopId:
+        selectedEndStop?.id ??
+        endStopId,
+    };
+  }
+
+  function mergeJourneyLeg(
+    leg: CreatorExperienceLeg
+  ) {
+    const exists =
+      legs.some(
+        (item) =>
+          item.id === leg.id
+      );
+
+    return (
+      exists
+        ? legs.map(
+            (item) =>
+              item.id === leg.id
+                ? leg
+                : item
+          )
+        : [
+            ...legs,
+            leg,
+          ]
+    )
+      .slice()
+      .sort(
+        (first, second) =>
+          first.position -
+          second.position
+      )
+      .map(
+        (item, position) => ({
+          ...item,
+          position,
+        })
+      );
+  }
+
+  function saveLegAndAddAnother() {
+    const leg =
+      buildCurrentLeg();
+
+    if (!leg) {
+      return;
+    }
+
+    const updated =
+      mergeJourneyLeg(leg);
+
+    setLegs(updated);
+    setActiveLegId(null);
+
+    setSectionMode("whole");
+    setJourneyDirectionAvailability(
+      "forward"
+    );
+    setStartStopId("");
+    setEndStopId("");
+    cancelStory();
+  }
+
+  function editJourneyLeg(
+    leg: CreatorExperienceLeg
+  ) {
+    loadLegIntoEditor(leg);
+    setStage("route");
+  }
+
+  function removeJourneyLeg(
+    legId: string
+  ) {
+    const leg =
+      legs.find(
+        (item) =>
+          item.id === legId
+      );
+
+    if (!leg) {
+      return;
+    }
+
+    const summary =
+      getLegSummary(leg);
+
+    const confirmed =
+      window.confirm(
+        `Remove ${summary.routeLabel}, ${summary.startLabel} to ${summary.endLabel}, from this experience? Stories on this leg will also be removed.`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    const updatedLegs =
+      legs
+        .filter(
+          (item) =>
+            item.id !== legId
+        )
+        .map(
+          (item, position) => ({
+            ...item,
+            position,
+          })
+        );
+
+    setLegs(updatedLegs);
+
+    setStories(
+      (current) =>
+        current.filter(
+          (story) =>
+            story.legId !== legId
+        )
+    );
+
+    setHandovers(
+      (current) =>
+        current.filter(
+          (handover) =>
+            handover.fromLegId !==
+              legId &&
+            handover.toLegId !==
+              legId
+        )
+    );
+
+    if (
+      activeLegId === legId
+    ) {
+      const nextLeg =
+        updatedLegs[0];
+
+      if (nextLeg) {
+        loadLegIntoEditor(
+          nextLeg
+        );
+      } else {
+        setActiveLegId(null);
+      }
+    }
+  }
+
+  function finishMultiLegSetup() {
+    const currentLeg =
+      buildCurrentLeg();
+
+    if (!currentLeg) {
+      return;
+    }
+
+    const updated =
+      mergeJourneyLeg(
+        currentLeg
+      );
+
+    if (updated.length < 2) {
+      window.alert(
+        "Add at least two transport legs before continuing."
+      );
+      return;
+    }
+
+    setLegs(updated);
+
+    const firstLeg =
+      updated[0];
+
+    const lastLeg =
+      updated[
+        updated.length - 1
+      ];
+
+    const firstSummary =
+      getLegSummary(firstLeg);
+
+    const lastSummary =
+      getLegSummary(lastLeg);
+
+    loadLegIntoEditor(
+      firstLeg
+    );
+
+    setExperienceName(
+      (current) =>
+        current ||
+        `${firstSummary.startLabel} to ${lastSummary.endLabel}`
+    );
+
+    setStage("name");
+  }
+
+  function selectStudioLeg(
+    leg: CreatorExperienceLeg
+  ) {
+    loadLegIntoEditor(leg);
+    setStage("studio");
+  }
+
   function goToNameStage() {
     if (
       sectionMode ===
@@ -2985,6 +3444,17 @@ export default function CreatorPage() {
   }
 
   function startAddingStory() {
+    if (
+      journeyStructure ===
+        "multi_leg" &&
+      !activeLegId
+    ) {
+      window.alert(
+        "Choose a journey leg before adding a Story."
+      );
+      return;
+    }
+
     setEditingStoryId(
       null
     );
@@ -3144,6 +3614,12 @@ export default function CreatorPage() {
       const story: CreatorStory =
         {
           id: resolvedStoryId,
+          legId:
+            journeyStructure ===
+              "multi_leg"
+              ? activeLegId ??
+                undefined
+              : undefined,
           title:
             storyTitle.trim(),
           text:
@@ -4548,6 +5024,30 @@ export default function CreatorPage() {
               </span>
 
               <div className="studioRouteMeta">
+                {journeyStructure ===
+                  "multi_leg" &&
+                  activeLegId && (
+                  <span>
+                    Leg{" "}
+                    {
+                      legs
+                        .slice()
+                        .sort(
+                          (
+                            first,
+                            second
+                          ) =>
+                            first.position -
+                            second.position
+                        )
+                        .findIndex(
+                          (leg) =>
+                            leg.id ===
+                            activeLegId
+                        ) + 1
+                    }
+                  </span>
+                )}
                 <span className="routeIdentity">
                   <TransportIcon
                     mode={route.mode}
@@ -4624,6 +5124,116 @@ export default function CreatorPage() {
           </aside>
         )}
 
+        {journeyStructure ===
+          "multi_leg" && (
+          <section className="studioLegBar">
+            <div className="studioLegBarHeading">
+              <div>
+                <p className="creatorKicker">
+                  JOURNEY LEGS
+                </p>
+                <strong>
+                  Choose the leg you want
+                  to work on
+                </strong>
+              </div>
+
+              <button
+                type="button"
+                className="creatorBackButton"
+                disabled={
+                  !canEditActiveProject ||
+                  !activeLegId
+                }
+                onClick={() => {
+                  const activeLeg =
+                    legs.find(
+                      (leg) =>
+                        leg.id ===
+                        activeLegId
+                    );
+
+                  if (activeLeg) {
+                    editJourneyLeg(
+                      activeLeg
+                    );
+                  }
+                }}
+              >
+                Edit journey legs
+              </button>
+            </div>
+
+            <div className="studioLegTabs">
+              {legs
+                .slice()
+                .sort(
+                  (first, second) =>
+                    first.position -
+                    second.position
+                )
+                .map(
+                  (leg, index) => {
+                    const summary =
+                      getLegSummary(
+                        leg
+                      );
+
+                    const storyCount =
+                      stories.filter(
+                        (story) =>
+                          story.legId ===
+                          leg.id
+                      ).length;
+
+                    return (
+                      <button
+                        type="button"
+                        key={leg.id}
+                        className={
+                          activeLegId ===
+                          leg.id
+                            ? "studioLegTab active"
+                            : "studioLegTab"
+                        }
+                        onClick={() =>
+                          selectStudioLeg(
+                            leg
+                          )
+                        }
+                      >
+                        <span>
+                          Leg {index + 1}
+                        </span>
+
+                        <strong>
+                          {
+                            summary.routeLabel
+                          }
+                        </strong>
+
+                        <small>
+                          {
+                            summary.startLabel
+                          }{" "}
+                          →{" "}
+                          {
+                            summary.endLabel
+                          }
+                          {" · "}
+                          {storyCount}{" "}
+                          {storyCount === 1
+                            ? "Story"
+                            : "Stories"}
+                        </small>
+                      </button>
+                    );
+                  }
+                )}
+            </div>
+          </section>
+        )}
+
         <section className="studioWorkspace">
           <aside className="studioSidebar">
             {!draftCoordinates &&
@@ -4692,10 +5302,10 @@ export default function CreatorPage() {
 
                       <ul>
                         {storyTimingWarnings.slice(0, 4).map((warning) => {
-                          const first = stories.find(
+                          const first = activeStories.find(
                             (story) => story.id === warning.firstStoryId
                           );
-                          const second = stories.find(
+                          const second = activeStories.find(
                             (story) => story.id === warning.secondStoryId
                           );
 
@@ -4725,12 +5335,12 @@ export default function CreatorPage() {
 
                       <strong>
                         {
-                          stories.length
+                          activeStories.length
                         }
                       </strong>
                     </div>
 
-                    {stories.length ===
+                    {activeStories.length ===
                       0 && (
                       <div className="emptyStories">
                         <strong>
@@ -4745,7 +5355,7 @@ export default function CreatorPage() {
                       </div>
                     )}
 
-                    {stories
+                    {activeStories
                       .slice()
                       .sort(
                         (a, b) =>
@@ -5285,6 +5895,202 @@ export default function CreatorPage() {
             </p>
           </div>
 
+          <div className="creatorSectionChoice journeyTypeChoice">
+            <p className="creatorKicker">
+              JOURNEY TYPE
+            </p>
+
+            <button
+              type="button"
+              className={
+                journeyStructure ===
+                  "single"
+                  ? "active"
+                  : ""
+              }
+              onClick={() => {
+                setJourneyStructure(
+                  "single"
+                );
+                setActiveLegId(null);
+              }}
+            >
+              <strong>
+                Single route
+              </strong>
+              <span>
+                One service or route,
+                as Beyond the Stops works
+                today.
+              </span>
+            </button>
+
+            <button
+              type="button"
+              className={
+                journeyStructure ===
+                  "multi_leg"
+                  ? "active"
+                  : ""
+              }
+              onClick={() => {
+                setJourneyStructure(
+                  "multi_leg"
+                );
+
+                if (
+                  journeyDirectionAvailability ===
+                  "either"
+                ) {
+                  setJourneyDirectionAvailability(
+                    "forward"
+                  );
+                }
+              }}
+            >
+              <strong>
+                Multi-leg journey
+              </strong>
+              <span>
+                Join several services into
+                one guided experience.
+              </span>
+            </button>
+          </div>
+
+          {journeyStructure ===
+            "multi_leg" && (
+            <div className="multiLegBuilder">
+              <div className="multiLegBuilderHeading">
+                <span>
+                  JOURNEY LEGS
+                </span>
+
+                <strong>
+                  {legs.length} saved
+                </strong>
+              </div>
+
+              {legs.length === 0 && (
+                <p className="multiLegEmpty">
+                  Set up the first leg below,
+                  then add the next one.
+                </p>
+              )}
+
+              <div className="multiLegList">
+                {legs
+                  .slice()
+                  .sort(
+                    (first, second) =>
+                      first.position -
+                      second.position
+                  )
+                  .map(
+                    (leg, index) => {
+                      const summary =
+                        getLegSummary(
+                          leg
+                        );
+
+                      return (
+                        <div
+                          key={leg.id}
+                          className={
+                            activeLegId ===
+                            leg.id
+                              ? "multiLegCard active"
+                              : "multiLegCard"
+                          }
+                        >
+                          <button
+                            type="button"
+                            className="multiLegCardMain"
+                            onClick={() =>
+                              editJourneyLeg(
+                                leg
+                              )
+                            }
+                          >
+                            <span>
+                              LEG {index + 1}
+                            </span>
+
+                            <strong>
+                              {
+                                summary.routeLabel
+                              }
+                            </strong>
+
+                            <small>
+                              {
+                                summary.startLabel
+                              }{" "}
+                              →{" "}
+                              {
+                                summary.endLabel
+                              }
+                            </small>
+                          </button>
+
+                          <button
+                            type="button"
+                            className="multiLegRemove"
+                            onClick={() =>
+                              removeJourneyLeg(
+                                leg.id
+                              )
+                            }
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      );
+                    }
+                  )}
+              </div>
+
+              <div className="currentLegNotice">
+                <span>
+                  {activeLegId
+                    ? `Editing leg ${
+                        legs.findIndex(
+                          (leg) =>
+                            leg.id ===
+                            activeLegId
+                        ) + 1
+                      }`
+                    : `Setting up leg ${
+                        legs.length + 1
+                      }`}
+                </span>
+              </div>
+
+              <label className="loopJourneyToggle">
+                <input
+                  type="checkbox"
+                  checked={isLoop}
+                  onChange={(event) =>
+                    setIsLoop(
+                      event.target.checked
+                    )
+                  }
+                />
+
+                <span>
+                  <strong>
+                    This journey forms a loop
+                  </strong>
+                  <small>
+                    The final leg returns
+                    passengers towards the
+                    starting area.
+                  </small>
+                </span>
+              </label>
+            </div>
+          )}
+
           <div className="creatorField">
             <label>
               City
@@ -5465,7 +6271,10 @@ export default function CreatorPage() {
 
           <div className="creatorField">
             <label>
-              Journey direction
+              {journeyStructure ===
+                "multi_leg"
+                ? "Leg direction"
+                : "Journey direction"}
             </label>
 
             <select
@@ -5479,9 +6288,12 @@ export default function CreatorPage() {
                 )
               }
             >
-              <option value="either">
-                Either direction
-              </option>
+              {journeyStructure ===
+                "single" && (
+                <option value="either">
+                  Either direction
+                </option>
+              )}
 
               <option value="forward">
                 {startLabel} → {endLabel} only
@@ -5493,9 +6305,10 @@ export default function CreatorPage() {
             </select>
 
             <small>
-              Choose whether passengers
-              can take this experience in
-              both directions or only one.
+              {journeyStructure ===
+                "multi_leg"
+                ? "Each leg follows a defined direction. The complete multi-leg journey is not automatically reversed."
+                : "Choose whether passengers can take this experience in both directions or only one."}
             </small>
           </div>
 
@@ -5612,19 +6425,54 @@ export default function CreatorPage() {
             </small>
           </div>
 
-          <button
-            className="creatorContinueButton"
-            disabled={
-              sectionMode ===
-                "section" &&
-              !sectionIsValid
-            }
-            onClick={
-              goToNameStage
-            }
-          >
-            Use this journey
-          </button>
+          {journeyStructure ===
+            "single" ? (
+            <button
+              className="creatorContinueButton"
+              disabled={
+                sectionMode ===
+                  "section" &&
+                !sectionIsValid
+              }
+              onClick={
+                goToNameStage
+              }
+            >
+              Use this journey
+            </button>
+          ) : (
+            <div className="multiLegActions">
+              <button
+                type="button"
+                className="creatorContinueButton"
+                disabled={
+                  sectionMode ===
+                    "section" &&
+                  !sectionIsValid
+                }
+                onClick={
+                  saveLegAndAddAnother
+                }
+              >
+                Save leg &amp; add another
+              </button>
+
+              <button
+                type="button"
+                className="creatorBackButton multiLegContinue"
+                disabled={
+                  sectionMode ===
+                    "section" &&
+                  !sectionIsValid
+                }
+                onClick={
+                  finishMultiLegSetup
+                }
+              >
+                Continue with journey
+              </button>
+            </div>
+          )}
         </aside>
 
         <section className="creatorMapPanel">
