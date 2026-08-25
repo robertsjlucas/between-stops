@@ -670,8 +670,61 @@ export default function Home() {
         option.experience.id === selectedOption.experience.id
     );
 
-  const experience = selectedOption.experience;
-  const route = selectedOption.route;
+  const baseExperience =
+    selectedOption.experience;
+
+  const activeJourneyLeg =
+    selectedOption.journeyStructure ===
+      "multi_leg" &&
+    activeJourneyLegId
+      ? (selectedOption.legs ?? []).find(
+          (leg) =>
+            leg.id ===
+            activeJourneyLegId
+        ) ?? null
+      : null;
+
+  const experience = useMemo(
+    () => {
+      if (!activeJourneyLeg) {
+        return baseExperience;
+      }
+
+      const activeStoryIds =
+        new Set(
+          activeJourneyLeg.storyIds
+        );
+
+      return {
+        ...baseExperience,
+        routeId:
+          activeJourneyLeg.routeId,
+        startProgress:
+          activeJourneyLeg.startProgress,
+        endProgress:
+          activeJourneyLeg.endProgress,
+        startLabel:
+          activeJourneyLeg.startLabel,
+        endLabel:
+          activeJourneyLeg.endLabel,
+        stories:
+          baseExperience.stories.filter(
+            (story) =>
+              activeStoryIds.has(
+                story.id
+              )
+          ),
+      };
+    },
+    [
+      activeJourneyLeg,
+      baseExperience,
+    ]
+  );
+
+  const route =
+    activeJourneyLeg?.route ??
+    selectedOption.route;
 
   const activeOption =
     experienceOptions.find(
@@ -721,9 +774,13 @@ export default function Home() {
 
   const destinationStopId = useMemo(() => {
     const savedStopId =
-      direction === "forward"
-        ? selectedOption.endStopId
-        : selectedOption.startStopId;
+      activeJourneyLeg
+        ? direction === "forward"
+          ? activeJourneyLeg.endStopId
+          : activeJourneyLeg.startStopId
+        : direction === "forward"
+          ? selectedOption.endStopId
+          : selectedOption.startStopId;
 
     if (savedStopId) return savedStopId;
 
@@ -750,6 +807,7 @@ export default function Home() {
     route.stops,
     selectedOption.endStopId,
     selectedOption.startStopId,
+    activeJourneyLeg,
   ]);
 
   const finalAnnouncementJourneyProgress = useMemo(() => {
@@ -1555,6 +1613,20 @@ export default function Home() {
     if (!routeMatch) return;
 
     if (
+      journeyPhase !== "travelling"
+    ) {
+      return;
+    }
+
+    if (
+      activeJourneyStructure ===
+        "multi_leg" &&
+      !activeJourneyLeg
+    ) {
+      return;
+    }
+
+    if (
       activeJourneyExperienceId !== experience.id
     ) {
       return;
@@ -1667,6 +1739,8 @@ export default function Home() {
         : distanceFromStart;
 
     if (
+      activeJourneyStructure ===
+        "single" &&
       !simulatorEnabled &&
       !journeyCompleted &&
       journeyStartedNearOrigin.current &&
@@ -1741,6 +1815,8 @@ export default function Home() {
 
   useEffect(() => {
     if (
+      activeJourneyStructure !==
+        "single" ||
       !simulatorEnabled ||
       screen !== "journey" ||
       journeyCompleted ||
@@ -2023,8 +2099,14 @@ export default function Home() {
   useEffect(() => {
     if (
       screen !== "journey" ||
+      journeyPhase !== "travelling" ||
       pageHidden ||
       activeJourneyExperienceId !== experience.id ||
+      (
+        activeJourneyStructure ===
+          "multi_leg" &&
+        !activeJourneyLeg
+      ) ||
       routeMatch?.status !== "GOOD"
     ) {
       return;
@@ -3015,6 +3097,8 @@ export default function Home() {
 
       if (
         kind === "next_stop" &&
+        activeJourneyStructure ===
+          "single" &&
         simulatorEnabled &&
         journeyProgress >= 100 &&
         !journeyCompleted
@@ -3196,6 +3280,16 @@ export default function Home() {
       selectedOption.isLoop
         ? "locating"
         : "travelling";
+    const initialDirection:
+      JourneyDirection =
+      journeyStructure ===
+        "multi_leg" &&
+      !selectedOption.isLoop
+        ? orderedLegs[0]
+            ?.journeyDirection ??
+          direction
+        : direction;
+
     audio?.pause();
     if (audio) {
       audio.currentTime = 0;
@@ -3229,7 +3323,12 @@ export default function Home() {
     endAnnouncementPlayedRef.current = false;
     completionOccurredThisSessionRef.current = false;
     setPageHidden(false);
+    setDirection(
+      initialDirection
+    );
+
     setDirectionDetecting(
+      journeyStructure === "single" &&
       directionMode === "automatic" &&
       (
         selectedOption.journeyDirectionAvailability ??
@@ -3241,7 +3340,9 @@ export default function Home() {
       experience.id
     );
 
-    setActiveJourneyDirection(direction);
+    setActiveJourneyDirection(
+      initialDirection
+    );
 
     const analyticsJourneyId = crypto.randomUUID();
     analyticsJourneyIdRef.current = analyticsJourneyId;
