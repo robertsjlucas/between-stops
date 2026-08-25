@@ -144,13 +144,26 @@ type RouteMatch = {
   distanceFromRouteMetres: number;
 };
 
+type JourneyPhase =
+  | "locating"
+  | "travelling"
+  | "handover"
+  | "exploring";
+
+type JourneyStructure =
+  | "single"
+  | "multi_leg";
+
 type PersistedJourneyState = {
-  version: 1;
+  version: 1 | 2;
   experienceId: string;
   direction: JourneyDirection;
   directionMode: DirectionMode;
   journeyProgress: number;
   journeyCompleted: boolean;
+  journeyStructure?: JourneyStructure;
+  journeyPhase?: JourneyPhase;
+  activeLegId?: string | null;
   events: DiagnosticEvent[];
   triggeredStoryIds?: string[];
   audioQueueIds?: string[];
@@ -522,6 +535,21 @@ export default function Home() {
 
   const [activeJourneyDirection, setActiveJourneyDirection] =
     useState<JourneyDirection>("forward");
+
+  const [
+    activeJourneyStructure,
+    setActiveJourneyStructure,
+  ] = useState<JourneyStructure>("single");
+
+  const [
+    journeyPhase,
+    setJourneyPhase,
+  ] = useState<JourneyPhase>("travelling");
+
+  const [
+    activeJourneyLegId,
+    setActiveJourneyLegId,
+  ] = useState<string | null>(null);
 
   const [testerOpen, setTesterOpen] = useState(false);
 
@@ -1158,7 +1186,8 @@ export default function Home() {
         ) as PersistedJourneyState;
 
         if (
-          restored.version === 1 &&
+          (restored.version === 1 ||
+            restored.version === 2) &&
           restored.experienceId &&
           (restored.direction === "forward" ||
             restored.direction === "reverse")
@@ -1167,6 +1196,26 @@ export default function Home() {
           const restoredEvents = Array.isArray(restored.events)
             ? restored.events.slice(-199)
             : [];
+
+          const restoredJourneyStructure:
+            JourneyStructure =
+            restored.version === 2 &&
+            restored.journeyStructure ===
+              "multi_leg"
+              ? "multi_leg"
+              : "single";
+
+          const restoredJourneyPhase:
+            JourneyPhase =
+            restored.version === 2 &&
+            (
+              restored.journeyPhase === "locating" ||
+              restored.journeyPhase === "travelling" ||
+              restored.journeyPhase === "handover" ||
+              restored.journeyPhase === "exploring"
+            )
+              ? restored.journeyPhase
+              : "travelling";
 
           setActiveJourneyExperienceId(
             restored.experienceId
@@ -1178,6 +1227,23 @@ export default function Home() {
           setActiveJourneyDirection(
             restored.direction
           );
+
+          setActiveJourneyStructure(
+            restoredJourneyStructure
+          );
+
+          setJourneyPhase(
+            restoredJourneyPhase
+          );
+
+          setActiveJourneyLegId(
+            restored.version === 2 &&
+            typeof restored.activeLegId ===
+              "string"
+              ? restored.activeLegId
+              : null
+          );
+
           setDirectionMode(
             restored.directionMode === "automatic"
               ? "automatic"
@@ -1258,12 +1324,17 @@ export default function Home() {
     }
 
     const state: PersistedJourneyState = {
-      version: 1,
+      version: 2,
       experienceId: activeJourneyExperienceId,
       direction: activeJourneyDirection,
       directionMode,
       journeyProgress,
       journeyCompleted,
+      journeyStructure:
+        activeJourneyStructure,
+      journeyPhase,
+      activeLegId:
+        activeJourneyLegId,
       events: diagnosticEvents.slice(-200),
       triggeredStoryIds,
       audioQueueIds,
@@ -1278,11 +1349,14 @@ export default function Home() {
   }, [
     activeJourneyDirection,
     activeJourneyExperienceId,
+    activeJourneyStructure,
+    activeJourneyLegId,
     activeAudioStoryId,
     audioQueueIds,
     diagnosticEvents,
     directionMode,
     journeyCompleted,
+    journeyPhase,
     journeyProgress,
     journeyStateReady,
     triggeredStoryIds,
@@ -3090,12 +3164,57 @@ export default function Home() {
 
   function beginExperience() {
     const audio = audioElementRef.current;
+
+    const journeyStructure:
+      JourneyStructure =
+      selectedOption.journeyStructure ===
+        "multi_leg"
+        ? "multi_leg"
+        : "single";
+
+    const orderedLegs =
+      (selectedOption.legs ?? [])
+        .slice()
+        .sort(
+          (first, second) =>
+            first.position -
+            second.position
+        );
+
+    const initialLegId =
+      journeyStructure ===
+        "multi_leg" &&
+      !selectedOption.isLoop
+        ? orderedLegs[0]?.id ??
+          null
+        : null;
+
+    const initialPhase:
+      JourneyPhase =
+      journeyStructure ===
+        "multi_leg" &&
+      selectedOption.isLoop
+        ? "locating"
+        : "travelling";
     audio?.pause();
     if (audio) {
       audio.currentTime = 0;
     }
     setJourneyProgress(0);
     setJourneyCompleted(false);
+
+    setActiveJourneyStructure(
+      journeyStructure
+    );
+
+    setJourneyPhase(
+      initialPhase
+    );
+
+    setActiveJourneyLegId(
+      initialLegId
+    );
+
     setTriggeredStoryIds([]);
     setAudioQueueIds([]);
     setActiveAudioStoryId(null);
@@ -3317,6 +3436,9 @@ export default function Home() {
     );
 
     setActiveJourneyExperienceId(null);
+    setActiveJourneyStructure("single");
+    setJourneyPhase("travelling");
+    setActiveJourneyLegId(null);
     setJourneyProgress(0);
     setJourneyCompleted(false);
     setTriggeredStoryIds([]);
