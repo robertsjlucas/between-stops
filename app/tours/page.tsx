@@ -1563,6 +1563,141 @@ export default function Home() {
     route.mode,
   ]);
 
+  const loopLegMatch = useMemo(() => {
+    if (
+      !location ||
+      simulatorEnabled ||
+      activeJourneyStructure !==
+        "multi_leg" ||
+      !selectedOption.isLoop ||
+      journeyPhase !== "locating" ||
+      activeJourneyLegId
+    ) {
+      return null;
+    }
+
+    const userPoint = point([
+      location.longitude,
+      location.latitude,
+    ]);
+
+    const matches =
+      orderedJourneyLegs
+        .map((leg) => {
+          if (
+            leg.route.coordinates.length <
+              2
+          ) {
+            return null;
+          }
+
+          const legLine =
+            lineString(
+              leg.route.coordinates
+            );
+
+          const legLengthKm =
+            length(
+              legLine,
+              {
+                units: "kilometers",
+              }
+            );
+
+          if (legLengthKm <= 0) {
+            return null;
+          }
+
+          const snapped =
+            nearestPointOnLine(
+              legLine,
+              userPoint,
+              {
+                units: "kilometers",
+              }
+            );
+
+          const distanceFromRouteMetres =
+            (
+              snapped.properties.dist ??
+              0
+            ) * 1000;
+
+          const distanceAlongRouteKm =
+            snapped.properties.location ??
+            0;
+
+          const routeProgress =
+            (
+              distanceAlongRouteKm /
+              legLengthKm
+            ) * 100;
+
+          const sectionStart =
+            Math.min(
+              leg.startProgress,
+              leg.endProgress
+            );
+
+          const sectionEnd =
+            Math.max(
+              leg.startProgress,
+              leg.endProgress
+            );
+
+          const insideLegSection =
+            routeProgress >=
+              sectionStart - 1 &&
+            routeProgress <=
+              sectionEnd + 1;
+
+          if (!insideLegSection) {
+            return null;
+          }
+
+          const goodThreshold =
+            leg.route.mode === "bus"
+              ? 70
+              : 50;
+
+          if (
+            distanceFromRouteMetres >
+            goodThreshold
+          ) {
+            return null;
+          }
+
+          return {
+            leg,
+            routeProgress,
+            distanceAlongRouteKm,
+            distanceFromRouteMetres,
+          };
+        })
+        .filter(
+          (
+            match
+          ): match is NonNullable<
+            typeof match
+          > => Boolean(match)
+        )
+        .sort(
+          (first, second) =>
+            first.distanceFromRouteMetres -
+            second.distanceFromRouteMetres
+        );
+
+    return matches[0] ?? null;
+  }, [
+    activeJourneyLegId,
+    activeJourneyStructure,
+    journeyPhase,
+    location,
+    orderedJourneyLegs,
+    selectedOption.isLoop,
+    simulatorEnabled,
+  ]);
+
   const simulatedRouteMatch = useMemo<RouteMatch>(() => {
     const sectionStart = experience.startProgress;
     const sectionEnd = experience.endProgress;
@@ -1608,6 +1743,143 @@ export default function Home() {
   const routeMatch = simulatorEnabled
     ? simulatedRouteMatch
     : gpsRouteMatch;
+
+  useEffect(() => {
+    if (
+      journeyPhase !== "locating" ||
+      activeJourneyStructure !==
+        "multi_leg" ||
+      !selectedOption.isLoop ||
+      !loopLegMatch ||
+      activeJourneyLegId
+    ) {
+      return;
+    }
+
+    const detectedLeg =
+      loopLegMatch.leg;
+
+    setActiveJourneyLegId(
+      detectedLeg.id
+    );
+
+    setDirection(
+      detectedLeg.journeyDirection
+    );
+
+    setActiveJourneyDirection(
+      detectedLeg.journeyDirection
+    );
+
+    setDirectionMode("manual");
+    setDirectionDetecting(false);
+
+    /*
+      Unlike a linear journey, joining
+      halfway through a loop leg is valid.
+      This allows its eventual handover
+      endpoint to count normally.
+    */
+    journeyStartedNearOrigin.current =
+      true;
+
+    setJourneyProgress(0);
+
+    detectionStartProgress.current =
+      null;
+    previousRouteStatus.current =
+      null;
+    previousStoryId.current =
+      null;
+    previousMotionReadingRef.current =
+      null;
+    resumeAfterTimestampRef.current =
+      null;
+    finalAnnouncementPlayedRef.current =
+      false;
+
+    setJourneyPhase("travelling");
+
+    recordDiagnostic(
+      "journey_resumed",
+      `Loop joined on leg ${
+        detectedLeg.position + 1
+      } near ${
+        Math.round(
+          loopLegMatch.distanceFromRouteMetres
+        )
+      } metres from the route.`,
+      {
+        routeProgress:
+          loopLegMatch.routeProgress,
+        distanceFromRouteMetres:
+          loopLegMatch.distanceFromRouteMetres,
+      }
+    );
+  }, [
+    activeJourneyLegId,
+    activeJourneyStructure,
+    journeyPhase,
+    loopLegMatch,
+    recordDiagnostic,
+    selectedOption.isLoop,
+  ]);
+
+  useEffect(() => {
+    if (
+      !simulatorEnabled ||
+      journeyPhase !== "locating" ||
+      activeJourneyStructure !==
+        "multi_leg" ||
+      !selectedOption.isLoop ||
+      activeJourneyLegId
+    ) {
+      return;
+    }
+
+    const simulatedLeg =
+      orderedJourneyLegs[0];
+
+    if (!simulatedLeg) {
+      return;
+    }
+
+    setActiveJourneyLegId(
+      simulatedLeg.id
+    );
+
+    setDirection(
+      simulatedLeg.journeyDirection
+    );
+
+    setActiveJourneyDirection(
+      simulatedLeg.journeyDirection
+    );
+
+    setDirectionMode("manual");
+    setDirectionDetecting(false);
+
+    journeyStartedNearOrigin.current =
+      true;
+    setJourneyProgress(0);
+    setSimulatorProgress(0);
+
+    previousRouteStatus.current =
+      null;
+    previousMotionReadingRef.current =
+      null;
+    finalAnnouncementPlayedRef.current =
+      false;
+
+    setJourneyPhase("travelling");
+  }, [
+    activeJourneyLegId,
+    activeJourneyStructure,
+    journeyPhase,
+    orderedJourneyLegs,
+    selectedOption.isLoop,
+    simulatorEnabled,
+  ]);
 
   const diagnosticAccuracy = simulatorEnabled
     ? simulatorCondition === "good"
@@ -5284,7 +5556,27 @@ export default function Home() {
         />
       </div>
 
-      {directionDetecting && (
+      {journeyPhase ===
+        "locating" && (
+        <div className="directionNotice">
+          <span className="directionPulse" />
+          <div>
+            <strong>
+              Finding your place on the loop
+            </strong>
+            <span>
+              You can join this experience
+              around the circuit. Keep this
+              page open and we&apos;ll identify
+              the route you&apos;re travelling
+              on.
+            </span>
+          </div>
+        </div>
+      )}
+
+      {journeyPhase !== "locating" &&
+        directionDetecting && (
         <div className="directionNotice">
           <span className="directionPulse" />
           <div>
@@ -5305,8 +5597,10 @@ export default function Home() {
         </div>
       )}
 
-      {routeMatch?.status ===
-        "OFF ROUTE" && (
+      {journeyPhase ===
+        "travelling" &&
+        routeMatch?.status ===
+          "OFF ROUTE" && (
         <div className="routeNotice">
           <strong>
             {route.mode === "bus"
