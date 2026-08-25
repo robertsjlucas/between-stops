@@ -43,6 +43,39 @@ export type AgeGuidance =
   | "all_ages"
   | "not_for_children";
 
+export type JourneyStructure =
+  | "single"
+  | "multi_leg";
+
+export type HandoverType =
+  | "transfer"
+  | "explore";
+
+export type CreatorExperienceLeg = {
+  id: string;
+  position: number;
+  selectedRouteId: string;
+  sectionMode: SectionMode;
+  journeyDirection:
+    | "forward"
+    | "reverse";
+  startStopId: string;
+  endStopId: string;
+};
+
+export type CreatorExperienceHandover = {
+  id: string;
+  fromLegId: string;
+  toLegId: string;
+  handoverType: HandoverType;
+  title: string;
+  instructions: string;
+  explorationText: string;
+  walkMinutes?: number;
+  stopReference: string;
+  towardsLabel: string;
+};
+
 export type MediaAttachment = {
   path: string;
   filename: string;
@@ -54,6 +87,7 @@ export type MediaAttachment = {
 
 export type CreatorStory = {
   id: string;
+  legId?: string;
   title: string;
   text: string;
   type: CreatorStoryType;
@@ -67,6 +101,10 @@ export type SavedProject = {
   id: string;
   name: string;
   city: string;
+  journeyStructure?: JourneyStructure;
+  isLoop?: boolean;
+  legs?: CreatorExperienceLeg[];
+  handovers?: CreatorExperienceHandover[];
   selectedRouteId: string;
   sectionMode: SectionMode;
   journeyDirectionAvailability: JourneyDirectionAvailability;
@@ -107,6 +145,7 @@ export type CreatorProfile = {
 
 type DatabaseStory = {
   id: string;
+  leg_id: string | null;
   title: string;
   notes: string;
   story_type:
@@ -126,10 +165,37 @@ type DatabaseStory = {
   image_size_bytes: number | null;
 };
 
+type DatabaseExperienceLeg = {
+  id: string;
+  position: number;
+  route_id: string;
+  section_mode: SectionMode;
+  journey_direction:
+    | "forward"
+    | "reverse";
+  start_stop_id: string;
+  end_stop_id: string;
+};
+
+type DatabaseExperienceHandover = {
+  id: string;
+  from_leg_id: string;
+  to_leg_id: string;
+  handover_type: HandoverType;
+  title: string;
+  instructions: string;
+  exploration_text: string;
+  walk_minutes: number | null;
+  stop_reference: string;
+  towards_label: string;
+};
+
 type DatabaseExperience = {
   id: string;
   title: string;
   city: string;
+  journey_structure: JourneyStructure;
+  is_loop: boolean;
   route_id: string;
   section_mode: SectionMode;
   journey_direction_availability: JourneyDirectionAvailability;
@@ -169,6 +235,8 @@ type DatabaseExperience = {
     size_bytes: number;
     position: number;
   }[];
+  experience_legs?: DatabaseExperienceLeg[];
+  experience_handovers?: DatabaseExperienceHandover[];
   stories: DatabaseStory[];
 };
 
@@ -255,6 +323,8 @@ export async function loadCreatorProjects(
         id,
         title,
         city,
+        journey_structure,
+        is_loop,
         route_id,
         section_mode,
         journey_direction_availability,
@@ -294,8 +364,30 @@ export async function loadCreatorProjects(
           size_bytes,
           position
         ),
+        experience_legs (
+          id,
+          position,
+          route_id,
+          section_mode,
+          journey_direction,
+          start_stop_id,
+          end_stop_id
+        ),
+        experience_handovers (
+          id,
+          from_leg_id,
+          to_leg_id,
+          handover_type,
+          title,
+          instructions,
+          exploration_text,
+          walk_minutes,
+          stop_reference,
+          towards_label
+        ),
         stories (
           id,
+          leg_id,
           title,
           notes,
           story_type,
@@ -474,6 +566,58 @@ export async function loadCreatorProjects(
       id: experience.id,
       name: experience.title,
       city: experience.city,
+      journeyStructure:
+        experience.journey_structure ??
+        "single",
+      isLoop:
+        experience.is_loop ?? false,
+      legs:
+        (experience.experience_legs ?? [])
+          .sort(
+            (first, second) =>
+              first.position -
+              second.position
+          )
+          .map((leg) => ({
+            id: leg.id,
+            position: leg.position,
+            selectedRouteId:
+              CREATOR_ROUTE_IDS[
+                leg.route_id
+              ] ?? leg.route_id,
+            sectionMode:
+              leg.section_mode,
+            journeyDirection:
+              leg.journey_direction,
+            startStopId:
+              leg.start_stop_id,
+            endStopId:
+              leg.end_stop_id,
+          })),
+      handovers:
+        (experience.experience_handovers ?? [])
+          .map((handover) => ({
+            id: handover.id,
+            fromLegId:
+              handover.from_leg_id,
+            toLegId:
+              handover.to_leg_id,
+            handoverType:
+              handover.handover_type,
+            title:
+              handover.title,
+            instructions:
+              handover.instructions,
+            explorationText:
+              handover.exploration_text,
+            walkMinutes:
+              handover.walk_minutes ??
+              undefined,
+            stopReference:
+              handover.stop_reference,
+            towardsLabel:
+              handover.towards_label,
+          })),
       selectedRouteId:
         CREATOR_ROUTE_IDS[
           experience.route_id
@@ -589,6 +733,9 @@ export async function loadCreatorProjects(
         .map(
           (story) => ({
             id: story.id,
+            legId:
+              story.leg_id ??
+              undefined,
             title: story.title,
             text: story.notes,
             type:
