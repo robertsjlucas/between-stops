@@ -972,6 +972,109 @@ export async function saveCreatorProject(
     throw experienceError;
   }
 
+  if (
+    project.journeyStructure ===
+    "multi_leg"
+  ) {
+    if (
+      (project.legs ?? []).length >
+      0
+    ) {
+      const {
+        error: legsError,
+      } =
+        await supabase
+          .from("experience_legs")
+          .upsert(
+            (project.legs ?? []).map(
+              (leg) => ({
+                id: leg.id,
+                experience_id:
+                  project.id,
+                position:
+                  leg.position,
+                route_id:
+                  DATABASE_ROUTE_IDS[
+                    leg.selectedRouteId
+                  ] ??
+                  leg.selectedRouteId,
+                section_mode:
+                  leg.sectionMode,
+                journey_direction:
+                  leg.journeyDirection,
+                start_stop_id:
+                  leg.startStopId,
+                end_stop_id:
+                  leg.endStopId,
+                updated_at:
+                  new Date()
+                    .toISOString(),
+              })
+            ),
+            {
+              onConflict: "id",
+            }
+          );
+
+      if (legsError) {
+        throw legsError;
+      }
+    }
+
+    if (
+      (project.handovers ?? [])
+        .length > 0
+    ) {
+      const {
+        error: handoversError,
+      } =
+        await supabase
+          .from(
+            "experience_handovers"
+          )
+          .upsert(
+            (
+              project.handovers ?? []
+            ).map(
+              (handover) => ({
+                id: handover.id,
+                experience_id:
+                  project.id,
+                from_leg_id:
+                  handover.fromLegId,
+                to_leg_id:
+                  handover.toLegId,
+                handover_type:
+                  handover.handoverType,
+                title:
+                  handover.title,
+                instructions:
+                  handover.instructions,
+                exploration_text:
+                  handover.explorationText,
+                walk_minutes:
+                  handover.walkMinutes ??
+                  null,
+                stop_reference:
+                  handover.stopReference,
+                towards_label:
+                  handover.towardsLabel,
+                updated_at:
+                  new Date()
+                    .toISOString(),
+              })
+            ),
+            {
+              onConflict: "id",
+            }
+          );
+
+      if (handoversError) {
+        throw handoversError;
+      }
+    }
+  }
+
   const {
     data: existingGallery,
     error: existingGalleryError,
@@ -1060,6 +1163,9 @@ export async function saveCreatorProject(
           id: story.id,
           experience_id:
             project.id,
+          leg_id:
+            story.legId ??
+            null,
           title: story.title,
           notes: story.text,
           story_type: story.type,
@@ -1227,6 +1333,138 @@ export async function saveCreatorProject(
       throw new Error(
         `The draft was saved, but old media could not be removed: ${mediaDeleteError.message}`
       );
+    }
+  }
+
+  if (
+    project.journeyStructure ===
+    "multi_leg"
+  ) {
+    const {
+      data: existingHandovers,
+      error:
+        existingHandoversError,
+    } =
+      await supabase
+        .from(
+          "experience_handovers"
+        )
+        .select("id")
+        .eq(
+          "experience_id",
+          project.id
+        );
+
+    if (
+      existingHandoversError
+    ) {
+      throw existingHandoversError;
+    }
+
+    const currentHandoverIds =
+      new Set(
+        (
+          project.handovers ?? []
+        ).map(
+          (handover) =>
+            handover.id
+        )
+      );
+
+    const staleHandoverIds =
+      (
+        existingHandovers ?? []
+      )
+        .map(
+          (handover) =>
+            handover.id
+        )
+        .filter(
+          (id) =>
+            !currentHandoverIds.has(
+              id
+            )
+        );
+
+    if (
+      staleHandoverIds.length >
+      0
+    ) {
+      const {
+        error:
+          staleHandoversError,
+      } =
+        await supabase
+          .from(
+            "experience_handovers"
+          )
+          .delete()
+          .in(
+            "id",
+            staleHandoverIds
+          );
+
+      if (
+        staleHandoversError
+      ) {
+        throw staleHandoversError;
+      }
+    }
+
+    const {
+      data: existingLegs,
+      error: existingLegsError,
+    } =
+      await supabase
+        .from("experience_legs")
+        .select("id")
+        .eq(
+          "experience_id",
+          project.id
+        );
+
+    if (existingLegsError) {
+      throw existingLegsError;
+    }
+
+    const currentLegIds =
+      new Set(
+        (project.legs ?? []).map(
+          (leg) => leg.id
+        )
+      );
+
+    const staleLegIds =
+      (existingLegs ?? [])
+        .map(
+          (leg) => leg.id
+        )
+        .filter(
+          (id) =>
+            !currentLegIds.has(
+              id
+            )
+        );
+
+    if (
+      staleLegIds.length > 0
+    ) {
+      const {
+        error: staleLegsError,
+      } =
+        await supabase
+          .from(
+            "experience_legs"
+          )
+          .delete()
+          .in(
+            "id",
+            staleLegIds
+          );
+
+      if (staleLegsError) {
+        throw staleLegsError;
+      }
     }
   }
 }
