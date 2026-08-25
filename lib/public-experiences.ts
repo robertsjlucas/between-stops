@@ -20,6 +20,46 @@ import {
   loadRatingSummaries,
 } from "@/lib/passenger-reviews";
 
+export type JourneyStructure =
+  | "single"
+  | "multi_leg";
+
+export type HandoverType =
+  | "transfer"
+  | "explore";
+
+export type PublicExperienceLeg = {
+  id: string;
+  position: number;
+  routeId: string;
+  route: RouteDefinition;
+  journeyDirection:
+    | "forward"
+    | "reverse";
+  startStopId: string;
+  endStopId: string;
+  startLabel: string;
+  endLabel: string;
+  startCoordinates: Coordinates;
+  endCoordinates: Coordinates;
+  startProgress: number;
+  endProgress: number;
+  storyIds: string[];
+};
+
+export type PublicExperienceHandover = {
+  id: string;
+  fromLegId: string;
+  toLegId: string;
+  handoverType: HandoverType;
+  title: string;
+  instructions: string;
+  explorationText: string;
+  walkMinutes?: number;
+  stopReference: string;
+  towardsLabel: string;
+};
+
 export type PublicCreator = {
   displayName: string;
   bio: string;
@@ -33,6 +73,10 @@ export type PublicCreator = {
 
 export type PublicExperienceOption = {
   slug?: string;
+  journeyStructure?: JourneyStructure;
+  isLoop?: boolean;
+  legs?: PublicExperienceLeg[];
+  handovers?: PublicExperienceHandover[];
   countryCode?: string;
   countrySlug?: string;
   city?: string;
@@ -74,6 +118,7 @@ export type PublicExperienceOption = {
 
 type DatabaseStory = {
   id: string;
+  leg_id: string | null;
   title: string;
   notes: string;
   story_type: StoryType;
@@ -85,6 +130,33 @@ type DatabaseStory = {
   audio_size_bytes: number | null;
   image_path: string | null;
   image_size_bytes: number | null;
+};
+
+type DatabaseExperienceLeg = {
+  id: string;
+  position: number;
+  route_id: string;
+  section_mode:
+    | "whole"
+    | "section";
+  journey_direction:
+    | "forward"
+    | "reverse";
+  start_stop_id: string;
+  end_stop_id: string;
+};
+
+type DatabaseExperienceHandover = {
+  id: string;
+  from_leg_id: string;
+  to_leg_id: string;
+  handover_type: HandoverType;
+  title: string;
+  instructions: string;
+  exploration_text: string;
+  walk_minutes: number | null;
+  stop_reference: string;
+  towards_label: string;
 };
 
 type DatabaseExperience = {
@@ -99,6 +171,8 @@ type DatabaseExperience = {
   title: string;
   summary: string;
   description: string;
+  journey_structure: JourneyStructure;
+  is_loop: boolean;
   route_id: string;
   journey_direction_availability:
     | "either"
@@ -125,6 +199,8 @@ type DatabaseExperience = {
   currency: string;
   published_at: string | null;
   stories: DatabaseStory[];
+  experience_legs?: DatabaseExperienceLeg[];
+  experience_handovers?: DatabaseExperienceHandover[];
   experience_gallery_images: {
     path: string;
     position: number;
@@ -291,6 +367,8 @@ export async function loadPublishedExperiences(
         title,
         summary,
         description,
+        journey_structure,
+        is_loop,
         route_id,
         journey_direction_availability,
         start_stop_id,
@@ -313,8 +391,30 @@ export async function loadPublishedExperiences(
           position,
           size_bytes
         ),
+        experience_legs (
+          id,
+          position,
+          route_id,
+          section_mode,
+          journey_direction,
+          start_stop_id,
+          end_stop_id
+        ),
+        experience_handovers (
+          id,
+          from_leg_id,
+          to_leg_id,
+          handover_type,
+          title,
+          instructions,
+          exploration_text,
+          walk_minutes,
+          stop_reference,
+          towards_label
+        ),
         stories (
           id,
+          leg_id,
           title,
           notes,
           story_type,
@@ -563,9 +663,125 @@ async function hydrateExperienceRows(
           : start?.coordinates ??
             route.coordinates[0];
 
+      const publicLegs =
+        (row.experience_legs ?? [])
+          .sort(
+            (first, second) =>
+              first.position -
+              second.position
+          )
+          .flatMap((leg) => {
+            const legRoute =
+              routesById[leg.route_id];
+
+            if (!legRoute) {
+              return [];
+            }
+
+            const firstLegFallback =
+              legRoute.stops?.[0];
+
+            const lastLegFallback =
+              legRoute.stops?.[
+                (legRoute.stops?.length ?? 1) -
+                  1
+              ];
+
+            const legStartStop =
+              legRoute.stops?.find(
+                (stop) =>
+                  stop.id ===
+                  leg.start_stop_id
+              ) ?? firstLegFallback;
+
+            const legEndStop =
+              legRoute.stops?.find(
+                (stop) =>
+                  stop.id ===
+                  leg.end_stop_id
+              ) ?? lastLegFallback;
+
+            if (
+              !legStartStop ||
+              !legEndStop
+            ) {
+              return [];
+            }
+
+            return [{
+              id: leg.id,
+              position: leg.position,
+              routeId: legRoute.id,
+              route: legRoute,
+              journeyDirection:
+                leg.journey_direction,
+              startStopId:
+                legStartStop.id,
+              endStopId:
+                legEndStop.id,
+              startLabel:
+                legStartStop.name,
+              endLabel:
+                legEndStop.name,
+              startCoordinates:
+                legStartStop.coordinates,
+              endCoordinates:
+                legEndStop.coordinates,
+              startProgress:
+                legStartStop.routeProgress,
+              endProgress:
+                legEndStop.routeProgress,
+              storyIds:
+                (row.stories ?? [])
+                  .filter(
+                    (story) =>
+                      story.leg_id ===
+                      leg.id
+                  )
+                  .map(
+                    (story) =>
+                      story.id
+                  ),
+            }];
+          });
+
+      const publicHandovers =
+        (row.experience_handovers ?? [])
+          .map((handover) => ({
+            id: handover.id,
+            fromLegId:
+              handover.from_leg_id,
+            toLegId:
+              handover.to_leg_id,
+            handoverType:
+              handover.handover_type,
+            title:
+              handover.title,
+            instructions:
+              handover.instructions,
+            explorationText:
+              handover.exploration_text,
+            walkMinutes:
+              handover.walk_minutes ??
+              undefined,
+            stopReference:
+              handover.stop_reference,
+            towardsLabel:
+              handover.towards_label,
+          }));
+
       return {
         slug:
           row.slug ?? undefined,
+        journeyStructure:
+          row.journey_structure ??
+          "single",
+        isLoop:
+          row.is_loop ?? false,
+        legs:
+          publicLegs,
+        handovers:
+          publicHandovers,
         countryCode:
           row.country_code ?? undefined,
         countrySlug:
@@ -807,6 +1023,8 @@ export async function loadPublishedExperienceBySlug(
       title,
       summary,
       description,
+      journey_structure,
+      is_loop,
       route_id,
       journey_direction_availability,
       start_stop_id,
@@ -829,8 +1047,30 @@ export async function loadPublishedExperienceBySlug(
         position,
         size_bytes
       ),
+      experience_legs (
+        id,
+        position,
+        route_id,
+        section_mode,
+        journey_direction,
+        start_stop_id,
+        end_stop_id
+      ),
+      experience_handovers (
+        id,
+        from_leg_id,
+        to_leg_id,
+        handover_type,
+        title,
+        instructions,
+        exploration_text,
+        walk_minutes,
+        stop_reference,
+        towards_label
+      ),
       stories (
         id,
+        leg_id,
         title,
         notes,
         story_type,
@@ -903,6 +1143,8 @@ export async function loadExperiencePreview(
       title,
       summary,
       description,
+      journey_structure,
+      is_loop,
       route_id,
       journey_direction_availability,
       start_stop_id,
@@ -925,8 +1167,30 @@ export async function loadExperiencePreview(
         position,
         size_bytes
       ),
+      experience_legs (
+        id,
+        position,
+        route_id,
+        section_mode,
+        journey_direction,
+        start_stop_id,
+        end_stop_id
+      ),
+      experience_handovers (
+        id,
+        from_leg_id,
+        to_leg_id,
+        handover_type,
+        title,
+        instructions,
+        exploration_text,
+        walk_minutes,
+        stop_reference,
+        towards_label
+      ),
       stories (
         id,
+        leg_id,
         title,
         notes,
         story_type,
