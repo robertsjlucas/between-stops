@@ -2672,3 +2672,40 @@
     border-radius: 20px 56px 20px 20px;
   }
 }
+
+
+/* --------------------------------------------------
+   PUBLISHED STUDIO CONTROLS
+   -------------------------------------------------- */
+
+.studioUnpublishButton {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid rgba(255, 139, 37, 0.45);
+  border-radius: 999px;
+  background: rgba(255, 139, 37, 0.12);
+  color: #FF8B25;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.studioUnpublishButton:hover {
+  border-color: #FF8B25;
+  background: rgba(255, 139, 37, 0.2);
+}
+
+.addStoryButton:disabled {
+  border-color: #d9dde2;
+  background: #eceff2;
+  color: #8a9098;
+  cursor: not-allowed;
+  opacity: 1;
+  box-shadow: none;
+}
+
+.addStoryButton:disabled:hover {
+  border-color: #d9dde2;
+  background: #eceff2;
+  color: #8a9098;
+}

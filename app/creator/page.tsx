@@ -5305,7 +5305,7 @@ export default function CreatorPage() {
 
             {activeProject?.status === "published" && (
               <button
-                className="projectPause"
+                className="studioUnpublishButton"
                 onClick={() =>
                   void pausePublishedProject(
                     activeProject
@@ -5504,7 +5504,10 @@ export default function CreatorPage() {
                   >
                     {placementMode
                       ? "Click somewhere on the map…"
-                      : "+ Add story"}
+                      : !canEditActiveProject &&
+                          activeProject?.status === "published"
+                        ? "Unpublish to add a Story"
+                        : "+ Add story"}
                   </button>
 
                   {!canEditActiveProject &&
