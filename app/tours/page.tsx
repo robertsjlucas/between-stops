@@ -2540,33 +2540,103 @@ export default function Home() {
       return;
     }
 
-    const newlyTriggered = journeyStories.filter(
-      (story) =>
-        journeyProgress >= story.triggerJourneyProgress &&
-        !triggeredStoryIds.includes(story.id)
+    /*
+      Location is authoritative.
+
+      If the passenger joins an experience
+      part-way through, Stories whose subject
+      has already been passed must not become
+      an audio backlog.
+
+      A Story may still trigger if its subject
+      is ahead of the passenger and the
+      passenger is already inside its approach
+      window.
+    */
+    const passedStoryIds =
+      journeyStories
+        .filter(
+          (story) =>
+            journeyProgress >
+              story.journeyProgress &&
+            !triggeredStoryIds.includes(
+              story.id
+            )
+        )
+        .map((story) => story.id);
+
+    const newlyTriggered =
+      journeyStories.filter(
+        (story) =>
+          journeyProgress >=
+            story.triggerJourneyProgress &&
+          journeyProgress <=
+            story.journeyProgress &&
+          !triggeredStoryIds.includes(
+            story.id
+          )
+      );
+
+    if (
+      passedStoryIds.length === 0 &&
+      newlyTriggered.length === 0
+    ) {
+      return;
+    }
+
+    const newIds =
+      newlyTriggered.map(
+        (story) => story.id
+      );
+
+    setTriggeredStoryIds(
+      (current) => [
+        ...current,
+        ...[
+          ...passedStoryIds,
+          ...newIds,
+        ].filter(
+          (storyId) =>
+            !current.includes(storyId)
+        ),
+      ]
     );
 
-    if (newlyTriggered.length === 0) return;
+    if (newIds.length > 0) {
+      setAudioQueueIds((current) => [
+        ...current,
+        ...newIds.filter(
+          (storyId) =>
+            storyId !==
+              activeAudioStoryId &&
+            !current.includes(
+              storyId
+            )
+        ),
+      ]);
+    }
 
-    const newIds = newlyTriggered.map(
-      (story) => story.id
+    passedStoryIds.forEach(
+      (storyId) => {
+        const story =
+          journeyStories.find(
+            (item) =>
+              item.id === storyId
+          );
+
+        recordDiagnostic(
+          "story_skipped",
+          `Story passed before playback and was skipped: ${
+            story?.title ?? storyId
+          }.`,
+          {
+            journeyProgress,
+            routeProgress:
+              routeMatch.routeProgress,
+          }
+        );
+      }
     );
-
-    setTriggeredStoryIds((current) => [
-      ...current,
-      ...newIds.filter(
-        (storyId) => !current.includes(storyId)
-      ),
-    ]);
-
-    setAudioQueueIds((current) => [
-      ...current,
-      ...newIds.filter(
-        (storyId) =>
-          storyId !== activeAudioStoryId &&
-          !current.includes(storyId)
-      ),
-    ]);
 
     newlyTriggered.forEach((story, index) => {
       recordDiagnostic(
