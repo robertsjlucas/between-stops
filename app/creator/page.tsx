@@ -5303,6 +5303,19 @@ export default function CreatorPage() {
               Experience details
             </button>
 
+            {activeProject?.status === "published" && (
+              <button
+                className="projectPause"
+                onClick={() =>
+                  void pausePublishedProject(
+                    activeProject
+                  )
+                }
+              >
+                Unpublish / pause
+              </button>
+            )}
+
             <button
               className="saveDraftButton"
               disabled={!canEditActiveProject}
@@ -5477,6 +5490,14 @@ export default function CreatorPage() {
                         ? "addStoryButton placing"
                         : "addStoryButton"
                     }
+                    disabled={
+                      !canEditActiveProject
+                    }
+                    title={
+                      !canEditActiveProject
+                        ? "Unpublish / pause this experience before adding Stories."
+                        : undefined
+                    }
                     onClick={
                       startAddingStory
                     }
@@ -5485,6 +5506,13 @@ export default function CreatorPage() {
                       ? "Click somewhere on the map…"
                       : "+ Add story"}
                   </button>
+
+                  {!canEditActiveProject &&
+                    activeProject?.status === "published" && (
+                      <small className="mediaHelpNote">
+                        This experience is live. Unpublish / pause it before adding or changing Stories.
+                      </small>
+                    )}
 
                   {placementMode && (
                     <button
