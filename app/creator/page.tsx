@@ -1654,6 +1654,36 @@ export default function CreatorPage() {
   useEffect(() => {
     if (
       stage !== "studio" ||
+      !mapContainer.current
+    ) {
+      return;
+    }
+
+    const container =
+      mapContainer.current;
+
+    const observer =
+      new ResizeObserver(() => {
+        const map = mapRef.current;
+
+        if (!map) {
+          return;
+        }
+
+        map.resize();
+        map.triggerRepaint();
+      });
+
+    observer.observe(container);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [stage]);
+
+  useEffect(() => {
+    if (
+      stage !== "studio" ||
       !mapRef.current ||
       mapReadyVersion === 0
     ) {
@@ -5901,7 +5931,9 @@ export default function CreatorPage() {
                   )}
 
                 <small className="mediaHelpNote">
-                  You can save this Story without audio while planning the route. Every Story must have audio before the experience can be submitted. A transcript and image are optional. Draft media is private. Maximum file size: 25 MB.
+                  {canEditActiveProject
+                    ? "You can save this Story without audio while planning the route. Every Story must have audio before the experience can be submitted. A transcript and image are optional. Draft media is private. Maximum file size: 25 MB."
+                    : "This published experience is read-only. To change its Stories, return to Projects, pause the experience, then choose Edit & resubmit."}
                 </small>
 
                 <div className="editorActions">
@@ -5911,6 +5943,11 @@ export default function CreatorPage() {
                       !storyTitle.trim() ||
                       storySaving ||
                       !canEditActiveProject
+                    }
+                    title={
+                      !canEditActiveProject
+                        ? "Pause this published experience and choose Edit & resubmit before changing Stories."
+                        : undefined
                     }
                     onClick={
                       saveStory
